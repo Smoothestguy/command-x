@@ -54,6 +54,16 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { DateRange } from "react-day-picker";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 const Accounting: React.FC = () => {
   const { toast } = useToast();
@@ -69,6 +79,10 @@ const Accounting: React.FC = () => {
   const [isGeneratingStatements, setIsGeneratingStatements] = useState(false);
   const [isPreparingTaxDocs, setIsPreparingTaxDocs] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  // State to track if financial statements have been generated
+  const [showGeneratedStatements, setShowGeneratedStatements] = useState(false);
+  const [generatedDate, setGeneratedDate] = useState<string>("");
 
   // Fetch projects data
   const { isLoading: projectsLoading, error: projectsError } = useQuery({
@@ -163,6 +177,13 @@ const Accounting: React.FC = () => {
           setTimeout(() => {
             // Reset loading state
             setIsGeneratingStatements(false);
+
+            // Set the generated date
+            const now = new Date();
+            setGeneratedDate(now.toLocaleString());
+
+            // Show the generated statements
+            setShowGeneratedStatements(true);
 
             toast({
               title: "Financial statements generated",
@@ -1465,6 +1486,404 @@ const Accounting: React.FC = () => {
               </TabsContent>
             </Tabs>
           </div>
+
+          {/* Financial Statements Display */}
+          {showGeneratedStatements && (
+            <div className="mt-8">
+              <Card className="border-2 border-green-500">
+                <CardHeader className="bg-green-50">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle className="text-xl text-green-700">
+                        Generated Financial Statements
+                      </CardTitle>
+                      <CardDescription>
+                        Generated on: {generatedDate}
+                      </CardDescription>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowGeneratedStatements(false)}
+                    >
+                      Close
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <div className="space-y-8">
+                    {/* Income Statement */}
+                    <div>
+                      <h3 className="text-lg font-bold mb-4">
+                        Income Statement
+                      </h3>
+                      <div className="border rounded-md overflow-hidden">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-[300px]">Item</TableHead>
+                              <TableHead className="text-right">
+                                Amount ($)
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            <TableRow>
+                              <TableCell className="font-medium">
+                                Revenue
+                              </TableCell>
+                              <TableCell className="text-right">
+                                1,250,000.00
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-medium">
+                                Cost of Goods Sold
+                              </TableCell>
+                              <TableCell className="text-right">
+                                750,000.00
+                              </TableCell>
+                            </TableRow>
+                            <TableRow className="bg-muted/50">
+                              <TableCell className="font-bold">
+                                Gross Profit
+                              </TableCell>
+                              <TableCell className="text-right font-bold">
+                                500,000.00
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-medium">
+                                Operating Expenses
+                              </TableCell>
+                              <TableCell className="text-right">
+                                200,000.00
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-medium">
+                                Administrative Expenses
+                              </TableCell>
+                              <TableCell className="text-right">
+                                100,000.00
+                              </TableCell>
+                            </TableRow>
+                            <TableRow className="bg-muted/50">
+                              <TableCell className="font-bold">
+                                Operating Income
+                              </TableCell>
+                              <TableCell className="text-right font-bold">
+                                200,000.00
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-medium">
+                                Taxes (25%)
+                              </TableCell>
+                              <TableCell className="text-right">
+                                50,000.00
+                              </TableCell>
+                            </TableRow>
+                            <TableRow className="bg-green-50">
+                              <TableCell className="font-bold">
+                                Net Income
+                              </TableCell>
+                              <TableCell className="text-right font-bold">
+                                150,000.00
+                              </TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+
+                    {/* Balance Sheet */}
+                    <div>
+                      <h3 className="text-lg font-bold mb-4">Balance Sheet</h3>
+                      <div className="border rounded-md overflow-hidden">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-[300px]">Item</TableHead>
+                              <TableHead className="text-right">
+                                Amount ($)
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            <TableRow className="bg-muted/30">
+                              <TableCell className="font-bold" colSpan={2}>
+                                Assets
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-medium pl-6">
+                                Cash and Equivalents
+                              </TableCell>
+                              <TableCell className="text-right">
+                                350,000.00
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-medium pl-6">
+                                Accounts Receivable
+                              </TableCell>
+                              <TableCell className="text-right">
+                                425,000.00
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-medium pl-6">
+                                Property and Equipment
+                              </TableCell>
+                              <TableCell className="text-right">
+                                875,000.00
+                              </TableCell>
+                            </TableRow>
+                            <TableRow className="bg-muted/50">
+                              <TableCell className="font-bold">
+                                Total Assets
+                              </TableCell>
+                              <TableCell className="text-right font-bold">
+                                1,650,000.00
+                              </TableCell>
+                            </TableRow>
+
+                            <TableRow className="bg-muted/30">
+                              <TableCell className="font-bold" colSpan={2}>
+                                Liabilities
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-medium pl-6">
+                                Accounts Payable
+                              </TableCell>
+                              <TableCell className="text-right">
+                                275,000.00
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-medium pl-6">
+                                Long-term Debt
+                              </TableCell>
+                              <TableCell className="text-right">
+                                525,000.00
+                              </TableCell>
+                            </TableRow>
+                            <TableRow className="bg-muted/50">
+                              <TableCell className="font-bold">
+                                Total Liabilities
+                              </TableCell>
+                              <TableCell className="text-right font-bold">
+                                800,000.00
+                              </TableCell>
+                            </TableRow>
+
+                            <TableRow className="bg-muted/30">
+                              <TableCell className="font-bold" colSpan={2}>
+                                Equity
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-medium pl-6">
+                                Common Stock
+                              </TableCell>
+                              <TableCell className="text-right">
+                                500,000.00
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-medium pl-6">
+                                Retained Earnings
+                              </TableCell>
+                              <TableCell className="text-right">
+                                350,000.00
+                              </TableCell>
+                            </TableRow>
+                            <TableRow className="bg-muted/50">
+                              <TableCell className="font-bold">
+                                Total Equity
+                              </TableCell>
+                              <TableCell className="text-right font-bold">
+                                850,000.00
+                              </TableCell>
+                            </TableRow>
+
+                            <TableRow className="bg-green-50">
+                              <TableCell className="font-bold">
+                                Total Liabilities and Equity
+                              </TableCell>
+                              <TableCell className="text-right font-bold">
+                                1,650,000.00
+                              </TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+
+                    {/* Cash Flow Statement */}
+                    <div>
+                      <h3 className="text-lg font-bold mb-4">
+                        Cash Flow Statement
+                      </h3>
+                      <div className="border rounded-md overflow-hidden">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-[300px]">Item</TableHead>
+                              <TableHead className="text-right">
+                                Amount ($)
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            <TableRow className="bg-muted/30">
+                              <TableCell className="font-bold" colSpan={2}>
+                                Operating Activities
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-medium pl-6">
+                                Net Income
+                              </TableCell>
+                              <TableCell className="text-right">
+                                150,000.00
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-medium pl-6">
+                                Depreciation
+                              </TableCell>
+                              <TableCell className="text-right">
+                                45,000.00
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-medium pl-6">
+                                Changes in Working Capital
+                              </TableCell>
+                              <TableCell className="text-right">
+                                -25,000.00
+                              </TableCell>
+                            </TableRow>
+                            <TableRow className="bg-muted/50">
+                              <TableCell className="font-bold">
+                                Net Cash from Operating Activities
+                              </TableCell>
+                              <TableCell className="text-right font-bold">
+                                170,000.00
+                              </TableCell>
+                            </TableRow>
+
+                            <TableRow className="bg-muted/30">
+                              <TableCell className="font-bold" colSpan={2}>
+                                Investing Activities
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-medium pl-6">
+                                Purchase of Equipment
+                              </TableCell>
+                              <TableCell className="text-right">
+                                -120,000.00
+                              </TableCell>
+                            </TableRow>
+                            <TableRow className="bg-muted/50">
+                              <TableCell className="font-bold">
+                                Net Cash from Investing Activities
+                              </TableCell>
+                              <TableCell className="text-right font-bold">
+                                -120,000.00
+                              </TableCell>
+                            </TableRow>
+
+                            <TableRow className="bg-muted/30">
+                              <TableCell className="font-bold" colSpan={2}>
+                                Financing Activities
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-medium pl-6">
+                                Debt Repayment
+                              </TableCell>
+                              <TableCell className="text-right">
+                                -50,000.00
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-medium pl-6">
+                                Dividends Paid
+                              </TableCell>
+                              <TableCell className="text-right">
+                                -30,000.00
+                              </TableCell>
+                            </TableRow>
+                            <TableRow className="bg-muted/50">
+                              <TableCell className="font-bold">
+                                Net Cash from Financing Activities
+                              </TableCell>
+                              <TableCell className="text-right font-bold">
+                                -80,000.00
+                              </TableCell>
+                            </TableRow>
+
+                            <TableRow className="bg-green-50">
+                              <TableCell className="font-bold">
+                                Net Change in Cash
+                              </TableCell>
+                              <TableCell className="text-right font-bold">
+                                -30,000.00
+                              </TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-between border-t pt-6">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowGeneratedStatements(false)}
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      // Simulate file download with a data URL for a blank PDF
+                      const link = document.createElement("a");
+                      // Create a simple data URL that will trigger a download
+                      link.href =
+                        "data:application/pdf;base64,JVBERi0xLjcKJeLjz9MKNSAwIG9iago8PAovRmlsdGVyIC9GbGF0ZURlY29kZQovTGVuZ3RoIDM4Cj4+CnN0cmVhbQp4nCvkMlAwUDC1NNUzMVGwMDHUszRSKErMKwktStVLLCjISQUAXX8HCWVUC3RzdHJ1Y3R1cmUgdHJlZQo1IDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovS2lkcyBbNiAwIFJdCi9Db3VudCAxCj4+CmVuZG9iago2IDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCi9SZXNvdXJjZXMgPDwKL0ZvbnQgPDwKL0YxIDcgMCBSCj4+Cj4+Ci9Db250ZW50cyA4IDAgUgovUGFyZW50IDUgMCBSCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9GaWx0ZXIgL0ZsYXRlRGVjb2RlCi9MZW5ndGggMTI5Cj4+CnN0cmVhbQp4nDPQM1QwUDAzNVEwMDRRMAdiCwVDCwUjPQMzE4WiRCCXK5zzUCGXS8FYz8xEwdxAz9JIwdLI0FDBxNTM0kjBzMzC0NTSQMHMwMjA0MhIwcDcwMDY0sJYwdDC0NjC0AQAKXgTnAplbmRzdHJlYW0KZW5kb2JqCjcgMCBvYmoKPDwKL1R5cGUgL0ZvbnQKL1N1YnR5cGUgL1R5cGUxCi9CYXNlRm9udCAvSGVsdmV0aWNhCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCj4+CmVuZG9iagozIDAgb2JqCjw8Cj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyA1IDAgUgo+PgplbmRvYmoKNCAwIG9iago8PAovUHJvZHVjZXIgKGlUZXh0IDIuMS43IGJ5IDFUM1hUKQovTW9kRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKL0NyZWF0aW9uRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKPj4KZW5kb2JqCnhyZWYKMCA5CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwNTc1IDAwMDAwIG4gCjAwMDAwMDA1NDYgMDAwMDAgbiAKMDAwMDAwMDYyNCAwMDAwMCBuIAowMDAwMDAwMDkzIDAwMDAwIG4gCjAwMDAwMDAxNDkgMDAwMDAgbiAKMDAwMDAwMDQ2NyAwMDAwMCBuIAowMDAwMDAwMjc5IDAwMDAwIG4gCnRyYWlsZXIKPDwKL1NpemUgOQovUm9vdCAyIDAgUgovSW5mbyA0IDAgUgovSUQgWzw2YWJhMzBhZGY3YTRmMzc1YmFkMWJmMTk4ZWNjMGIyZD4gPDZhYmEzMGFkZjdhNGYzNzViYWQxYmYxOThlY2MwYjJkPl0KPj4Kc3RhcnR4cmVmCjczNAolJUVPRgo=";
+                      link.setAttribute("download", "financial_statements.pdf");
+                      document.body.appendChild(link);
+
+                      toast({
+                        title: "Download started",
+                        description:
+                          "Your financial statements are being downloaded.",
+                        variant: "default",
+                      });
+
+                      // Simulate click after a short delay
+                      setTimeout(() => {
+                        try {
+                          link.click();
+                          document.body.removeChild(link);
+                        } catch (err) {
+                          console.error("Download simulation error:", err);
+                        }
+                      }, 500);
+                    }}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Download All Statements
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
+          )}
         </>
       )}
     </div>
