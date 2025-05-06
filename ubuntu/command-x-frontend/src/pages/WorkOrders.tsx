@@ -119,6 +119,8 @@ const WorkOrders: React.FC = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [selectedWorkOrder, setSelectedWorkOrder] =
     useState<WorkOrderData | null>(null);
 
@@ -293,6 +295,55 @@ const WorkOrders: React.FC = () => {
     setSelectedWorkOrder(null); // Ensure form is for creation
     formik.resetForm();
     setIsCreateDialogOpen(true);
+  };
+
+  // Handle view invoice
+  const handleViewInvoice = (workOrder: WorkOrderData) => {
+    setSelectedWorkOrder(workOrder);
+    setIsInvoiceDialogOpen(true);
+  };
+
+  // Handle export
+  const handleExport = (
+    workOrder: WorkOrderData,
+    format: "pdf" | "csv" | "excel"
+  ) => {
+    // In a real app, you would call an API to generate the export
+    // For now, we'll simulate a download with a toast notification
+
+    toast.promise(
+      new Promise((resolve) => {
+        // Simulate API call delay
+        setTimeout(() => {
+          resolve(true);
+        }, 1500);
+      }),
+      {
+        loading: `Preparing ${format.toUpperCase()} export...`,
+        success: () => {
+          // Create a fake download by creating a temporary anchor element
+          const element = document.createElement("a");
+
+          // Different file name based on format
+          const fileName = `work_order_${workOrder.work_order_id}_${
+            format === "excel" ? "xlsx" : format
+          }`;
+
+          // Set the attributes for download
+          element.setAttribute("href", "#");
+          element.setAttribute("download", fileName);
+          element.style.display = "none";
+
+          // Append to the body, click it, and remove it
+          document.body.appendChild(element);
+          element.click();
+          document.body.removeChild(element);
+
+          return `Work Order exported as ${format.toUpperCase()}`;
+        },
+        error: `Failed to export as ${format.toUpperCase()}`,
+      }
+    );
   };
 
   // Helper to get project name
@@ -1177,18 +1228,58 @@ const WorkOrders: React.FC = () => {
                                       variant="outline"
                                       size="sm"
                                       className="flex-1"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleViewInvoice(wo);
+                                      }}
                                     >
                                       <FileText className="mr-2 h-4 w-4" />
                                       View Invoice
                                     </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="flex-1"
-                                    >
-                                      <Download className="mr-2 h-4 w-4" />
-                                      Export
-                                    </Button>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="flex-1"
+                                        >
+                                          <Download className="mr-2 h-4 w-4" />
+                                          Export
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuLabel>
+                                          Export Format
+                                        </DropdownMenuLabel>
+                                        <DropdownMenuItem
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleExport(wo, "pdf");
+                                          }}
+                                        >
+                                          <FileText className="mr-2 h-4 w-4" />
+                                          PDF Document
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleExport(wo, "csv");
+                                          }}
+                                        >
+                                          <FileText className="mr-2 h-4 w-4" />
+                                          CSV Spreadsheet
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleExport(wo, "excel");
+                                          }}
+                                        >
+                                          <FileText className="mr-2 h-4 w-4" />
+                                          Excel Spreadsheet
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
                                   </div>
                                 </div>
                               </div>
@@ -1375,6 +1466,287 @@ const WorkOrders: React.FC = () => {
               <Pencil className="mr-2 h-4 w-4" />
               Edit
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invoice Dialog */}
+      <Dialog open={isInvoiceDialogOpen} onOpenChange={setIsInvoiceDialogOpen}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>Invoice</DialogTitle>
+            <DialogDescription>Work order invoice details</DialogDescription>
+          </DialogHeader>
+
+          {selectedWorkOrder && (
+            <div className="py-4">
+              <div className="border rounded-md overflow-hidden">
+                <div className="bg-primary text-primary-foreground p-6">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h2 className="text-2xl font-bold">INVOICE</h2>
+                      <p className="text-primary-foreground/80 mt-1">
+                        #
+                        {selectedWorkOrder.invoice_number ||
+                          `INV-${selectedWorkOrder.work_order_id}`}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <h3 className="text-lg font-semibold">
+                        Command X Construction
+                      </h3>
+                      <p className="text-primary-foreground/80">
+                        123 Builder Street
+                      </p>
+                      <p className="text-primary-foreground/80">
+                        Construction City, CC 12345
+                      </p>
+                      <p className="text-primary-foreground/80">
+                        info@commandx.com
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 border-b">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="font-medium text-muted-foreground mb-2">
+                        Bill To:
+                      </h4>
+                      <p className="font-medium">
+                        {getProjectName(selectedWorkOrder.project_id)}
+                      </p>
+                      <p>Client Company Name</p>
+                      <p>123 Client Street</p>
+                      <p>Client City, CL 54321</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="space-y-1">
+                        <div className="flex justify-between">
+                          <span className="font-medium text-muted-foreground">
+                            Invoice Date:
+                          </span>
+                          <span>
+                            {selectedWorkOrder.invoice_date
+                              ? new Date(
+                                  selectedWorkOrder.invoice_date
+                                ).toLocaleDateString()
+                              : new Date().toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium text-muted-foreground">
+                            Due Date:
+                          </span>
+                          <span>
+                            {selectedWorkOrder.invoice_date
+                              ? new Date(
+                                  new Date(
+                                    selectedWorkOrder.invoice_date
+                                  ).setDate(
+                                    new Date(
+                                      selectedWorkOrder.invoice_date
+                                    ).getDate() + 30
+                                  )
+                                ).toLocaleDateString()
+                              : new Date(
+                                  new Date().setDate(new Date().getDate() + 30)
+                                ).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium text-muted-foreground">
+                            Work Order ID:
+                          </span>
+                          <span>#{selectedWorkOrder.work_order_id}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6">
+                  <h4 className="font-medium mb-4">Work Order Details</h4>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[50%]">Description</TableHead>
+                        <TableHead>Quantity</TableHead>
+                        <TableHead>Unit Price</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell className="font-medium">
+                          {selectedWorkOrder.description}
+                        </TableCell>
+                        <TableCell>1</TableCell>
+                        <TableCell>
+                          $
+                          {selectedWorkOrder.amount_billed?.toLocaleString() ||
+                            selectedWorkOrder.estimated_cost?.toLocaleString() ||
+                            "0"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          $
+                          {selectedWorkOrder.amount_billed?.toLocaleString() ||
+                            selectedWorkOrder.estimated_cost?.toLocaleString() ||
+                            "0"}
+                        </TableCell>
+                      </TableRow>
+
+                      {/* If there were line items, we would map through them here */}
+                      {/* For now, let's add a few sample line items */}
+                      <TableRow>
+                        <TableCell className="font-medium">Materials</TableCell>
+                        <TableCell>1</TableCell>
+                        <TableCell>
+                          $
+                          {Math.round(
+                            (selectedWorkOrder.estimated_cost || 0) * 0.4
+                          ).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          $
+                          {Math.round(
+                            (selectedWorkOrder.estimated_cost || 0) * 0.4
+                          ).toLocaleString()}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell className="font-medium">Labor</TableCell>
+                        <TableCell>1</TableCell>
+                        <TableCell>
+                          $
+                          {Math.round(
+                            (selectedWorkOrder.estimated_cost || 0) * 0.6
+                          ).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          $
+                          {Math.round(
+                            (selectedWorkOrder.estimated_cost || 0) * 0.6
+                          ).toLocaleString()}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+
+                  <div className="mt-6 border-t pt-4">
+                    <div className="flex justify-end">
+                      <div className="w-1/2 space-y-2">
+                        <div className="flex justify-between">
+                          <span className="font-medium">Subtotal:</span>
+                          <span>
+                            $
+                            {selectedWorkOrder.amount_billed?.toLocaleString() ||
+                              selectedWorkOrder.estimated_cost?.toLocaleString() ||
+                              "0"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium">Tax (8%):</span>
+                          <span>
+                            $
+                            {Math.round(
+                              (selectedWorkOrder.amount_billed ||
+                                selectedWorkOrder.estimated_cost ||
+                                0) * 0.08
+                            ).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium">
+                            Retainage (
+                            {selectedWorkOrder.retainage_percentage || 0}%):
+                          </span>
+                          <span>
+                            $
+                            {Math.round(
+                              ((selectedWorkOrder.amount_billed ||
+                                selectedWorkOrder.estimated_cost ||
+                                0) *
+                                (selectedWorkOrder.retainage_percentage || 0)) /
+                                100
+                            ).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-t pt-2 text-lg font-bold">
+                          <span>Total Due:</span>
+                          <span>
+                            $
+                            {Math.round(
+                              (selectedWorkOrder.amount_billed ||
+                                selectedWorkOrder.estimated_cost ||
+                                0) *
+                                1.08 -
+                                ((selectedWorkOrder.amount_billed ||
+                                  selectedWorkOrder.estimated_cost ||
+                                  0) *
+                                  (selectedWorkOrder.retainage_percentage ||
+                                    0)) /
+                                  100
+                            ).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 border-t pt-6">
+                    <h4 className="font-medium mb-2">Payment Information</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Please make payment to: Command X Construction
+                      <br />
+                      Bank: Construction Bank
+                      <br />
+                      Account: 123456789
+                      <br />
+                      Routing: 987654321
+                    </p>
+
+                    <p className="mt-4 text-sm text-muted-foreground">
+                      Payment Terms: Net 30 days. Please include the invoice
+                      number with your payment.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsInvoiceDialogOpen(false)}
+              >
+                Close
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setIsInvoiceDialogOpen(false);
+                      if (selectedWorkOrder) {
+                        handleExport(selectedWorkOrder, "pdf");
+                      }
+                    }}
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    PDF Document
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
