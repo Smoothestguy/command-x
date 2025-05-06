@@ -172,9 +172,11 @@ const Accounting: React.FC = () => {
                 <ToastAction
                   altText="Download"
                   onClick={() => {
-                    // Simulate file download
+                    // Simulate file download with a data URL for a blank PDF
                     const link = document.createElement("a");
-                    link.href = "#";
+                    // Create a simple data URL that will trigger a download
+                    link.href =
+                      "data:application/pdf;base64,JVBERi0xLjcKJeLjz9MKNSAwIG9iago8PAovRmlsdGVyIC9GbGF0ZURlY29kZQovTGVuZ3RoIDM4Cj4+CnN0cmVhbQp4nCvkMlAwUDC1NNUzMVGwMDHUszRSKErMKwktStVLLCjISQUAXX8HCWVUC3RzdHJ1Y3R1cmUgdHJlZQo1IDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovS2lkcyBbNiAwIFJdCi9Db3VudCAxCj4+CmVuZG9iago2IDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCi9SZXNvdXJjZXMgPDwKL0ZvbnQgPDwKL0YxIDcgMCBSCj4+Cj4+Ci9Db250ZW50cyA4IDAgUgovUGFyZW50IDUgMCBSCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9GaWx0ZXIgL0ZsYXRlRGVjb2RlCi9MZW5ndGggMTI5Cj4+CnN0cmVhbQp4nDPQM1QwUDAzNVEwMDRRMAdiCwVDCwUjPQMzE4WiRCCXK5zzUCGXS8FYz8xEwdxAz9JIwdLI0FDBxNTM0kjBzMzC0NTSQMHMwMjA0MhIwcDcwMDY0sJYwdDC0NjC0AQAKXgTnAplbmRzdHJlYW0KZW5kb2JqCjcgMCBvYmoKPDwKL1R5cGUgL0ZvbnQKL1N1YnR5cGUgL1R5cGUxCi9CYXNlRm9udCAvSGVsdmV0aWNhCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCj4+CmVuZG9iagozIDAgb2JqCjw8Cj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyA1IDAgUgo+PgplbmRvYmoKNCAwIG9iago8PAovUHJvZHVjZXIgKGlUZXh0IDIuMS43IGJ5IDFUM1hUKQovTW9kRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKL0NyZWF0aW9uRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKPj4KZW5kb2JqCnhyZWYKMCA5CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwNTc1IDAwMDAwIG4gCjAwMDAwMDA1NDYgMDAwMDAgbiAKMDAwMDAwMDYyNCAwMDAwMCBuIAowMDAwMDAwMDkzIDAwMDAwIG4gCjAwMDAwMDAxNDkgMDAwMDAgbiAKMDAwMDAwMDQ2NyAwMDAwMCBuIAowMDAwMDAwMjc5IDAwMDAwIG4gCnRyYWlsZXIKPDwKL1NpemUgOQovUm9vdCAyIDAgUgovSW5mbyA0IDAgUgovSUQgWzw2YWJhMzBhZGY3YTRmMzc1YmFkMWJmMTk4ZWNjMGIyZD4gPDZhYmEzMGFkZjdhNGYzNzViYWQxYmYxOThlY2MwYjJkPl0KPj4Kc3RhcnR4cmVmCjczNAolJUVPRgo=";
                     link.setAttribute("download", "financial_statements.pdf");
                     document.body.appendChild(link);
 
@@ -246,11 +248,29 @@ const Accounting: React.FC = () => {
               <ToastAction
                 altText="Download"
                 onClick={() => {
+                  // Simulate file download with a data URL for a blank PDF
+                  const link = document.createElement("a");
+                  // Create a simple data URL that will trigger a download
+                  link.href =
+                    "data:application/pdf;base64,JVBERi0xLjcKJeLjz9MKNSAwIG9iago8PAovRmlsdGVyIC9GbGF0ZURlY29kZQovTGVuZ3RoIDM4Cj4+CnN0cmVhbQp4nCvkMlAwUDC1NNUzMVGwMDHUszRSKErMKwktStVLLCjISQUAXX8HCWVUC3RzdHJ1Y3R1cmUgdHJlZQo1IDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovS2lkcyBbNiAwIFJdCi9Db3VudCAxCj4+CmVuZG9iago2IDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCi9SZXNvdXJjZXMgPDwKL0ZvbnQgPDwKL0YxIDcgMCBSCj4+Cj4+Ci9Db250ZW50cyA4IDAgUgovUGFyZW50IDUgMCBSCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9GaWx0ZXIgL0ZsYXRlRGVjb2RlCi9MZW5ndGggMTI5Cj4+CnN0cmVhbQp4nDPQM1QwUDAzNVEwMDRRMAdiCwVDCwUjPQMzE4WiRCCXK5zzUCGXS8FYz8xEwdxAz9JIwdLI0FDBxNTM0kjBzMzC0NTSQMHMwMjA0MhIwcDcwMDY0sJYwdDC0NjC0AQAKXgTnAplbmRzdHJlYW0KZW5kb2JqCjcgMCBvYmoKPDwKL1R5cGUgL0ZvbnQKL1N1YnR5cGUgL1R5cGUxCi9CYXNlRm9udCAvSGVsdmV0aWNhCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCj4+CmVuZG9iagozIDAgb2JqCjw8Cj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyA1IDAgUgo+PgplbmRvYmoKNCAwIG9iago8PAovUHJvZHVjZXIgKGlUZXh0IDIuMS43IGJ5IDFUM1hUKQovTW9kRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKL0NyZWF0aW9uRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKPj4KZW5kb2JqCnhyZWYKMCA5CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwNTc1IDAwMDAwIG4gCjAwMDAwMDA1NDYgMDAwMDAgbiAKMDAwMDAwMDYyNCAwMDAwMCBuIAowMDAwMDAwMDkzIDAwMDAwIG4gCjAwMDAwMDAxNDkgMDAwMDAgbiAKMDAwMDAwMDQ2NyAwMDAwMCBuIAowMDAwMDAwMjc5IDAwMDAwIG4gCnRyYWlsZXIKPDwKL1NpemUgOQovUm9vdCAyIDAgUgovSW5mbyA0IDAgUgovSUQgWzw2YWJhMzBhZGY3YTRmMzc1YmFkMWJmMTk4ZWNjMGIyZD4gPDZhYmEzMGFkZjdhNGYzNzViYWQxYmYxOThlY2MwYjJkPl0KPj4Kc3RhcnR4cmVmCjczNAolJUVPRgo=";
+                  link.setAttribute("download", "tax_documentation.pdf");
+                  document.body.appendChild(link);
+
                   toast({
                     title: "Download started",
                     description: "Your tax documentation is being downloaded.",
                     variant: "default",
                   });
+
+                  // Simulate click after a short delay
+                  setTimeout(() => {
+                    try {
+                      link.click();
+                      document.body.removeChild(link);
+                    } catch (err) {
+                      console.error("Download simulation error:", err);
+                    }
+                  }, 500);
                 }}
               >
                 Download
@@ -301,10 +321,25 @@ const Accounting: React.FC = () => {
               <ToastAction
                 altText="View"
                 onClick={() => {
+                  // Create a modal-like effect by showing a toast with longer duration
                   toast({
-                    title: "Opening exported data",
-                    description: "Redirecting to exported data view.",
+                    title: "Exported Data View",
+                    description: (
+                      <div className="mt-2 space-y-2">
+                        <p>Your data has been successfully exported to:</p>
+                        <ul className="list-disc pl-4 space-y-1">
+                          <li>QuickBooks Online</li>
+                          <li>Excel Spreadsheet</li>
+                          <li>PDF Report</li>
+                        </ul>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          You can access these files from your accounting
+                          software or download them directly.
+                        </p>
+                      </div>
+                    ),
                     variant: "default",
+                    duration: 10000,
                   });
                 }}
               >
@@ -1315,6 +1350,7 @@ const Accounting: React.FC = () => {
                             className="w-full"
                             onClick={handlePrepareTaxDocumentation}
                             disabled={isPreparingTaxDocs}
+                            variant="default"
                           >
                             {isPreparingTaxDocs ? (
                               <>
@@ -1322,7 +1358,10 @@ const Accounting: React.FC = () => {
                                 Preparing...
                               </>
                             ) : (
-                              "Prepare"
+                              <>
+                                <FileText className="mr-2 h-4 w-4" />
+                                Prepare
+                              </>
                             )}
                           </Button>
                         </CardFooter>
@@ -1343,6 +1382,7 @@ const Accounting: React.FC = () => {
                             className="w-full"
                             onClick={handleExportToAccounting}
                             disabled={isExporting}
+                            variant="default"
                           >
                             {isExporting ? (
                               <>
@@ -1350,7 +1390,10 @@ const Accounting: React.FC = () => {
                                 Exporting...
                               </>
                             ) : (
-                              "Export"
+                              <>
+                                <Download className="mr-2 h-4 w-4" />
+                                Export
+                              </>
                             )}
                           </Button>
                         </CardFooter>
