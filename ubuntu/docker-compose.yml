@@ -1,0 +1,136 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:14-alpine
+    container_name: command_x_db
+    environment:
+      POSTGRES_DB: command_x_db
+      POSTGRES_USER: command_x_user
+      POSTGRES_PASSWORD: securepassword
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Mount the schema file to initialize the DB (optional, can be done manually or via migration tool)
+      # - ./command_x_db_schema.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5433:5432" # Map container port 5432 to host port 5433
+    networks:
+      - commandx_network
+
+  user-service:
+    build:
+      context: ./command-x-backend/user-management-service
+      dockerfile: Dockerfile
+    container_name: user_service
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://command_x_user:securepassword@db:5432/command_x_db
+      JWT_SECRET: aVerySecureSecretKeyPleaseChangeMe
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    networks:
+      - commandx_network
+
+  project-service:
+    build:
+      context: ./command-x-backend/project-management-service
+      dockerfile: Dockerfile
+    container_name: project_service
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://command_x_user:securepassword@db:5432/command_x_db
+      PORT: 3002
+    ports:
+      - "3002:3002"
+    networks:
+      - commandx_network
+
+  work-order-service:
+    build:
+      context: ./command-x-backend/work-order-service
+      dockerfile: Dockerfile
+    container_name: work_order_service
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://command_x_user:securepassword@db:5432/command_x_db
+      PORT: 3003
+    ports:
+      - "3003:3003"
+    networks:
+      - commandx_network
+
+  financial-service:
+    build:
+      context: ./command-x-backend/financial-service
+      dockerfile: Dockerfile
+    container_name: financial_service
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://command_x_user:securepassword@db:5432/command_x_db
+      PORT: 3004
+    ports:
+      - "3004:3004"
+    networks:
+      - commandx_network
+
+  document-service:
+    build:
+      context: ./command-x-backend/document-service
+      dockerfile: Dockerfile
+    container_name: document_service
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://command_x_user:securepassword@db:5432/command_x_db
+      PORT: 3005
+      UPLOAD_DIR: /uploads # Internal path within the container
+    volumes:
+      - ./command_x_uploads:/uploads # Mount local dir to container dir
+    ports:
+      - "3005:3005"
+    networks:
+      - commandx_network
+
+  qc-service:
+    build:
+      context: ./command-x-backend/quality-control-service
+      dockerfile: Dockerfile
+    container_name: qc_service
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://command_x_user:securepassword@db:5432/command_x_db
+      PORT: 3006
+    ports:
+      - "3006:3006"
+    networks:
+      - commandx_network
+
+  frontend:
+    build:
+      context: ./command-x-frontend
+      dockerfile: Dockerfile
+    container_name: frontend_service
+    ports:
+      - "8082:80" # Map container port 80 to host port 8082
+    depends_on:
+      - user-service
+      - project-service
+      - work-order-service
+      - financial-service
+      - document-service
+      - qc-service
+    networks:
+      - commandx_network
+
+networks:
+  commandx_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
