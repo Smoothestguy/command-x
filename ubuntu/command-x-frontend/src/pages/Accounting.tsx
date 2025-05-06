@@ -126,54 +126,82 @@ const Accounting: React.FC = () => {
     // Set loading state
     setIsGeneratingStatements(true);
 
-    // Show initial toast
+    // Show initial toast with progress indication
     toast({
       title: "Generating financial statements",
-      description:
-        "Your financial statements are being generated. This may take a moment.",
+      description: "Starting generation process (0%)...",
+      duration: 5000,
     });
 
-    // Simulate processing with multiple steps
+    // Simulate processing with multiple steps and progress updates
     setTimeout(() => {
       toast({
-        title: "Processing data",
-        description: "Analyzing financial transactions...",
+        title: "Processing financial data",
+        description: "Analyzing transactions and accounts (25%)...",
         variant: "default",
+        duration: 5000,
       });
 
       setTimeout(() => {
         toast({
-          title: "Creating reports",
-          description: "Formatting financial statements...",
+          title: "Creating financial reports",
+          description: "Generating income statements (50%)...",
           variant: "default",
+          duration: 5000,
         });
 
-        // Final completion toast
         setTimeout(() => {
-          // Reset loading state
-          setIsGeneratingStatements(false);
-
           toast({
-            title: "Financial statements generated",
+            title: "Finalizing reports",
             description:
-              "Your financial statements have been generated successfully.",
-            action: (
-              <ToastAction
-                altText="Download"
-                onClick={() => {
-                  toast({
-                    title: "Download started",
-                    description:
-                      "Your financial statements are being downloaded.",
-                    variant: "default",
-                  });
-                }}
-              >
-                Download
-              </ToastAction>
-            ),
+              "Creating balance sheets and cash flow statements (75%)...",
             variant: "default",
+            duration: 5000,
           });
+
+          // Final completion toast
+          setTimeout(() => {
+            // Reset loading state
+            setIsGeneratingStatements(false);
+
+            toast({
+              title: "Financial statements generated",
+              description:
+                "Your financial statements have been generated successfully (100%).",
+              action: (
+                <ToastAction
+                  altText="Download"
+                  onClick={() => {
+                    // Simulate file download
+                    const link = document.createElement("a");
+                    link.href = "#";
+                    link.setAttribute("download", "financial_statements.pdf");
+                    document.body.appendChild(link);
+
+                    toast({
+                      title: "Download started",
+                      description:
+                        "Your financial statements are being downloaded.",
+                      variant: "default",
+                    });
+
+                    // Simulate click after a short delay
+                    setTimeout(() => {
+                      try {
+                        link.click();
+                        document.body.removeChild(link);
+                      } catch (err) {
+                        console.error("Download simulation error:", err);
+                      }
+                    }, 500);
+                  }}
+                >
+                  Download
+                </ToastAction>
+              ),
+              variant: "default",
+            });
+          }, 1500);
         }, 1500);
       }, 1500);
     }, 1500);
@@ -1255,6 +1283,7 @@ const Accounting: React.FC = () => {
                             className="w-full"
                             onClick={handleGenerateFinancialStatements}
                             disabled={isGeneratingStatements}
+                            variant="default"
                           >
                             {isGeneratingStatements ? (
                               <>
@@ -1262,7 +1291,10 @@ const Accounting: React.FC = () => {
                                 Generating...
                               </>
                             ) : (
-                              "Generate"
+                              <>
+                                <Download className="mr-2 h-4 w-4" />
+                                Generate
+                              </>
                             )}
                           </Button>
                         </CardFooter>
