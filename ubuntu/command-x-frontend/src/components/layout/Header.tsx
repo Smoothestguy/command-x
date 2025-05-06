@@ -4,7 +4,7 @@ import { logout } from "../../features/auth/authSlice";
 import { RootState } from "../../store/store";
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 const Header: React.FC = () => {
   const dispatch = useDispatch();
@@ -18,7 +18,9 @@ const Header: React.FC = () => {
 
   return (
     <header className="bg-gray-800 text-white p-4 shadow-md flex justify-between items-center">
-      <h1 className="text-xl font-bold">Command X</h1>
+      <Link to="/" className="flex items-center gap-2">
+        <img src="/command-x-logo.png" alt="Command X Logo" className="h-10" />
+      </Link>
       <div className="flex items-center gap-4">
         {user && (
           <>

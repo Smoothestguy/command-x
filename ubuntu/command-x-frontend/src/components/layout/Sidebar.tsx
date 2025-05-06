@@ -17,11 +17,13 @@ const Sidebar: React.FC = () => {
   return (
     <aside className="w-64 bg-gray-100 p-4 border-r border-gray-300 flex flex-col">
       <div className="mb-8 text-center">
-        {/* Placeholder for Command X Logo */}
-        <div className="w-24 h-24 bg-indigo-600 text-white flex items-center justify-center rounded-full mx-auto mb-2">
-          <span className="text-3xl font-bold">CX</span>
-        </div>
-        <h2 className="text-lg font-semibold text-gray-700">Command X</h2>
+        <Link to="/">
+          <img
+            src="/command-x-logo.png"
+            alt="Command X Logo"
+            className="h-24 mx-auto mb-2"
+          />
+        </Link>
       </div>
       <nav className="flex-grow">
         <ul>
