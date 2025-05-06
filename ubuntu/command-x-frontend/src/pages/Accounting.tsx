@@ -34,6 +34,7 @@ import {
   FileCheck,
   Save,
   Calculator,
+  Loader2,
 } from "lucide-react";
 import { getProjects, getWorkOrders, getSubcontractors } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -63,6 +64,11 @@ const Accounting: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+
+  // Loading states for financial reporting tools
+  const [isGeneratingStatements, setIsGeneratingStatements] = useState(false);
+  const [isPreparingTaxDocs, setIsPreparingTaxDocs] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Fetch projects data
   const { isLoading: projectsLoading, error: projectsError } = useQuery({
@@ -117,54 +123,171 @@ const Accounting: React.FC = () => {
 
   // Financial reporting tool handlers
   const handleGenerateFinancialStatements = () => {
+    // Set loading state
+    setIsGeneratingStatements(true);
+
+    // Show initial toast
     toast({
       title: "Generating financial statements",
       description:
         "Your financial statements are being generated. This may take a moment.",
     });
-    // Simulate generation process
+
+    // Simulate processing with multiple steps
     setTimeout(() => {
       toast({
-        title: "Financial statements generated",
-        description:
-          "Your financial statements have been generated successfully.",
-        action: <ToastAction altText="Download">Download</ToastAction>,
+        title: "Processing data",
+        description: "Analyzing financial transactions...",
         variant: "default",
       });
-    }, 2500);
+
+      setTimeout(() => {
+        toast({
+          title: "Creating reports",
+          description: "Formatting financial statements...",
+          variant: "default",
+        });
+
+        // Final completion toast
+        setTimeout(() => {
+          // Reset loading state
+          setIsGeneratingStatements(false);
+
+          toast({
+            title: "Financial statements generated",
+            description:
+              "Your financial statements have been generated successfully.",
+            action: (
+              <ToastAction
+                altText="Download"
+                onClick={() => {
+                  toast({
+                    title: "Download started",
+                    description:
+                      "Your financial statements are being downloaded.",
+                    variant: "default",
+                  });
+                }}
+              >
+                Download
+              </ToastAction>
+            ),
+            variant: "default",
+          });
+        }, 1500);
+      }, 1500);
+    }, 1500);
   };
 
   const handlePrepareTaxDocumentation = () => {
+    // Set loading state
+    setIsPreparingTaxDocs(true);
+
+    // Show initial toast
     toast({
       title: "Preparing tax documentation",
       description:
         "Your tax documentation is being prepared. This may take a moment.",
     });
-    // Simulate preparation process
+
+    // Simulate processing with multiple steps
     setTimeout(() => {
       toast({
-        title: "Tax documentation prepared",
-        description: "Your tax documentation has been prepared successfully.",
-        action: <ToastAction altText="Download">Download</ToastAction>,
+        title: "Collecting tax data",
+        description: "Gathering relevant financial information...",
         variant: "default",
       });
-    }, 3000);
+
+      setTimeout(() => {
+        toast({
+          title: "Calculating tax liabilities",
+          description: "Computing tax obligations based on financial data...",
+          variant: "default",
+        });
+
+        // Final completion toast
+        setTimeout(() => {
+          // Reset loading state
+          setIsPreparingTaxDocs(false);
+
+          toast({
+            title: "Tax documentation prepared",
+            description:
+              "Your tax documentation has been prepared successfully.",
+            action: (
+              <ToastAction
+                altText="Download"
+                onClick={() => {
+                  toast({
+                    title: "Download started",
+                    description: "Your tax documentation is being downloaded.",
+                    variant: "default",
+                  });
+                }}
+              >
+                Download
+              </ToastAction>
+            ),
+            variant: "default",
+          });
+        }, 1500);
+      }, 1500);
+    }, 1500);
   };
 
   const handleExportToAccounting = () => {
+    // Set loading state
+    setIsExporting(true);
+
+    // Show initial toast
     toast({
       title: "Exporting to accounting software",
       description: "Your data is being exported. This may take a moment.",
     });
-    // Simulate export process
+
+    // Simulate processing with multiple steps
     setTimeout(() => {
       toast({
-        title: "Export complete",
-        description:
-          "Your data has been exported to accounting software successfully.",
+        title: "Formatting data",
+        description: "Converting financial data to compatible format...",
         variant: "default",
       });
-    }, 2000);
+
+      setTimeout(() => {
+        toast({
+          title: "Transferring data",
+          description: "Sending data to accounting software...",
+          variant: "default",
+        });
+
+        // Final completion toast
+        setTimeout(() => {
+          // Reset loading state
+          setIsExporting(false);
+
+          toast({
+            title: "Export complete",
+            description:
+              "Your data has been exported to accounting software successfully.",
+            action: (
+              <ToastAction
+                altText="View"
+                onClick={() => {
+                  toast({
+                    title: "Opening exported data",
+                    description: "Redirecting to exported data view.",
+                    variant: "default",
+                  });
+                }}
+              >
+                View
+              </ToastAction>
+            ),
+            variant: "default",
+          });
+        }, 1500);
+      }, 1500);
+    }, 1500);
   };
 
   const handleRefreshData = () => {
@@ -1131,8 +1254,16 @@ const Accounting: React.FC = () => {
                             size="sm"
                             className="w-full"
                             onClick={handleGenerateFinancialStatements}
+                            disabled={isGeneratingStatements}
                           >
-                            Generate
+                            {isGeneratingStatements ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Generating...
+                              </>
+                            ) : (
+                              "Generate"
+                            )}
                           </Button>
                         </CardFooter>
                       </Card>
@@ -1151,8 +1282,16 @@ const Accounting: React.FC = () => {
                             size="sm"
                             className="w-full"
                             onClick={handlePrepareTaxDocumentation}
+                            disabled={isPreparingTaxDocs}
                           >
-                            Prepare
+                            {isPreparingTaxDocs ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Preparing...
+                              </>
+                            ) : (
+                              "Prepare"
+                            )}
                           </Button>
                         </CardFooter>
                       </Card>
@@ -1171,8 +1310,16 @@ const Accounting: React.FC = () => {
                             size="sm"
                             className="w-full"
                             onClick={handleExportToAccounting}
+                            disabled={isExporting}
                           >
-                            Export
+                            {isExporting ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Exporting...
+                              </>
+                            ) : (
+                              "Export"
+                            )}
                           </Button>
                         </CardFooter>
                       </Card>
