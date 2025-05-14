@@ -578,6 +578,154 @@ const WorkOrders: React.FC = () => {
     status: "Not Started",
   });
 
+  // Work Order Status Management
+  const [showStatusManagement, setShowStatusManagement] = useState(false);
+
+  // Format currency for display
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+    }).format(value);
+  };
+
+  // Calculate totals for status management
+  const statusTotals = useMemo(() => {
+    if (!filteredWorkOrders)
+      return {
+        totalSWO: 0,
+        totalSubMaterial: 0,
+        totalWOAmount: 0,
+        totalUnbillable: 0,
+        totalUnbillableHeld: 0,
+        totalRetainageHeld: 0,
+        totalRetainageAmount: 0,
+        totalWODue: 0,
+        totalPendingCOs: 0,
+      };
+
+    return filteredWorkOrders.reduce(
+      (acc, wo) => {
+        const estimatedCost = wo.estimated_cost || 0;
+        const actualCost = wo.actual_cost || 0;
+        const amountBilled = wo.amount_billed || 0;
+        const amountPaid = wo.amount_paid || 0;
+        const retainagePercentage = wo.retainage_percentage || 0;
+        const retainageAmount = (amountBilled * retainagePercentage) / 100;
+
+        // Assuming subcontractor material is 60% of estimated cost for this example
+        const subMaterial = estimatedCost * 0.6;
+
+        return {
+          totalSWO: acc.totalSWO + estimatedCost,
+          totalSubMaterial: acc.totalSubMaterial + subMaterial,
+          totalWOAmount: acc.totalWOAmount + actualCost,
+          totalUnbillable: acc.totalUnbillable + 0, // Placeholder
+          totalUnbillableHeld: acc.totalUnbillableHeld + 0, // Placeholder
+          totalRetainageHeld: acc.totalRetainageHeld + 0, // Placeholder
+          totalRetainageAmount: acc.totalRetainageAmount + retainageAmount,
+          totalWODue: acc.totalWODue + (amountBilled - amountPaid),
+          totalPendingCOs: acc.totalPendingCOs + 0, // Placeholder
+        };
+      },
+      {
+        totalSWO: 0,
+        totalSubMaterial: 0,
+        totalWOAmount: 0,
+        totalUnbillable: 0,
+        totalUnbillableHeld: 0,
+        totalRetainageHeld: 0,
+        totalRetainageAmount: 0,
+        totalWODue: 0,
+        totalPendingCOs: 0,
+      }
+    );
+  }, [filteredWorkOrders]);
+
+  // Status Summary component
+  const StatusSummary = () => {
+    const totalWorkOrders = filteredWorkOrders?.length || 0;
+    const completedWorkOrders =
+      filteredWorkOrders?.filter((wo) => wo.status === "Completed").length || 0;
+
+    return (
+      <div className="space-y-2">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Total Work Orders:</span>
+          <span className="font-semibold">{totalWorkOrders}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Completed:</span>
+          <span className="font-semibold">{completedWorkOrders}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Total SWO Amount:</span>
+          <span className="font-semibold">
+            {formatCurrency(statusTotals.totalSWO)}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
+  // Retainage Summary component
+  const RetainageSummary = () => {
+    return (
+      <div className="space-y-2">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Total Retainage:</span>
+          <span className="font-semibold">
+            {formatCurrency(statusTotals.totalRetainageAmount)}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Retainage Held:</span>
+          <span className="font-semibold">
+            {formatCurrency(statusTotals.totalRetainageHeld)}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Pending COs:</span>
+          <span className="font-semibold">{statusTotals.totalPendingCOs}</span>
+        </div>
+      </div>
+    );
+  };
+
+  // Quick Actions component
+  const QuickActions = () => {
+    return (
+      <div className="space-y-2">
+        <Button className="w-full" variant="default">
+          Update Status
+        </Button>
+        <Button className="w-full" variant="outline">
+          Generate Report
+        </Button>
+        <Button className="w-full" variant="outline">
+          Manage Crew
+        </Button>
+      </div>
+    );
+  };
+
+  // Percentage Cell component for the status table
+  const PercentageCell = ({ value }: { value: number }) => {
+    return (
+      <TableCell className="text-center">
+        <Badge variant={value > 0 ? "default" : "outline"} className="w-16">
+          {value}%
+        </Badge>
+      </TableCell>
+    );
+  };
+
+  // Handle save changes
+  const handleSaveChanges = () => {
+    toast.success("Changes saved successfully");
+  };
+
   return (
     <div className="p-4 md:p-8">
       {/* Mobile-optimized header with centered title */}
@@ -599,8 +747,258 @@ const WorkOrders: React.FC = () => {
           <Button onClick={handleCreateClick}>
             <PlusCircle className="mr-2 h-4 w-4" /> Create Work Order
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowStatusManagement(!showStatusManagement)}
+          >
+            {showStatusManagement
+              ? "Hide Status Management"
+              : "Show Status Management"}
+          </Button>
         </div>
       </div>
+
+      {/* Work Order Status Management Section */}
+      {showStatusManagement && (
+        <div className="mb-8">
+          <Card className="mb-6">
+            <CardHeader className="pb-3">
+              <div className="flex flex-col md:flex-row justify-between items-center">
+                <div>
+                  <CardTitle>Work Order Status Management</CardTitle>
+                  <CardDescription>
+                    Track and manage work order status and completion
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2 mt-4 md:mt-0">
+                  <Button variant="outline" size="sm" onClick={handleRefresh}>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Refresh
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    <Filter className="mr-2 h-4 w-4" />
+                    Filter
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    <Download className="mr-2 h-4 w-4" />
+                    Export
+                  </Button>
+                  <Button size="sm" onClick={handleSaveChanges}>
+                    Save Changes
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-4">
+                  Work Order Status Details
+                </h3>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-center">
+                          % Completed
+                        </TableHead>
+                        <TableHead className="text-center">
+                          % Work Not Started
+                        </TableHead>
+                        <TableHead className="text-center">SWO Total</TableHead>
+                        <TableHead className="text-center">
+                          Sub W.O. Material
+                        </TableHead>
+                        <TableHead className="text-center">
+                          W.O. Amount
+                        </TableHead>
+                        <TableHead className="text-center">
+                          Unbillable Amount
+                        </TableHead>
+                        <TableHead className="text-center">
+                          Unbillable Held
+                        </TableHead>
+                        <TableHead className="text-center">
+                          Retainage Held
+                        </TableHead>
+                        <TableHead className="text-center">
+                          Retainage Amount
+                        </TableHead>
+                        <TableHead className="text-center">
+                          W.O. Amount Due
+                        </TableHead>
+                        <TableHead className="text-center">
+                          Pending COs
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredWorkOrders?.map((wo) => {
+                        const percentComplete =
+                          wo.status === "Completed"
+                            ? 100
+                            : wo.status === "In Progress"
+                            ? 65
+                            : 0;
+                        const percentNotStarted =
+                          wo.status === "Pending" ? 100 : 0;
+                        const estimatedCost = wo.estimated_cost || 0;
+                        const actualCost = wo.actual_cost || 0;
+                        const amountBilled = wo.amount_billed || 0;
+                        const amountPaid = wo.amount_paid || 0;
+                        const retainagePercentage =
+                          wo.retainage_percentage || 0;
+                        const retainageAmount =
+                          (amountBilled * retainagePercentage) / 100;
+
+                        // Assuming subcontractor material is 60% of estimated cost for this example
+                        const subMaterial = estimatedCost * 0.6;
+
+                        return (
+                          <TableRow key={wo.work_order_id}>
+                            <PercentageCell value={percentComplete} />
+                            <PercentageCell value={percentNotStarted} />
+                            <TableCell className="text-center">
+                              {formatCurrency(estimatedCost)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {formatCurrency(subMaterial)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {formatCurrency(actualCost)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {formatCurrency(0)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {formatCurrency(0)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {formatCurrency(0)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {formatCurrency(retainageAmount)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {formatCurrency(amountBilled - amountPaid)}
+                            </TableCell>
+                            <TableCell className="text-center">0</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-4">
+                  {filteredWorkOrders?.map((wo) => {
+                    const percentComplete =
+                      wo.status === "Completed"
+                        ? 100
+                        : wo.status === "In Progress"
+                        ? 65
+                        : 0;
+                    const estimatedCost = wo.estimated_cost || 0;
+                    const actualCost = wo.actual_cost || 0;
+                    const amountBilled = wo.amount_billed || 0;
+                    const amountPaid = wo.amount_paid || 0;
+                    const retainagePercentage = wo.retainage_percentage || 0;
+                    const retainageAmount =
+                      (amountBilled * retainagePercentage) / 100;
+
+                    return (
+                      <Card key={wo.work_order_id} className="overflow-hidden">
+                        <CardHeader className="p-4 pb-2">
+                          <CardTitle className="text-sm flex justify-between">
+                            <span>Work Order #{wo.work_order_id}</span>
+                            <Badge
+                              variant={
+                                percentComplete === 100 ? "default" : "outline"
+                              }
+                            >
+                              {percentComplete}% Complete
+                            </Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-2 space-y-2 text-sm">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="flex flex-col">
+                              <span className="text-muted-foreground text-xs">
+                                SWO Total
+                              </span>
+                              <span className="font-medium">
+                                {formatCurrency(estimatedCost)}
+                              </span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-muted-foreground text-xs">
+                                W.O. Amount
+                              </span>
+                              <span className="font-medium">
+                                {formatCurrency(actualCost)}
+                              </span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-muted-foreground text-xs">
+                                Retainage Amount
+                              </span>
+                              <span className="font-medium">
+                                {formatCurrency(retainageAmount)}
+                              </span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-muted-foreground text-xs">
+                                Amount Due
+                              </span>
+                              <span className="font-medium">
+                                {formatCurrency(amountBilled - amountPaid)}
+                              </span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Status Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <StatusSummary />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">
+                      Retainage Summary
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <RetainageSummary />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Quick Actions</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <QuickActions />
+                  </CardContent>
+                </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Mobile-optimized Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
