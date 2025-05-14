@@ -684,7 +684,7 @@ const Subcontractors: React.FC = () => {
               {filteredSubcontractors.map((sub) => (
                 <Card
                   key={sub.subcontractor_id}
-                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  className="cursor-pointer hover:shadow-md transition-shadow h-full"
                 >
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
@@ -709,14 +709,14 @@ const Subcontractors: React.FC = () => {
                   <CardContent className="pb-2">
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center">
-                        <Briefcase className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className="font-medium truncate">
+                        <Briefcase className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
+                        <span className="font-medium break-words">
                           {sub.trade || "No trade specified"}
                         </span>
                       </div>
                       <div className="flex items-center">
                         <Mail className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
-                        <span className="truncate">
+                        <span className="break-all">
                           {sub.email || "No email"}
                         </span>
                       </div>
@@ -726,13 +726,13 @@ const Subcontractors: React.FC = () => {
                       </div>
                       <div className="flex items-center">
                         <MapPin className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
-                        <span className="truncate">
+                        <span className="break-words">
                           {sub.address || "No address"}
                         </span>
                       </div>
                       <div className="flex items-center">
                         <Calendar className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
-                        <span>Insurance: </span>
+                        <span className="mr-1">Insurance:</span>
                         {getInsuranceStatusBadge(sub.insurance_expiry)}
                       </div>
                       {sub.rating && (
@@ -743,8 +743,8 @@ const Subcontractors: React.FC = () => {
                       )}
                     </div>
                   </CardContent>
-                  <CardFooter className="flex flex-col sm:flex-row sm:justify-between gap-2 pt-2">
-                    <div className="text-xs text-muted-foreground">
+                  <CardFooter className="flex flex-col sm:flex-row sm:justify-between gap-2 pt-2 pb-3">
+                    <div className="text-xs text-muted-foreground text-center sm:text-left">
                       <span className="font-medium">
                         {sub.active_work_orders || 0}
                       </span>{" "}
@@ -754,11 +754,11 @@ const Subcontractors: React.FC = () => {
                       </span>{" "}
                       completed
                     </div>
-                    <div className="flex space-x-2 w-full sm:w-auto justify-center sm:justify-end">
+                    <div className="flex gap-3 w-full sm:w-auto justify-center sm:justify-end">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 sm:flex-initial"
+                        className="flex-1 sm:flex-initial px-4"
                         onClick={() => handleViewClick(sub)}
                       >
                         <Eye className="h-3.5 w-3.5 mr-1" />
@@ -767,7 +767,7 @@ const Subcontractors: React.FC = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 sm:flex-initial"
+                        className="flex-1 sm:flex-initial px-4"
                         onClick={() => handleEditClick(sub)}
                       >
                         <Pencil className="h-3.5 w-3.5 mr-1" />
