@@ -961,11 +961,12 @@ const WorkOrders: React.FC = () => {
       {/* Mobile-optimized header with centered title */}
       <div className="flex flex-col mb-6">
         <h1 className="text-3xl font-bold text-center mb-4">Work Orders</h1>
-        <div className="flex flex-wrap justify-center gap-2">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center gap-2">
           <Button
             variant="outline"
             onClick={handleRefresh}
             disabled={isRefreshing}
+            className="flex items-center justify-center"
           >
             {isRefreshing ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -974,12 +975,16 @@ const WorkOrders: React.FC = () => {
             )}
             Refresh
           </Button>
-          <Button onClick={handleCreateClick}>
+          <Button
+            onClick={handleCreateClick}
+            className="flex items-center justify-center"
+          >
             <PlusCircle className="mr-2 h-4 w-4" /> Create Work Order
           </Button>
           <Button
             variant="outline"
             onClick={() => setShowStatusManagement(!showStatusManagement)}
+            className="col-span-2 mt-2 sm:mt-0 flex items-center justify-center"
           >
             {showStatusManagement
               ? "Hide Status Management"
@@ -993,30 +998,44 @@ const WorkOrders: React.FC = () => {
         <div className="mb-8">
           <Card className="mb-6">
             <CardHeader className="pb-3">
-              <div className="flex flex-col md:flex-row justify-between items-center">
-                <div>
-                  <CardTitle>Work Order Status Management</CardTitle>
-                  <CardDescription>
+              <div className="flex flex-col justify-between items-center">
+                <div className="w-full text-center mb-4">
+                  <CardTitle className="text-2xl font-bold">
+                    Work Order Status Management
+                  </CardTitle>
+                  <CardDescription className="text-base mt-1">
                     Track and manage work order status and completion
                   </CardDescription>
                 </div>
-                <div className="flex gap-2 mt-4 md:mt-0">
-                  <Button variant="outline" size="sm" onClick={handleRefresh}>
-                    <RefreshCw className="mr-2 h-4 w-4" />
+
+                {/* iPhone 16 Pro Max optimized button layout */}
+                <div className="w-full flex flex-wrap justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRefresh}
+                    className="flex-1 min-w-[80px] flex items-center justify-center px-2"
+                  >
+                    <RefreshCw className="mr-1 h-4 w-4" />
                     Refresh
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setIsFilterDialogOpen(true)}
+                    className="flex-1 min-w-[80px] flex items-center justify-center px-2"
                   >
-                    <Filter className="mr-2 h-4 w-4" />
+                    <Filter className="mr-1 h-4 w-4" />
                     Filter
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Download className="mr-2 h-4 w-4" />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 min-w-[80px] flex items-center justify-center px-2"
+                      >
+                        <Download className="mr-1 h-4 w-4" />
                         Export
                       </Button>
                     </DropdownMenuTrigger>
@@ -1041,7 +1060,11 @@ const WorkOrders: React.FC = () => {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  <Button size="sm" onClick={handleSaveChanges}>
+                  <Button
+                    size="sm"
+                    onClick={handleSaveChanges}
+                    className="flex-1 min-w-[120px] flex items-center justify-center px-2"
+                  >
                     Save Changes
                   </Button>
                 </div>
@@ -1049,7 +1072,7 @@ const WorkOrders: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="mb-6">
-                <h3 className="text-lg font-medium mb-4">
+                <h3 className="text-xl font-medium mb-4 text-center">
                   Work Order Status Details
                 </h3>
 
@@ -1149,8 +1172,8 @@ const WorkOrders: React.FC = () => {
                   </Table>
                 </div>
 
-                {/* Mobile Card View */}
-                <div className="md:hidden space-y-4">
+                {/* iPhone 16 Pro Max Optimized Card View */}
+                <div className="md:hidden space-y-3">
                   {filteredWorkOrders?.map((wo) => {
                     const percentComplete =
                       wo.status === "Completed"
@@ -1167,52 +1190,58 @@ const WorkOrders: React.FC = () => {
                       (amountBilled * retainagePercentage) / 100;
 
                     return (
-                      <Card key={wo.work_order_id} className="overflow-hidden">
-                        <CardHeader className="p-4 pb-2">
-                          <CardTitle className="text-sm flex justify-between">
-                            <span>Work Order #{wo.work_order_id}</span>
+                      <Card
+                        key={wo.work_order_id}
+                        className="overflow-hidden border-2 shadow-sm"
+                      >
+                        <CardHeader className="p-3 pb-2 border-b">
+                          <div className="flex justify-between items-center">
+                            <CardTitle className="text-base font-bold">
+                              Work Order #{wo.work_order_id}
+                            </CardTitle>
                             <Badge
                               variant={
                                 percentComplete === 100 ? "default" : "outline"
                               }
+                              className="ml-2 px-3 py-1 text-xs font-semibold"
                             >
                               {percentComplete}% Complete
                             </Badge>
-                          </CardTitle>
+                          </div>
                         </CardHeader>
-                        <CardContent className="p-4 pt-2 space-y-2 text-sm">
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="flex flex-col">
-                              <span className="text-muted-foreground text-xs">
+                        <CardContent className="p-4 pt-3">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-muted/30 p-3 rounded-md">
+                              <div className="text-xs uppercase font-semibold text-muted-foreground">
                                 SWO Total
-                              </span>
-                              <span className="font-medium">
+                              </div>
+                              <div className="text-base font-bold mt-1">
                                 {formatCurrency(estimatedCost)}
-                              </span>
+                              </div>
                             </div>
-                            <div className="flex flex-col">
-                              <span className="text-muted-foreground text-xs">
+                            <div className="bg-muted/30 p-3 rounded-md">
+                              <div className="text-xs uppercase font-semibold text-muted-foreground">
                                 W.O. Amount
-                              </span>
-                              <span className="font-medium">
+                              </div>
+                              <div className="text-base font-bold mt-1">
                                 {formatCurrency(actualCost)}
-                              </span>
+                              </div>
                             </div>
-                            <div className="flex flex-col">
-                              <span className="text-muted-foreground text-xs">
+                            <div className="bg-muted/30 p-3 rounded-md">
+                              <div className="text-xs uppercase font-semibold text-muted-foreground">
                                 Retainage Amount
-                              </span>
-                              <span className="font-medium">
+                              </div>
+                              <div className="text-base font-bold mt-1">
                                 {formatCurrency(retainageAmount)}
-                              </span>
+                              </div>
                             </div>
-                            <div className="flex flex-col">
-                              <span className="text-muted-foreground text-xs">
+                            <div className="bg-muted/30 p-3 rounded-md">
+                              <div className="text-xs uppercase font-semibold text-muted-foreground">
                                 Amount Due
-                              </span>
-                              <span className="font-medium">
+                              </div>
+                              <div className="text-base font-bold mt-1">
                                 {formatCurrency(amountBilled - amountPaid)}
-                              </span>
+                              </div>
                             </div>
                           </div>
                         </CardContent>
@@ -1222,33 +1251,37 @@ const WorkOrders: React.FC = () => {
                 </div>
               </div>
 
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Status Summary</CardTitle>
+              {/* Summary Cards - iPhone 16 Pro Max Optimized */}
+              <div className="grid grid-cols-1 gap-5 mt-2">
+                <Card className="border-2 shadow-sm">
+                  <CardHeader className="pb-2 border-b">
+                    <CardTitle className="text-lg text-center font-bold">
+                      Status Summary
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-4">
                     <StatusSummary />
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">
+                <Card className="border-2 shadow-sm">
+                  <CardHeader className="pb-2 border-b">
+                    <CardTitle className="text-lg text-center font-bold">
                       Retainage Summary
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-4">
                     <RetainageSummary />
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Quick Actions</CardTitle>
+                <Card className="border-2 shadow-sm">
+                  <CardHeader className="pb-2 border-b">
+                    <CardTitle className="text-lg text-center font-bold">
+                      Quick Actions
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-4">
                     <QuickActions />
                   </CardContent>
                 </Card>
