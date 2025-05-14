@@ -17,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { MobileTable } from "@/components/ui/mobile-table";
 import {
   Dialog,
   DialogContent,
@@ -137,6 +138,17 @@ const UserManagement: React.FC = () => {
   const [userToDelete, setUserToDelete] = useState<number | null>(null);
   const [userPassword, setUserPassword] = useState<string | null>(null);
   const [isLoadingPassword, setIsLoadingPassword] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
+
+  // Add resize listener for responsive design
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Fetch Users
   const {
@@ -313,9 +325,10 @@ const UserManagement: React.FC = () => {
 
   return (
     <div className="p-4 md:p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">User Management</h1>
-        <div className="flex gap-2">
+      {/* Mobile-optimized header with centered title */}
+      <div className="flex flex-col mb-6">
+        <h1 className="text-3xl font-bold text-center mb-4">User Management</h1>
+        <div className="flex flex-wrap justify-center gap-2">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -344,7 +357,7 @@ const UserManagement: React.FC = () => {
       </div>
 
       {!isAdmin && (
-        <Alert className="mb-6" variant="warning">
+        <Alert className="mb-6">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Restricted Access</AlertTitle>
           <AlertDescription>
@@ -392,130 +405,225 @@ const UserManagement: React.FC = () => {
       )}
 
       {!isLoading && !error && users && users.length > 0 && (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created At</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.user_id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-primary/10 text-primary">
+        <>
+          {/* Desktop Table View - Hidden on mobile */}
+          <div className="rounded-md border hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created At</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.user_id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            {getInitials(user.username)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="font-medium">{user.username}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {getRoleIcon(user.role)}
+                        <span>{user.role}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(user.status)}</TableCell>
+                    <TableCell>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            {new Date(user.created_at).toLocaleDateString()}
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {new Date(user.created_at).toLocaleString()}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        {isAdmin ? (
+                          <>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() =>
+                                      handleViewPasswordClick(user)
+                                    }
+                                  >
+                                    <Eye className="h-4 w-4 text-amber-500" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>View Password</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleEditClick(user)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Edit User</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() =>
+                                      handleDeleteClick(user.user_id)
+                                    }
+                                    disabled={deleteMutation.isPending}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Delete User</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </>
+                        ) : (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="text-muted-foreground">
+                                  <Lock className="h-4 w-4" />
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Admin access required</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Table View - Only visible on mobile */}
+          <div className="md:hidden">
+            <MobileTable
+              data={users}
+              keyExtractor={(user) => user.user_id || 0}
+              columns={[
+                {
+                  id: "user",
+                  header: "User",
+                  cell: (user) => (
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-6 w-6">
+                        <AvatarFallback className="bg-primary/10 text-primary text-xs">
                           {getInitials(user.username)}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="font-medium">{user.username}</div>
+                      <span className="font-medium">{user.username}</span>
                     </div>
-                  </TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
+                  ),
+                },
+                {
+                  id: "email",
+                  header: "Email",
+                  cell: (user) => (
+                    <span className="text-sm truncate max-w-[180px] block">
+                      {user.email}
+                    </span>
+                  ),
+                },
+                {
+                  id: "role",
+                  header: "Role",
+                  cell: (user) => (
+                    <div className="flex items-center gap-1">
                       {getRoleIcon(user.role)}
-                      <span>{user.role}</span>
+                      <span className="text-sm">{user.role}</span>
                     </div>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(user.status)}</TableCell>
-                  <TableCell>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          {new Date(user.created_at).toLocaleDateString()}
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {new Date(user.created_at).toLocaleString()}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      {isAdmin ? (
-                        <>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleViewPasswordClick(user)}
-                                >
-                                  <Eye className="h-4 w-4 text-amber-500" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>View Password</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleEditClick(user)}
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Edit User</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() =>
-                                    handleDeleteClick(user.user_id)
-                                  }
-                                  disabled={deleteMutation.isPending}
-                                >
-                                  <Trash2 className="h-4 w-4 text-red-500" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Delete User</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </>
-                      ) : (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="text-muted-foreground">
-                                <Lock className="h-4 w-4" />
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Admin access required</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+                  ),
+                },
+                {
+                  id: "status",
+                  header: "Status",
+                  cell: (user) => getStatusBadge(user.status),
+                },
+                {
+                  id: "created",
+                  header: "Created",
+                  cell: (user) => (
+                    <span className="text-sm">
+                      {new Date(user.created_at).toLocaleDateString()}
+                    </span>
+                  ),
+                },
+              ]}
+              renderActions={
+                isAdmin
+                  ? (user) => (
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewPasswordClick(user)}
+                        >
+                          <Eye className="h-3.5 w-3.5 mr-1 text-amber-500" />
+                          Password
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditClick(user)}
+                        >
+                          <Pencil className="h-3.5 w-3.5 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteClick(user.user_id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1" />
+                          Delete
+                        </Button>
+                      </div>
+                    )
+                  : undefined
+              }
+              emptyMessage="No users found"
+            />
+          </div>
+        </>
       )}
 
       {/* Create/Edit Dialog */}
@@ -846,7 +954,7 @@ const UserManagement: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <Alert className="mb-4" variant="warning">
+            <Alert className="mb-4">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Security Warning</AlertTitle>
               <AlertDescription>
