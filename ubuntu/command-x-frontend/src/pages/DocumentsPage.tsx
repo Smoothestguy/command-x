@@ -957,13 +957,14 @@ const DocumentsPage: React.FC = () => {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Documents</h1>
-        <div className="relative">
+      {/* Mobile-optimized header with centered title */}
+      <div className="flex flex-col mb-8">
+        <h1 className="text-3xl font-bold text-center mb-4">Documents</h1>
+        <div className="relative w-full max-w-md mx-auto">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search all documents..."
-            className="pl-8 w-[250px]"
+            className="pl-8 w-full"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
