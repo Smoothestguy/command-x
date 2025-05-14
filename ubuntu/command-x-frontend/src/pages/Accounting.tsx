@@ -1223,40 +1223,66 @@ const Accounting: React.FC = () => {
           {/* Enhanced Accounting Features */}
           <div className="mt-8">
             <Tabs defaultValue="dashboard" className="w-full">
-              <TabsList className="grid grid-cols-8 mb-4">
-                <TabsTrigger value="dashboard">
-                  <BarChart2 className="h-4 w-4 mr-2" />
-                  Financial Dashboard
-                </TabsTrigger>
-                <TabsTrigger value="workorders">
-                  <FileCheck className="h-4 w-4 mr-2" />
-                  Work Orders
-                </TabsTrigger>
-                <TabsTrigger value="filters">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Advanced Filters
-                </TabsTrigger>
-                <TabsTrigger value="reports">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Reporting Tools
-                </TabsTrigger>
-                <TabsTrigger value="payments">
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Payment Tracking
-                </TabsTrigger>
-                <TabsTrigger value="billing">
-                  <Calculator className="h-4 w-4 mr-2" />
-                  Billing Automation
-                </TabsTrigger>
-                <TabsTrigger value="audit">
-                  <FileCheck className="h-4 w-4 mr-2" />
-                  Audit Trail
-                </TabsTrigger>
-                <TabsTrigger value="analytics">
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  Financial Analytics
-                </TabsTrigger>
-              </TabsList>
+              <div className="overflow-x-auto pb-2">
+                <TabsList className="flex mb-4 w-max min-w-full">
+                  <TabsTrigger
+                    value="dashboard"
+                    className="flex-1 min-w-[120px]"
+                  >
+                    <BarChart2 className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">
+                      Financial Dashboard
+                    </span>
+                    <span className="sm:hidden">Dashboard</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="workorders"
+                    className="flex-1 min-w-[120px]"
+                  >
+                    <FileCheck className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Work Orders</span>
+                    <span className="sm:hidden">Orders</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="filters" className="flex-1 min-w-[120px]">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Advanced Filters</span>
+                    <span className="sm:hidden">Filters</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="reports" className="flex-1 min-w-[120px]">
+                    <FileText className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Reporting Tools</span>
+                    <span className="sm:hidden">Reports</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="payments"
+                    className="flex-1 min-w-[120px]"
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Payment Tracking</span>
+                    <span className="sm:hidden">Payments</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="billing" className="flex-1 min-w-[120px]">
+                    <Calculator className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Billing Automation</span>
+                    <span className="sm:hidden">Billing</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="audit" className="flex-1 min-w-[120px]">
+                    <FileCheck className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Audit Trail</span>
+                    <span className="sm:hidden">Audit</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="analytics"
+                    className="flex-1 min-w-[120px]"
+                  >
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">
+                      Financial Analytics
+                    </span>
+                    <span className="sm:hidden">Analytics</span>
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
               {/* Work Orders Tab */}
               <TabsContent value="workorders" className="space-y-4">
