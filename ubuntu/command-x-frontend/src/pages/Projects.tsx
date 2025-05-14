@@ -358,9 +358,10 @@ const Projects: React.FC = () => {
 
   return (
     <div className="p-4 md:p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Projects</h1>
-        <div className="flex items-center gap-2">
+      {/* Mobile-optimized header with centered title */}
+      <div className="flex flex-col mb-6">
+        <h1 className="text-3xl font-bold text-center mb-4">Projects</h1>
+        <div className="flex flex-wrap justify-center gap-2">
           <div className="flex border rounded-md overflow-hidden">
             <Button
               variant={viewMode === "table" ? "default" : "outline"}
