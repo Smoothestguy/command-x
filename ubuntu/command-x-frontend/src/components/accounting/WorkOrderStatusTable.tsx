@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -8,6 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Define the type for work order data
 interface WorkOrderData {
@@ -170,7 +171,234 @@ const formatCurrency = (value: number) => {
       }).format(value);
 };
 
+// Mobile card view for work order status
+const MobileWorkOrderCard: React.FC<{ data: WorkOrderData }> = ({ data }) => {
+  return (
+    <Card className="mb-4">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex justify-between">
+          <span>Work Order #{data.id}</span>
+          <span>{data.dueDate}</span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2 pt-0 text-sm">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col">
+            <span className="text-muted-foreground text-xs">SWO Total</span>
+            <span className="font-medium">{formatCurrency(data.swoTotal)}</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-muted-foreground text-xs">W.O. Amount</span>
+            <span className="font-medium">{formatCurrency(data.woAmount)}</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col">
+            <span className="text-muted-foreground text-xs">
+              Retainage Amount
+            </span>
+            <span className="font-medium">
+              {formatCurrency(data.retainageAmount)}
+            </span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-muted-foreground text-xs">
+              W.O. Amount Due
+            </span>
+            <span className="font-medium">
+              {formatCurrency(data.woDueAmount)}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-4 gap-1 mt-3">
+          <div className="flex flex-col items-center">
+            <span className="text-muted-foreground text-xs">% Complete</span>
+            <Badge
+              className={`${
+                data.percentComplete === 0
+                  ? "bg-red-500"
+                  : data.percentComplete === 100
+                  ? "bg-green-500"
+                  : "bg-yellow-500"
+              } text-white mt-1`}
+            >
+              {data.percentComplete}%
+            </Badge>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-muted-foreground text-xs">% Assigned</span>
+            <Badge
+              className={`${
+                data.percentAssigned === 0
+                  ? "bg-red-500"
+                  : data.percentAssigned === 100
+                  ? "bg-green-500"
+                  : "bg-yellow-500"
+              } text-white mt-1`}
+            >
+              {data.percentAssigned}%
+            </Badge>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-muted-foreground text-xs">% Pass</span>
+            <Badge
+              className={`${
+                data.percentOfPass === 0
+                  ? "bg-red-500"
+                  : data.percentOfPass === 100
+                  ? "bg-green-500"
+                  : "bg-yellow-500"
+              } text-white mt-1`}
+            >
+              {data.percentOfPass}%
+            </Badge>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-muted-foreground text-xs">% Started</span>
+            <Badge className="bg-red-500 text-white mt-1">
+              {data.percentStarted}%
+            </Badge>
+          </div>
+        </div>
+
+        {data.crewName && (
+          <div className="pt-2 border-t border-gray-100">
+            <span className="text-muted-foreground text-xs">Crew: </span>
+            <span>{data.crewName}</span>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// Financial Summary Card for mobile view
+const MobileFinancialSummary: React.FC = () => {
+  // Calculate totals from workOrderData
+  const totalSWO = workOrderData.reduce((sum, item) => sum + item.swoTotal, 0);
+  const totalRetainage = workOrderData.reduce(
+    (sum, item) => sum + item.retainageAmount,
+    0
+  );
+  const totalWOAmount = workOrderData.reduce(
+    (sum, item) => sum + item.woAmount,
+    0
+  );
+  const totalDue = workOrderData.reduce(
+    (sum, item) => sum + item.woDueAmount,
+    0
+  );
+
+  return (
+    <Card className="mb-4">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Financial Summary</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Total SWO Amount:</span>
+          <span className="font-semibold">${totalSWO.toFixed(2)}</span>
+        </div>
+
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Total Paid:</span>
+          <span className="font-semibold">
+            ${(totalWOAmount - totalDue).toFixed(2)}
+          </span>
+        </div>
+
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Outstanding Balance:</span>
+          <span className="font-semibold">${totalDue.toFixed(2)}</span>
+        </div>
+
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Total Retainage:</span>
+          <span className="font-semibold">${totalRetainage.toFixed(2)}</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Status Breakdown Card for mobile view
+const MobileStatusBreakdown: React.FC = () => {
+  // Calculate status counts
+  const approved = workOrderData.filter(
+    (item) => item.percentCompleted === 100
+  ).length;
+  const pending = workOrderData.filter(
+    (item) => item.percentPending > 0
+  ).length;
+  const inProgress = workOrderData.filter(
+    (item) => item.percentStarted > 0 && item.percentCompleted < 100
+  ).length;
+  const notStarted = workOrderData.filter(
+    (item) => item.percentStarted === 0 && item.percentPending === 0
+  ).length;
+
+  return (
+    <Card className="mb-4">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Status Breakdown</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Approved:</span>
+            <span className="font-semibold">{approved}</span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Pending:</span>
+            <span className="font-semibold">{pending}</span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">In Progress:</span>
+            <span className="font-semibold">{inProgress}</span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Not Started:</span>
+            <span className="font-semibold">{notStarted}</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 const WorkOrderStatusTable: React.FC = () => {
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
+
+  // Add resize listener
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  if (isMobileView) {
+    return (
+      <div className="space-y-4">
+        <MobileFinancialSummary />
+        <MobileStatusBreakdown />
+        <h3 className="text-lg font-medium mt-6 mb-2">
+          Work Order Status Overview
+        </h3>
+        {workOrderData.map((row) => (
+          <MobileWorkOrderCard key={row.id} data={row} />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-md border overflow-x-auto">
       <Table>
