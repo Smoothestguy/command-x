@@ -10,6 +10,7 @@ import {
   ProjectData,
   getSubcontractors,
   SubcontractorData,
+  LineItemData,
 } from "../services/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,6 +64,7 @@ import {
   RefreshCw,
   Loader2,
   LayoutGrid,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -731,11 +733,15 @@ const WorkOrders: React.FC = () => {
         }, 1500);
       }),
       {
-        loading: `Updating status for ${selectedWorkOrderIds.length} work orders...`,
+        loading: `Updating status for ${
+          selectedWorkOrderIds.length
+        } work order${selectedWorkOrderIds.length === 1 ? "" : "s"}...`,
         success: () => {
           setIsBatchStatusDialogOpen(false);
           setSelectedWorkOrderIds([]);
-          return `Updated ${selectedWorkOrderIds.length} work orders to ${batchStatusValue}`;
+          return `Updated ${selectedWorkOrderIds.length} work order${
+            selectedWorkOrderIds.length === 1 ? "" : "s"
+          } to ${batchStatusValue}`;
         },
         error: "Failed to update work order status",
       }
@@ -871,43 +877,51 @@ const WorkOrders: React.FC = () => {
           className="w-full"
           variant="default"
           onClick={() => {
-            if (selectedWorkOrderIds.length === 0) {
-              // If no work orders are explicitly selected, select all filtered work orders
-              const ids =
-                filteredWorkOrders
-                  ?.map((wo) => wo.work_order_id!)
-                  .filter(Boolean) || [];
-              setSelectedWorkOrderIds(ids);
-            }
+            // Open the dialog without pre-selecting all work orders
+            // This allows the user to choose which ones to update
             setIsBatchStatusDialogOpen(true);
           }}
         >
+          <CheckCircle2 className="mr-2 h-4 w-4" />
           Update Status
         </Button>
-        <Button
-          className="w-full"
-          variant="outline"
-          onClick={() => setIsReportDialogOpen(true)}
-        >
-          Generate Report
-        </Button>
-        <Button
-          className="w-full"
-          variant="outline"
-          onClick={() => {
-            if (selectedWorkOrderIds.length === 0) {
-              // If no work orders are explicitly selected, select all filtered work orders
-              const ids =
-                filteredWorkOrders
-                  ?.map((wo) => wo.work_order_id!)
-                  .filter(Boolean) || [];
-              setSelectedWorkOrderIds(ids);
-            }
-            setIsCrewDialogOpen(true);
-          }}
-        >
-          Manage Crew
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="w-full"
+                variant="outline"
+                onClick={() => setIsReportDialogOpen(true)}
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                Generate Report
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Create reports for work order status and progress</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="w-full"
+                variant="outline"
+                onClick={() => {
+                  // Open the dialog without pre-selecting all work orders
+                  setIsCrewDialogOpen(true);
+                }}
+              >
+                <Users className="mr-2 h-4 w-4" />
+                Manage Crew
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Assign crews to selected work orders</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     );
   };
@@ -2802,7 +2816,7 @@ const WorkOrders: React.FC = () => {
         open={isBatchStatusDialogOpen}
         onOpenChange={setIsBatchStatusDialogOpen}
       >
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Update Work Order Status</DialogTitle>
             <DialogDescription>
@@ -2830,10 +2844,133 @@ const WorkOrders: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  This will update {selectedWorkOrderIds.length} work order(s).
-                </p>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <Label>Selected Work Orders</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        // Select all filtered work orders
+                        const ids =
+                          filteredWorkOrders
+                            ?.map((wo) => wo.work_order_id!)
+                            .filter(Boolean) || [];
+                        setSelectedWorkOrderIds(ids);
+                      }}
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedWorkOrderIds([])}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+
+                {selectedWorkOrderIds.length === 0 ? (
+                  <div className="text-sm text-muted-foreground p-4 border rounded-md text-center">
+                    No work orders selected. Please select at least one work
+                    order.
+                  </div>
+                ) : selectedWorkOrderIds.length > 5 ? (
+                  <div className="space-y-2">
+                    <div className="text-sm text-muted-foreground">
+                      {selectedWorkOrderIds.length} work order
+                      {selectedWorkOrderIds.length === 1 ? "" : "s"} selected
+                    </div>
+                    <ScrollArea className="h-[150px] border rounded-md p-2">
+                      {selectedWorkOrderIds.map((id) => {
+                        const workOrder = filteredWorkOrders?.find(
+                          (wo) => wo.work_order_id === id
+                        );
+                        return workOrder ? (
+                          <div
+                            key={id}
+                            className="flex justify-between items-center py-1 border-b last:border-0"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                checked={true}
+                                onCheckedChange={(checked) => {
+                                  if (!checked) {
+                                    setSelectedWorkOrderIds((prev) =>
+                                      prev.filter((woId) => woId !== id)
+                                    );
+                                  }
+                                }}
+                              />
+                              <span className="text-sm font-medium">
+                                {workOrder.description}
+                              </span>
+                            </div>
+                            <Badge
+                              variant={
+                                workOrder.status === "Completed"
+                                  ? "default"
+                                  : workOrder.status === "In Progress"
+                                  ? "secondary"
+                                  : workOrder.status === "On Hold"
+                                  ? "destructive"
+                                  : "outline"
+                              }
+                            >
+                              {workOrder.status}
+                            </Badge>
+                          </div>
+                        ) : null;
+                      })}
+                    </ScrollArea>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {selectedWorkOrderIds.map((id) => {
+                      const workOrder = filteredWorkOrders?.find(
+                        (wo) => wo.work_order_id === id
+                      );
+                      return workOrder ? (
+                        <div
+                          key={id}
+                          className="flex justify-between items-center py-1 border-b last:border-0"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              checked={true}
+                              onCheckedChange={(checked) => {
+                                if (!checked) {
+                                  setSelectedWorkOrderIds((prev) =>
+                                    prev.filter((woId) => woId !== id)
+                                  );
+                                }
+                              }}
+                            />
+                            <span className="text-sm font-medium">
+                              {workOrder.description}
+                            </span>
+                          </div>
+                          <Badge
+                            variant={
+                              workOrder.status === "Completed"
+                                ? "default"
+                                : workOrder.status === "In Progress"
+                                ? "secondary"
+                                : workOrder.status === "On Hold"
+                                ? "destructive"
+                                : "outline"
+                            }
+                          >
+                            {workOrder.status}
+                          </Badge>
+                        </div>
+                      ) : null;
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -2844,7 +2981,12 @@ const WorkOrders: React.FC = () => {
             >
               Cancel
             </Button>
-            <Button onClick={handleBatchStatusUpdate}>Update Status</Button>
+            <Button
+              onClick={handleBatchStatusUpdate}
+              disabled={selectedWorkOrderIds.length === 0}
+            >
+              Update Status
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
