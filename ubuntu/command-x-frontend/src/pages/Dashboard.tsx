@@ -274,7 +274,7 @@ const Dashboard: React.FC = () => {
 
       {!isLoading && !error && summary && (
         <>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Card
               className="cursor-pointer hover:shadow-md transition-shadow"
               onClick={() => handleCardClick("/projects")}
@@ -334,13 +334,13 @@ const Dashboard: React.FC = () => {
             </Card>
           </div>
 
-          <div className="grid gap-6 mt-6 md:grid-cols-2">
+          <div className="grid gap-6 mt-6 grid-cols-1 md:grid-cols-2">
             {/* Project Status Chart */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Project Status</CardTitle>
               </CardHeader>
-              <CardContent className="h-80">
+              <CardContent className="h-60 sm:h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -348,7 +348,7 @@ const Dashboard: React.FC = () => {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      outerRadius={80}
+                      outerRadius={window.innerWidth < 640 ? 60 : 80}
                       fill="#8884d8"
                       dataKey="value"
                       label={({ name, percent }) =>
@@ -374,7 +374,7 @@ const Dashboard: React.FC = () => {
               <CardHeader>
                 <CardTitle className="text-lg">Work Order Status</CardTitle>
               </CardHeader>
-              <CardContent className="h-80">
+              <CardContent className="h-60 sm:h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={workOrderData}
@@ -401,7 +401,7 @@ const Dashboard: React.FC = () => {
               <CardHeader>
                 <CardTitle className="text-lg">Budget Overview</CardTitle>
               </CardHeader>
-              <CardContent className="h-80">
+              <CardContent className="h-60 sm:h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={budgetData}
@@ -431,7 +431,7 @@ const Dashboard: React.FC = () => {
               <CardHeader>
                 <CardTitle className="text-lg">Recent Activity</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="max-h-[400px] overflow-y-auto">
                 <div className="space-y-4">
                   {recentActivities.map((activity) => (
                     <div
@@ -452,16 +452,18 @@ const Dashboard: React.FC = () => {
                           <Calendar className="h-4 w-4" />
                         )}
                       </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
                           {activity.item}{" "}
                           <span className="text-slate-500">
                             was {activity.action}
                           </span>
                         </p>
                         <div className="flex items-center mt-1 text-xs text-slate-500">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {activity.time} by {activity.user}
+                          <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
+                          <span className="truncate">
+                            {activity.time} by {activity.user}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -475,7 +477,7 @@ const Dashboard: React.FC = () => {
 
       {/* Export Dialog */}
       <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-[90vw] max-w-md mx-auto">
           <DialogHeader>
             <DialogTitle>Export Dashboard Data</DialogTitle>
             <DialogDescription>
@@ -495,22 +497,22 @@ const Dashboard: React.FC = () => {
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="pdf" id="pdf" />
-                  <Label htmlFor="pdf" className="flex items-center">
-                    <FileText className="h-4 w-4 mr-2" />
+                  <Label htmlFor="pdf" className="flex items-center text-sm">
+                    <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
                     PDF Document
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="excel" id="excel" />
-                  <Label htmlFor="excel" className="flex items-center">
-                    <FileText className="h-4 w-4 mr-2" />
+                  <Label htmlFor="excel" className="flex items-center text-sm">
+                    <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
                     Excel Spreadsheet
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="csv" id="csv" />
-                  <Label htmlFor="csv" className="flex items-center">
-                    <FileText className="h-4 w-4 mr-2" />
+                  <Label htmlFor="csv" className="flex items-center text-sm">
+                    <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
                     CSV File
                   </Label>
                 </div>
@@ -528,8 +530,8 @@ const Dashboard: React.FC = () => {
                       setIncludeCharts(checked as boolean)
                     }
                   />
-                  <Label htmlFor="charts" className="flex items-center">
-                    <BarChart2 className="h-4 w-4 mr-2" />
+                  <Label htmlFor="charts" className="flex items-center text-sm">
+                    <BarChart2 className="h-4 w-4 mr-2 flex-shrink-0" />
                     Charts and Visualizations
                   </Label>
                 </div>
@@ -541,8 +543,11 @@ const Dashboard: React.FC = () => {
                       setIncludeProjects(checked as boolean)
                     }
                   />
-                  <Label htmlFor="projects" className="flex items-center">
-                    <Briefcase className="h-4 w-4 mr-2" />
+                  <Label
+                    htmlFor="projects"
+                    className="flex items-center text-sm"
+                  >
+                    <Briefcase className="h-4 w-4 mr-2 flex-shrink-0" />
                     Project Data
                   </Label>
                 </div>
@@ -554,8 +559,11 @@ const Dashboard: React.FC = () => {
                       setIncludeWorkOrders(checked as boolean)
                     }
                   />
-                  <Label htmlFor="workorders" className="flex items-center">
-                    <Construction className="h-4 w-4 mr-2" />
+                  <Label
+                    htmlFor="workorders"
+                    className="flex items-center text-sm"
+                  >
+                    <Construction className="h-4 w-4 mr-2 flex-shrink-0" />
                     Work Order Data
                   </Label>
                 </div>
@@ -567,8 +575,11 @@ const Dashboard: React.FC = () => {
                       setIncludeFinancials(checked as boolean)
                     }
                   />
-                  <Label htmlFor="financials" className="flex items-center">
-                    <FileText className="h-4 w-4 mr-2" />
+                  <Label
+                    htmlFor="financials"
+                    className="flex items-center text-sm"
+                  >
+                    <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
                     Financial Data
                   </Label>
                 </div>
@@ -576,14 +587,19 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
               onClick={() => setIsExportDialogOpen(false)}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
-            <Button onClick={executeExport} disabled={isExporting}>
+            <Button
+              onClick={executeExport}
+              disabled={isExporting}
+              className="w-full sm:w-auto"
+            >
               {isExporting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
