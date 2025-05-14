@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,7 @@ import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import WorkOrderStatusTable from "@/components/accounting/WorkOrderStatusTable";
 import PaymentStatusTable from "@/components/accounting/PaymentStatusTable";
 import { workOrderData } from "@/components/accounting/WorkOrderStatusTable";
+import MobileTable from "@/components/ui/mobile-table";
 
 import {
   Card,
@@ -94,12 +95,23 @@ const Accounting: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
 
   // Loading states for financial reporting tools
   const [isGeneratingStatements, setIsGeneratingStatements] = useState(false);
   const [isPreparingTaxDocs, setIsPreparingTaxDocs] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isSavingView, setIsSavingView] = useState(false);
+
+  // Check for mobile view
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // State to track if financial statements have been generated
   const [showGeneratedStatements, setShowGeneratedStatements] = useState(false);
@@ -886,192 +898,288 @@ const Accounting: React.FC = () => {
             </div>
           </div>
 
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[40px]">
-                    <Checkbox
-                      checked={selectedRows.length === accountingEntries.length}
-                      onCheckedChange={handleSelectAll}
-                    />
-                  </TableHead>
-                  <TableHead
-                    className="w-[80px] cursor-pointer"
-                    onClick={() => handleSort("id")}
-                  >
-                    <div className="flex items-center">
-                      Action
-                      {sortField === "id" && (
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      )}
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    className="w-[150px] cursor-pointer"
-                    onClick={() => handleSort("project")}
-                  >
-                    <div className="flex items-center">
-                      Project Number
-                      {sortField === "project" && (
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      )}
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer"
-                    onClick={() => handleSort("subcontractor")}
-                  >
-                    <div className="flex items-center">
-                      Subcontractor Company
-                      {sortField === "subcontractor" && (
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      )}
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer"
-                    onClick={() => handleSort("workOrderNumber")}
-                  >
-                    <div className="flex items-center">
-                      Work Order Number
-                      {sortField === "workOrderNumber" && (
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      )}
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    className="text-center cursor-pointer"
-                    onClick={() => handleSort("completed")}
-                  >
-                    <div className="flex items-center justify-center">
-                      % Completed
-                      {sortField === "completed" && (
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      )}
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    className="text-right cursor-pointer"
-                    onClick={() => handleSort("swoTotal")}
-                  >
-                    <div className="flex items-center justify-end">
-                      SWO Total
-                      {sortField === "swoTotal" && (
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      )}
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    className="text-right cursor-pointer"
-                    onClick={() => handleSort("retainage")}
-                  >
-                    <div className="flex items-center justify-end">
-                      Retainage %
-                      {sortField === "retainage" && (
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      )}
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    className="text-right cursor-pointer"
-                    onClick={() => handleSort("retainageAmount")}
-                  >
-                    <div className="flex items-center justify-end">
-                      Retainage Amount
-                      {sortField === "retainageAmount" && (
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      )}
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    className="text-right cursor-pointer"
-                    onClick={() => handleSort("paidAmount")}
-                  >
-                    <div className="flex items-center justify-end">
-                      Paid Amount
-                      {sortField === "paidAmount" && (
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      )}
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    className="text-right cursor-pointer"
-                    onClick={() => handleSort("total")}
-                  >
-                    <div className="flex items-center justify-end">
-                      Total
-                      {sortField === "total" && (
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      )}
-                    </div>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedEntries.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={11} className="h-24 text-center">
-                      No accounting entries found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  sortedEntries.map((entry) => (
-                    <TableRow key={entry.id} className="hover:bg-muted/50">
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedRows.includes(entry.id)}
-                          onCheckedChange={() => handleRowSelect(entry.id)}
+          {/* Mobile View */}
+          {isMobileView ? (
+            <div className="space-y-4">
+              <MobileTable
+                data={sortedEntries}
+                keyExtractor={(entry) => entry.id}
+                onRowClick={(entry) => {
+                  setSelectedEntry(entry);
+                  setIsInvoiceDialogOpen(true);
+                }}
+                columns={[
+                  {
+                    id: "project",
+                    header: "Project",
+                    cell: (entry) => (
+                      <span className="font-medium">{entry.project}</span>
+                    ),
+                  },
+                  {
+                    id: "status",
+                    header: "Status",
+                    cell: (entry) => (
+                      <Badge
+                        className={
+                          entry.status === "Approved"
+                            ? "bg-green-100 text-green-800"
+                            : entry.status === "Pending"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
+                        }
+                      >
+                        {entry.status}
+                      </Badge>
+                    ),
+                  },
+                  {
+                    id: "completed",
+                    header: "Completed",
+                    cell: (entry) => (
+                      <div className="flex items-center space-x-2">
+                        <span>{entry.completed}%</span>
+                        <Progress
+                          value={entry.completed}
+                          className="h-2 w-12"
                         />
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => {
-                            setSelectedEntry(entry);
-                            setIsInvoiceDialogOpen(true);
-                          }}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {entry.project}
-                      </TableCell>
-                      <TableCell>{entry.subcontractor}</TableCell>
-                      <TableCell>{entry.workOrderNumber}</TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex flex-col items-center">
-                          <span>{entry.completed}%</span>
-                          <Progress
-                            value={entry.completed}
-                            className="h-2 w-16 mt-1"
-                          />
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        ${entry.swoTotal.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {entry.retainage}%
-                      </TableCell>
-                      <TableCell className="text-right">
-                        ${entry.retainageAmount.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        ${entry.paidAmount.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        ${entry.total.toFixed(2)}
+                      </div>
+                    ),
+                  },
+                  {
+                    id: "swoTotal",
+                    header: "SWO Total",
+                    cell: (entry) => (
+                      <span className="font-medium">
+                        $
+                        {entry.swoTotal.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    ),
+                  },
+                  {
+                    id: "paidAmount",
+                    header: "Paid Amount",
+                    cell: (entry) => (
+                      <span className="font-medium">
+                        $
+                        {entry.paidAmount.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    ),
+                  },
+                ]}
+                renderActions={(entry) => (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedEntry(entry);
+                      setIsInvoiceDialogOpen(true);
+                    }}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View
+                  </Button>
+                )}
+              />
+            </div>
+          ) : (
+            /* Desktop View */
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[40px]">
+                      <Checkbox
+                        checked={
+                          selectedRows.length === accountingEntries.length
+                        }
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </TableHead>
+                    <TableHead
+                      className="w-[80px] cursor-pointer"
+                      onClick={() => handleSort("id")}
+                    >
+                      <div className="flex items-center">
+                        Action
+                        {sortField === "id" && (
+                          <ArrowUpDown className="ml-2 h-4 w-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className="w-[150px] cursor-pointer"
+                      onClick={() => handleSort("project")}
+                    >
+                      <div className="flex items-center">
+                        Project Number
+                        {sortField === "project" && (
+                          <ArrowUpDown className="ml-2 h-4 w-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className="cursor-pointer"
+                      onClick={() => handleSort("subcontractor")}
+                    >
+                      <div className="flex items-center">
+                        Subcontractor Company
+                        {sortField === "subcontractor" && (
+                          <ArrowUpDown className="ml-2 h-4 w-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className="cursor-pointer"
+                      onClick={() => handleSort("workOrderNumber")}
+                    >
+                      <div className="flex items-center">
+                        Work Order Number
+                        {sortField === "workOrderNumber" && (
+                          <ArrowUpDown className="ml-2 h-4 w-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className="text-center cursor-pointer"
+                      onClick={() => handleSort("completed")}
+                    >
+                      <div className="flex items-center justify-center">
+                        % Completed
+                        {sortField === "completed" && (
+                          <ArrowUpDown className="ml-2 h-4 w-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className="text-right cursor-pointer"
+                      onClick={() => handleSort("swoTotal")}
+                    >
+                      <div className="flex items-center justify-end">
+                        SWO Total
+                        {sortField === "swoTotal" && (
+                          <ArrowUpDown className="ml-2 h-4 w-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className="text-right cursor-pointer"
+                      onClick={() => handleSort("retainage")}
+                    >
+                      <div className="flex items-center justify-end">
+                        Retainage %
+                        {sortField === "retainage" && (
+                          <ArrowUpDown className="ml-2 h-4 w-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className="text-right cursor-pointer"
+                      onClick={() => handleSort("retainageAmount")}
+                    >
+                      <div className="flex items-center justify-end">
+                        Retainage Amount
+                        {sortField === "retainageAmount" && (
+                          <ArrowUpDown className="ml-2 h-4 w-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className="text-right cursor-pointer"
+                      onClick={() => handleSort("paidAmount")}
+                    >
+                      <div className="flex items-center justify-end">
+                        Paid Amount
+                        {sortField === "paidAmount" && (
+                          <ArrowUpDown className="ml-2 h-4 w-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className="text-right cursor-pointer"
+                      onClick={() => handleSort("total")}
+                    >
+                      <div className="flex items-center justify-end">
+                        Total
+                        {sortField === "total" && (
+                          <ArrowUpDown className="ml-2 h-4 w-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedEntries.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={11} className="h-24 text-center">
+                        No accounting entries found.
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  ) : (
+                    sortedEntries.map((entry) => (
+                      <TableRow key={entry.id} className="hover:bg-muted/50">
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedRows.includes(entry.id)}
+                            onCheckedChange={() => handleRowSelect(entry.id)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => {
+                              setSelectedEntry(entry);
+                              setIsInvoiceDialogOpen(true);
+                            }}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {entry.project}
+                        </TableCell>
+                        <TableCell>{entry.subcontractor}</TableCell>
+                        <TableCell>{entry.workOrderNumber}</TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex flex-col items-center">
+                            <span>{entry.completed}%</span>
+                            <Progress
+                              value={entry.completed}
+                              className="h-2 w-16 mt-1"
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ${entry.swoTotal.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {entry.retainage}%
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ${entry.retainageAmount.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ${entry.paidAmount.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ${entry.total.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
 
           <div className="mt-6 flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
