@@ -796,9 +796,23 @@ const Accounting: React.FC = () => {
 
   return (
     <div className="p-4 md:p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Accounting</h1>
-        <div className="flex items-center gap-2">
+      <div
+        className={`${
+          isMobileView ? "flex flex-col" : "flex justify-between"
+        } items-center mb-6`}
+      >
+        <h1
+          className={`text-3xl font-bold ${
+            isMobileView ? "mb-4 self-center" : ""
+          }`}
+        >
+          Accounting
+        </h1>
+        <div
+          className={`flex ${
+            isMobileView ? "flex-wrap justify-center" : ""
+          } items-center gap-2`}
+        >
           <DatePickerWithRange
             date={dateRange}
             setDate={setDateRange}
@@ -2573,10 +2587,39 @@ const Accounting: React.FC = () => {
       <Dialog open={isInvoiceDialogOpen} onOpenChange={setIsInvoiceDialogOpen}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Invoice Details</DialogTitle>
-            <DialogDescription>
-              {selectedEntry && `Work Order: ${selectedEntry.workOrderNumber}`}
-            </DialogDescription>
+            <div className="flex items-center">
+              {isMobileView && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mr-2"
+                  onClick={() => setIsInvoiceDialogOpen(false)}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-4 w-4"
+                  >
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                  </svg>
+                  <span className="sr-only">Back</span>
+                </Button>
+              )}
+              <div>
+                <DialogTitle>Invoice Details</DialogTitle>
+                <DialogDescription>
+                  {selectedEntry &&
+                    `Work Order: ${selectedEntry.workOrderNumber}`}
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
 
           {selectedEntry && (
