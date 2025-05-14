@@ -1,8 +1,7 @@
+@import "./styles/iphone.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import "./styles/iphone.css";
 @layer base {
   :root {
     --radius: 0.5rem;
