@@ -29,6 +29,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     setSidebarOpen(!sidebarOpen);
   };
 
+  // Detect iPhone
+  const [isIPhone, setIsIPhone] = useState(false);
+
+  useEffect(() => {
+    // Check if device is an iPhone
+    const checkIfIPhone = () => {
+      const userAgent = navigator.userAgent;
+      const isIOS = /iPhone|iPad|iPod/.test(userAgent);
+      setIsIPhone(isIOS);
+    };
+
+    checkIfIPhone();
+  }, []);
+
   return (
     <div className="flex h-screen bg-gray-50 relative">
       {/* Mobile sidebar overlay */}
@@ -45,6 +59,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         ${isMobileView ? "fixed z-30 h-full" : "relative"}
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         transition-transform duration-300 ease-in-out
+        ${isIPhone ? "iphone-padding-top iphone-padding-bottom" : ""}
       `}
       >
         <Sidebar onCloseMobile={() => isMobileView && setSidebarOpen(false)} />
@@ -62,7 +77,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Menu className="h-6 w-6" />
           </Button>
         </Header>
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-200 p-2 sm:p-4 md:p-6">
+        <main
+          className={`flex-1 overflow-x-hidden overflow-y-auto bg-gray-200 p-2 sm:p-4 md:p-6
+          ${
+            isIPhone
+              ? "iphone-padding-bottom iphone-padding-left iphone-padding-right"
+              : ""
+          }`}
+        >
           {children}
         </main>
       </div>

@@ -1,0 +1,23 @@
+{
+  "short_name": "Command X",
+  "name": "Command X Construction Management",
+  "icons": [
+    {
+      "src": "/command-x-logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/command-x-logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#1f2937",
+  "background_color": "#f9fafb",
+  "orientation": "portrait",
+  "scope": "/",
+  "description": "Construction management software for projects, work orders, and accounting"
+}

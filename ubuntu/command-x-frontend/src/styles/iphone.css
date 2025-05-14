@@ -1,0 +1,94 @@
+/* iPhone-specific styles */
+
+/* Safe area insets for notched iPhones */
+:root {
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
+}
+
+/* Apply padding to account for the notch and home indicator */
+.iphone-padding-top {
+  padding-top: var(--safe-area-inset-top);
+}
+
+.iphone-padding-bottom {
+  padding-bottom: var(--safe-area-inset-bottom);
+}
+
+.iphone-padding-left {
+  padding-left: var(--safe-area-inset-left);
+}
+
+.iphone-padding-right {
+  padding-right: var(--safe-area-inset-right);
+}
+
+/* Optimize touch targets for iPhone */
+@media screen and (max-width: 428px) {
+  /* iPhone 13 Pro Max width */
+  button, 
+  a, 
+  .clickable {
+    min-height: 44px; /* Apple's recommended minimum touch target size */
+  }
+  
+  /* Increase font size slightly for better readability */
+  body {
+    font-size: 16px;
+  }
+  
+  /* Adjust spacing for iPhone */
+  .card-content {
+    padding: 12px;
+  }
+  
+  /* Ensure inputs are large enough to tap */
+  input, 
+  select, 
+  textarea {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+    padding: 12px 8px;
+  }
+  
+  /* Fix for iPhone input zoom */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  textarea {
+    font-size: 16px;
+  }
+  
+  /* Prevent pull-to-refresh behavior interfering with custom scrolling */
+  html, body {
+    overscroll-behavior-y: none;
+  }
+  
+  /* Improve scrolling performance */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* iPhone landscape orientation */
+@media screen and (max-height: 428px) and (orientation: landscape) {
+  .sidebar {
+    width: 200px;
+  }
+  
+  .chart-container {
+    height: 150px !important;
+  }
+}
+
+/* iPhone dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
