@@ -2588,30 +2588,28 @@ const Accounting: React.FC = () => {
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <div className="flex items-center">
-              {isMobileView && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mr-2"
-                  onClick={() => setIsInvoiceDialogOpen(false)}
+              <Button
+                variant="outline"
+                size="sm"
+                className="mr-3 flex items-center"
+                onClick={() => setIsInvoiceDialogOpen(false)}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4 mr-1"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-4 w-4"
-                  >
-                    <path d="M19 12H5M12 19l-7-7 7-7" />
-                  </svg>
-                  <span className="sr-only">Back</span>
-                </Button>
-              )}
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+                Back
+              </Button>
               <div>
                 <DialogTitle>Invoice Details</DialogTitle>
                 <DialogDescription>
@@ -2660,7 +2658,7 @@ const Accounting: React.FC = () => {
               </div>
 
               {/* Client & Project Info */}
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <h4 className="font-medium mb-2">Bill To:</h4>
                   <p className="text-sm">{selectedEntry.subcontractor}</p>
@@ -2813,7 +2811,7 @@ const Accounting: React.FC = () => {
             </div>
           )}
 
-          <DialogFooter className="flex justify-between items-center border-t pt-4 mt-4">
+          <DialogFooter className="flex flex-col sm:flex-row justify-between items-center border-t pt-4 mt-4 gap-4">
             <div className="flex gap-2">
               <Badge
                 variant={
@@ -2830,7 +2828,7 @@ const Accounting: React.FC = () => {
                 Completion: {selectedEntry?.completed}%
               </Badge>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap justify-center">
               <Button
                 variant="outline"
                 onClick={() => setIsInvoiceDialogOpen(false)}
