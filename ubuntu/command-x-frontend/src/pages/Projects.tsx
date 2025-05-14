@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import MobileTable from "@/components/ui/mobile-table";
 import {
   Dialog,
   DialogContent,
@@ -62,6 +63,7 @@ const Projects: React.FC = () => {
 
   // New state variables for enhanced features
   const [viewMode, setViewMode] = useState<"table" | "dashboard">("table");
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
   const [filters, setFilters] = useState<ProjectFiltersType>({
     search: "",
     status: [],
@@ -77,6 +79,16 @@ const Projects: React.FC = () => {
     availableColumns.filter((col) => col.default).map((col) => col.id)
   );
   const [savedViews, setSavedViews] = useState<ViewConfig[]>([]);
+
+  // Check for mobile view
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Fetch Projects
   const {
@@ -408,60 +420,136 @@ const Projects: React.FC = () => {
                 onLoadView={handleLoadView}
               />
 
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {activeColumns.includes("name") && (
-                      <TableHead>Name</TableHead>
-                    )}
-                    {activeColumns.includes("location") && (
-                      <TableHead>Location</TableHead>
-                    )}
-                    {activeColumns.includes("client") && (
-                      <TableHead>Client</TableHead>
-                    )}
-                    {activeColumns.includes("status") && (
-                      <TableHead>Status</TableHead>
-                    )}
-                    {activeColumns.includes("priority") && (
-                      <TableHead>Priority</TableHead>
-                    )}
-                    {activeColumns.includes("category") && (
-                      <TableHead>Category</TableHead>
-                    )}
-                    {activeColumns.includes("progress") && (
-                      <TableHead>Progress</TableHead>
-                    )}
-                    {activeColumns.includes("start_date") && (
-                      <TableHead>Start Date</TableHead>
-                    )}
-                    {activeColumns.includes("end_date") && (
-                      <TableHead>End Date</TableHead>
-                    )}
-                    {activeColumns.includes("budget") && (
-                      <TableHead>Budget</TableHead>
-                    )}
-                    {activeColumns.includes("manager") && (
-                      <TableHead>Manager</TableHead>
-                    )}
-                    {activeColumns.includes("tags") && (
-                      <TableHead>Tags</TableHead>
-                    )}
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredProjects.map((project) => (
-                    <ExpandableProjectRow
-                      key={project.project_id}
-                      project={project}
-                      onEdit={handleEditClick}
-                      onDelete={handleDeleteClick}
-                      columns={activeColumns}
-                    />
-                  ))}
-                </TableBody>
-              </Table>
+              {/* Desktop Table View */}
+              {!isMobileView && (
+                <Table responsive={true}>
+                  <TableHeader>
+                    <TableRow>
+                      {activeColumns.includes("name") && (
+                        <TableHead>Name</TableHead>
+                      )}
+                      {activeColumns.includes("location") && (
+                        <TableHead>Location</TableHead>
+                      )}
+                      {activeColumns.includes("client") && (
+                        <TableHead>Client</TableHead>
+                      )}
+                      {activeColumns.includes("status") && (
+                        <TableHead>Status</TableHead>
+                      )}
+                      {activeColumns.includes("priority") && (
+                        <TableHead>Priority</TableHead>
+                      )}
+                      {activeColumns.includes("category") && (
+                        <TableHead>Category</TableHead>
+                      )}
+                      {activeColumns.includes("progress") && (
+                        <TableHead>Progress</TableHead>
+                      )}
+                      {activeColumns.includes("start_date") && (
+                        <TableHead>Start Date</TableHead>
+                      )}
+                      {activeColumns.includes("end_date") && (
+                        <TableHead>End Date</TableHead>
+                      )}
+                      {activeColumns.includes("budget") && (
+                        <TableHead>Budget</TableHead>
+                      )}
+                      {activeColumns.includes("manager") && (
+                        <TableHead>Manager</TableHead>
+                      )}
+                      {activeColumns.includes("tags") && (
+                        <TableHead>Tags</TableHead>
+                      )}
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredProjects.map((project) => (
+                      <ExpandableProjectRow
+                        key={project.project_id}
+                        project={project}
+                        onEdit={handleEditClick}
+                        onDelete={handleDeleteClick}
+                        columns={activeColumns}
+                      />
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+
+              {/* Mobile Table View */}
+              {isMobileView && (
+                <MobileTable
+                  data={filteredProjects}
+                  keyExtractor={(project) => project.project_id || 0}
+                  onRowClick={(project) => handleEditClick(project)}
+                  columns={[
+                    {
+                      id: "name",
+                      header: "Project Name",
+                      cell: (project) => project.project_name || "-",
+                    },
+                    {
+                      id: "status",
+                      header: "Status",
+                      cell: (project) => (
+                        <div
+                          className={`px-2 py-1 rounded-full text-xs text-center ${
+                            project.status === "In Progress"
+                              ? "bg-blue-100 text-blue-800"
+                              : project.status === "Completed"
+                              ? "bg-green-100 text-green-800"
+                              : project.status === "Planning"
+                              ? "bg-purple-100 text-purple-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {project.status || "Unknown"}
+                        </div>
+                      ),
+                    },
+                    {
+                      id: "client",
+                      header: "Client",
+                      cell: (project) => project.client_name || "-",
+                    },
+                    {
+                      id: "start_date",
+                      header: "Start Date",
+                      cell: (project) =>
+                        project.start_date
+                          ? new Date(project.start_date).toLocaleDateString()
+                          : "-",
+                    },
+                  ]}
+                  renderActions={(project) => (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditClick(project);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          project.project_id &&
+                            handleDeleteClick(project.project_id);
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  )}
+                />
+              )}
 
               {filteredProjects.length === 0 && (
                 <div className="text-center py-8 text-gray-500">

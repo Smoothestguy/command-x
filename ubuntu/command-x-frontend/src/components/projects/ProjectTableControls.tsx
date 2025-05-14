@@ -1,47 +1,47 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuCheckboxItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { ProjectData } from '@/services/api';
-import { 
-  Columns, 
-  Download, 
-  FileText, 
-  Save, 
-  Settings, 
-  Table as TableIcon 
-} from 'lucide-react';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ProjectData } from "@/services/api";
+import {
+  Columns,
+  Download,
+  FileText,
+  Save,
+  Settings,
+  Table as TableIcon,
+} from "lucide-react";
 
 // Available columns for the project table
 export const availableColumns = [
-  { id: 'name', label: 'Name', default: true },
-  { id: 'location', label: 'Location', default: true },
-  { id: 'client', label: 'Client', default: true },
-  { id: 'status', label: 'Status', default: true },
-  { id: 'priority', label: 'Priority', default: false },
-  { id: 'category', label: 'Category', default: false },
-  { id: 'progress', label: 'Progress', default: false },
-  { id: 'start_date', label: 'Start Date', default: true },
-  { id: 'end_date', label: 'End Date', default: true },
-  { id: 'budget', label: 'Budget', default: true },
-  { id: 'manager', label: 'Manager', default: false },
-  { id: 'tags', label: 'Tags', default: false },
+  { id: "name", label: "Name", default: true },
+  { id: "location", label: "Location", default: true },
+  { id: "client", label: "Client", default: true },
+  { id: "status", label: "Status", default: true },
+  { id: "priority", label: "Priority", default: false },
+  { id: "category", label: "Category", default: false },
+  { id: "progress", label: "Progress", default: false },
+  { id: "start_date", label: "Start Date", default: true },
+  { id: "end_date", label: "End Date", default: true },
+  { id: "budget", label: "Budget", default: true },
+  { id: "manager", label: "Manager", default: false },
+  { id: "tags", label: "Tags", default: false },
 ];
 
 // View configuration interface
@@ -66,20 +66,33 @@ const ProjectTableControls: React.FC<ProjectTableControlsProps> = ({
   onColumnsChange,
   savedViews,
   onSaveView,
-  onLoadView
+  onLoadView,
 }) => {
   const [isSaveViewDialogOpen, setIsSaveViewDialogOpen] = useState(false);
-  const [newViewName, setNewViewName] = useState('');
+  const [newViewName, setNewViewName] = useState("");
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
-  const [exportFormat, setExportFormat] = useState<'csv' | 'excel' | 'pdf'>('csv');
+  const [exportFormat, setExportFormat] = useState<"csv" | "excel" | "pdf">(
+    "csv"
+  );
   const [exportColumns, setExportColumns] = useState<string[]>(activeColumns);
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
+
+  // Add resize listener
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Toggle column visibility
   const toggleColumn = (columnId: string) => {
     if (activeColumns.includes(columnId)) {
       // Don't allow removing the last column
       if (activeColumns.length > 1) {
-        onColumnsChange(activeColumns.filter(id => id !== columnId));
+        onColumnsChange(activeColumns.filter((id) => id !== columnId));
       }
     } else {
       onColumnsChange([...activeColumns, columnId]);
@@ -89,22 +102,22 @@ const ProjectTableControls: React.FC<ProjectTableControlsProps> = ({
   // Save current view
   const saveCurrentView = () => {
     if (!newViewName.trim()) return;
-    
+
     const newView: ViewConfig = {
       id: Date.now().toString(),
       name: newViewName,
       columns: [...activeColumns],
     };
-    
+
     onSaveView(newView);
-    setNewViewName('');
+    setNewViewName("");
     setIsSaveViewDialogOpen(false);
   };
 
   // Toggle export column
   const toggleExportColumn = (columnId: string) => {
     if (exportColumns.includes(columnId)) {
-      setExportColumns(exportColumns.filter(id => id !== columnId));
+      setExportColumns(exportColumns.filter((id) => id !== columnId));
     } else {
       setExportColumns([...exportColumns, columnId]);
     }
@@ -114,121 +127,137 @@ const ProjectTableControls: React.FC<ProjectTableControlsProps> = ({
   const exportData = () => {
     // Get column labels for header row
     const headers = availableColumns
-      .filter(col => exportColumns.includes(col.id))
-      .map(col => col.label);
-    
+      .filter((col) => exportColumns.includes(col.id))
+      .map((col) => col.label);
+
     // Prepare data rows
-    const rows = projects.map(project => {
+    const rows = projects.map((project) => {
       const row: Record<string, any> = {};
-      
-      exportColumns.forEach(colId => {
+
+      exportColumns.forEach((colId) => {
         switch (colId) {
-          case 'name':
-            row['Name'] = project.project_name;
+          case "name":
+            row["Name"] = project.project_name;
             break;
-          case 'location':
-            row['Location'] = project.location || '';
+          case "location":
+            row["Location"] = project.location || "";
             break;
-          case 'client':
-            row['Client'] = project.client_name || '';
+          case "client":
+            row["Client"] = project.client_name || "";
             break;
-          case 'status':
-            row['Status'] = project.status || '';
+          case "status":
+            row["Status"] = project.status || "";
             break;
-          case 'priority':
-            row['Priority'] = project.priority || '';
+          case "priority":
+            row["Priority"] = project.priority || "";
             break;
-          case 'category':
-            row['Category'] = project.category || '';
+          case "category":
+            row["Category"] = project.category || "";
             break;
-          case 'progress':
-            row['Progress'] = `${project.progress_percentage || 0}%`;
+          case "progress":
+            row["Progress"] = `${project.progress_percentage || 0}%`;
             break;
-          case 'start_date':
-            row['Start Date'] = project.start_date 
-              ? new Date(project.start_date).toLocaleDateString() 
-              : '';
+          case "start_date":
+            row["Start Date"] = project.start_date
+              ? new Date(project.start_date).toLocaleDateString()
+              : "";
             break;
-          case 'end_date':
-            row['End Date'] = project.end_date 
-              ? new Date(project.end_date).toLocaleDateString() 
-              : '';
+          case "end_date":
+            row["End Date"] = project.end_date
+              ? new Date(project.end_date).toLocaleDateString()
+              : "";
             break;
-          case 'budget':
-            row['Budget'] = project.budget 
-              ? `$${project.budget.toLocaleString()}` 
-              : '';
+          case "budget":
+            row["Budget"] = project.budget
+              ? `$${project.budget.toLocaleString()}`
+              : "";
             break;
-          case 'manager':
-            row['Manager'] = project.manager_name || '';
+          case "manager":
+            row["Manager"] = project.manager_name || "";
             break;
-          case 'tags':
-            row['Tags'] = project.tags?.join(', ') || '';
+          case "tags":
+            row["Tags"] = project.tags?.join(", ") || "";
             break;
         }
       });
-      
+
       return row;
     });
-    
-    if (exportFormat === 'csv') {
+
+    if (exportFormat === "csv") {
       // Generate CSV
-      const headerRow = headers.join(',');
-      const dataRows = rows.map(row => 
-        headers.map(header => `"${row[header] || ''}"`).join(',')
+      const headerRow = headers.join(",");
+      const dataRows = rows.map((row) =>
+        headers.map((header) => `"${row[header] || ""}"`).join(",")
       );
-      const csv = [headerRow, ...dataRows].join('\n');
-      
+      const csv = [headerRow, ...dataRows].join("\n");
+
       // Create download link
-      const blob = new Blob([csv], { type: 'text/csv' });
+      const blob = new Blob([csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `projects_export_${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `projects_export_${
+        new Date().toISOString().split("T")[0]
+      }.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } else if (exportFormat === 'excel') {
+    } else if (exportFormat === "excel") {
       // For Excel, we'd typically use a library like xlsx
       // This is a simplified version that creates a CSV with Excel mime type
-      const headerRow = headers.join(',');
-      const dataRows = rows.map(row => 
-        headers.map(header => `"${row[header] || ''}"`).join(',')
+      const headerRow = headers.join(",");
+      const dataRows = rows.map((row) =>
+        headers.map((header) => `"${row[header] || ""}"`).join(",")
       );
-      const csv = [headerRow, ...dataRows].join('\n');
-      
-      const blob = new Blob([csv], { type: 'application/vnd.ms-excel' });
+      const csv = [headerRow, ...dataRows].join("\n");
+
+      const blob = new Blob([csv], { type: "application/vnd.ms-excel" });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `projects_export_${new Date().toISOString().split('T')[0]}.xls`;
+      a.download = `projects_export_${
+        new Date().toISOString().split("T")[0]
+      }.xls`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } else if (exportFormat === 'pdf') {
+    } else if (exportFormat === "pdf") {
       // For PDF, we'd typically use a library like jsPDF
-      alert('PDF export would be implemented here with a library like jsPDF');
+      alert("PDF export would be implemented here with a library like jsPDF");
     }
-    
+
     setIsExportDialogOpen(false);
   };
 
   return (
-    <div className="flex justify-between items-center mb-4">
-      <div className="flex items-center gap-2">
+    <div
+      className={`flex ${
+        isMobileView ? "flex-col" : "justify-between"
+      } items-center mb-4 gap-2`}
+    >
+      <div
+        className={`flex ${
+          isMobileView ? "w-full flex-wrap" : ""
+        } items-center gap-2`}
+      >
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              className={isMobileView ? "flex-1" : ""}
+            >
               <Columns className="h-4 w-4 mr-2" />
-              Columns
+              {isMobileView ? "" : "Columns"}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
             <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {availableColumns.map(column => (
+            {availableColumns.map((column) => (
               <DropdownMenuCheckboxItem
                 key={column.id}
                 checked={activeColumns.includes(column.id)}
@@ -242,15 +271,19 @@ const ProjectTableControls: React.FC<ProjectTableControlsProps> = ({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              className={isMobileView ? "flex-1" : ""}
+            >
               <TableIcon className="h-4 w-4 mr-2" />
-              Views
+              {isMobileView ? "" : "Views"}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
             <DropdownMenuLabel>Saved Views</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {savedViews.map(view => (
+            {savedViews.map((view) => (
               <DropdownMenuCheckboxItem
                 key={view.id}
                 checked={false}
@@ -271,25 +304,35 @@ const ProjectTableControls: React.FC<ProjectTableControlsProps> = ({
         </DropdownMenu>
       </div>
 
-      <div className="flex items-center gap-2">
-        <Button 
-          variant="outline" 
+      <div
+        className={`flex ${isMobileView ? "w-full" : ""} items-center gap-2`}
+      >
+        <Button
+          variant="outline"
           size="sm"
           onClick={() => setIsExportDialogOpen(true)}
+          className={isMobileView ? "flex-1" : ""}
         >
           <Download className="h-4 w-4 mr-2" />
-          Export
+          {isMobileView ? "" : "Export"}
         </Button>
-        
-        <Button variant="outline" size="sm">
+
+        <Button
+          variant="outline"
+          size="sm"
+          className={isMobileView ? "flex-1" : ""}
+        >
           <Settings className="h-4 w-4 mr-2" />
-          Settings
+          {isMobileView ? "" : "Settings"}
         </Button>
       </div>
 
       {/* Save View Dialog */}
-      <Dialog open={isSaveViewDialogOpen} onOpenChange={setIsSaveViewDialogOpen}>
-        <DialogContent>
+      <Dialog
+        open={isSaveViewDialogOpen}
+        onOpenChange={setIsSaveViewDialogOpen}
+      >
+        <DialogContent className="w-[90vw] max-w-md mx-auto">
           <DialogHeader>
             <DialogTitle>Save View</DialogTitle>
             <DialogDescription>
@@ -306,18 +349,24 @@ const ProjectTableControls: React.FC<ProjectTableControlsProps> = ({
               className="mt-1"
             />
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsSaveViewDialogOpen(false)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsSaveViewDialogOpen(false)}
+              className="w-full sm:w-auto"
+            >
               Cancel
             </Button>
-            <Button onClick={saveCurrentView}>Save View</Button>
+            <Button onClick={saveCurrentView} className="w-full sm:w-auto">
+              Save View
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Export Dialog */}
       <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[90vw] max-w-md mx-auto">
           <DialogHeader>
             <DialogTitle>Export Projects</DialogTitle>
             <DialogDescription>
@@ -327,45 +376,48 @@ const ProjectTableControls: React.FC<ProjectTableControlsProps> = ({
           <div className="py-4 space-y-4">
             <div>
               <Label>Export Format</Label>
-              <div className="flex gap-2 mt-1">
-                <Button 
-                  variant={exportFormat === 'csv' ? 'default' : 'outline'} 
+              <div className="flex flex-wrap gap-2 mt-1">
+                <Button
+                  variant={exportFormat === "csv" ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setExportFormat('csv')}
+                  onClick={() => setExportFormat("csv")}
+                  className="flex-1"
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   CSV
                 </Button>
-                <Button 
-                  variant={exportFormat === 'excel' ? 'default' : 'outline'} 
+                <Button
+                  variant={exportFormat === "excel" ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setExportFormat('excel')}
+                  onClick={() => setExportFormat("excel")}
+                  className="flex-1"
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   Excel
                 </Button>
-                <Button 
-                  variant={exportFormat === 'pdf' ? 'default' : 'outline'} 
+                <Button
+                  variant={exportFormat === "pdf" ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setExportFormat('pdf')}
+                  onClick={() => setExportFormat("pdf")}
+                  className="flex-1"
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   PDF
                 </Button>
               </div>
             </div>
-            
+
             <div>
               <Label>Columns to Include</Label>
-              <div className="grid grid-cols-2 gap-2 mt-1">
-                {availableColumns.map(column => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                {availableColumns.map((column) => (
                   <div key={column.id} className="flex items-center">
                     <input
                       type="checkbox"
                       id={`export-${column.id}`}
                       checked={exportColumns.includes(column.id)}
                       onChange={() => toggleExportColumn(column.id)}
-                      className="mr-2"
+                      className="mr-2 h-4 w-4"
                     />
                     <Label htmlFor={`export-${column.id}`} className="text-sm">
                       {column.label}
@@ -375,11 +427,17 @@ const ProjectTableControls: React.FC<ProjectTableControlsProps> = ({
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsExportDialogOpen(false)}
+              className="w-full sm:w-auto"
+            >
               Cancel
             </Button>
-            <Button onClick={exportData}>Export</Button>
+            <Button onClick={exportData} className="w-full sm:w-auto">
+              Export
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
