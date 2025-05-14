@@ -414,8 +414,8 @@ const WorkOrders: React.FC = () => {
     }
   };
 
-  // Handle batch status update
-  const handleBatchStatusUpdate = (status: string) => {
+  // Handle batch status update for selected rows
+  const handleBatchStatusUpdateForRows = (status: string) => {
     // In a real app, you might want to use a batch update API endpoint
     selectedRows.forEach((id) => {
       const workOrder = workOrders?.find((wo) => wo.work_order_id === id);
@@ -693,17 +693,219 @@ const WorkOrders: React.FC = () => {
     );
   };
 
+  // State for batch status update dialog
+  const [isBatchStatusDialogOpen, setIsBatchStatusDialogOpen] = useState(false);
+  const [batchStatusValue, setBatchStatusValue] = useState("In Progress");
+  const [selectedWorkOrderIds, setSelectedWorkOrderIds] = useState<number[]>(
+    []
+  );
+
+  // State for report generation dialog
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [reportType, setReportType] = useState("status");
+  const [reportFormat, setReportFormat] = useState("pdf");
+
+  // State for crew management dialog
+  const [isCrewDialogOpen, setIsCrewDialogOpen] = useState(false);
+  const [selectedCrew, setSelectedCrew] = useState("");
+
+  // State for filter dialog
+  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
+  const [statusFilterValue, setStatusFilterValue] = useState("all");
+  const [dateRangeFilter, setDateRangeFilter] = useState({ from: "", to: "" });
+
+  // Handle batch status update
+  const handleBatchStatusUpdate = () => {
+    if (selectedWorkOrderIds.length === 0) {
+      toast.error("No work orders selected");
+      return;
+    }
+
+    // In a real implementation, you would call an API to update the status
+    // For now, we'll simulate the update with a toast notification
+    toast.promise(
+      new Promise((resolve) => {
+        // Simulate API call delay
+        setTimeout(() => {
+          resolve(true);
+        }, 1500);
+      }),
+      {
+        loading: `Updating status for ${selectedWorkOrderIds.length} work orders...`,
+        success: () => {
+          setIsBatchStatusDialogOpen(false);
+          setSelectedWorkOrderIds([]);
+          return `Updated ${selectedWorkOrderIds.length} work orders to ${batchStatusValue}`;
+        },
+        error: "Failed to update work order status",
+      }
+    );
+  };
+
+  // Handle report generation
+  const handleGenerateReport = () => {
+    // In a real implementation, you would call an API to generate the report
+    // For now, we'll simulate the generation with a toast notification
+    toast.promise(
+      new Promise((resolve) => {
+        // Simulate API call delay
+        setTimeout(() => {
+          resolve(true);
+        }, 2000);
+      }),
+      {
+        loading: `Generating ${reportType} report...`,
+        success: () => {
+          // Create a fake download by creating a temporary anchor element
+          const element = document.createElement("a");
+          const fileName = `work_order_${reportType}_report.${reportFormat}`;
+
+          // Set the attributes for download
+          element.setAttribute("href", "#");
+          element.setAttribute("download", fileName);
+          element.style.display = "none";
+
+          // Append to the body, click it, and remove it
+          document.body.appendChild(element);
+          element.click();
+          document.body.removeChild(element);
+
+          setIsReportDialogOpen(false);
+          return `${
+            reportType.charAt(0).toUpperCase() + reportType.slice(1)
+          } report generated successfully`;
+        },
+        error: "Failed to generate report",
+      }
+    );
+  };
+
+  // Handle crew assignment
+  const handleCrewAssignment = () => {
+    if (!selectedCrew) {
+      toast.error("No crew selected");
+      return;
+    }
+
+    if (selectedWorkOrderIds.length === 0) {
+      toast.error("No work orders selected");
+      return;
+    }
+
+    // In a real implementation, you would call an API to assign the crew
+    // For now, we'll simulate the assignment with a toast notification
+    toast.promise(
+      new Promise((resolve) => {
+        // Simulate API call delay
+        setTimeout(() => {
+          resolve(true);
+        }, 1500);
+      }),
+      {
+        loading: `Assigning crew to ${selectedWorkOrderIds.length} work orders...`,
+        success: () => {
+          setIsCrewDialogOpen(false);
+          setSelectedCrew("");
+          setSelectedWorkOrderIds([]);
+          return `Assigned ${selectedCrew} to ${selectedWorkOrderIds.length} work orders`;
+        },
+        error: "Failed to assign crew",
+      }
+    );
+  };
+
+  // Handle export
+  const handleExportStatusData = (format: "csv" | "excel" | "pdf") => {
+    // In a real implementation, you would call an API to generate the export
+    // For now, we'll simulate the export with a toast notification
+    toast.promise(
+      new Promise((resolve) => {
+        // Simulate API call delay
+        setTimeout(() => {
+          resolve(true);
+        }, 1500);
+      }),
+      {
+        loading: `Preparing ${format.toUpperCase()} export...`,
+        success: () => {
+          // Create a fake download by creating a temporary anchor element
+          const element = document.createElement("a");
+          const fileName = `work_order_status_${
+            format === "excel" ? "xlsx" : format
+          }`;
+
+          // Set the attributes for download
+          element.setAttribute("href", "#");
+          element.setAttribute("download", fileName);
+          element.style.display = "none";
+
+          // Append to the body, click it, and remove it
+          document.body.appendChild(element);
+          element.click();
+          document.body.removeChild(element);
+
+          return `Work Order Status data exported as ${format.toUpperCase()}`;
+        },
+        error: `Failed to export as ${format.toUpperCase()}`,
+      }
+    );
+  };
+
+  // Handle apply filters
+  const handleApplyFilters = () => {
+    // In a real implementation, you would update the filter state and refetch data
+    // For now, we'll simulate the filtering with a toast notification
+    toast.success("Filters applied successfully");
+    setIsFilterDialogOpen(false);
+
+    // Here you would typically update your filter state and trigger a refetch
+    // setStatusFilter(statusFilterValue);
+    // setDateRange({ from: dateRangeFilter.from, to: dateRangeFilter.to });
+  };
+
   // Quick Actions component
   const QuickActions = () => {
     return (
       <div className="space-y-2">
-        <Button className="w-full" variant="default">
+        <Button
+          className="w-full"
+          variant="default"
+          onClick={() => {
+            if (selectedWorkOrderIds.length === 0) {
+              // If no work orders are explicitly selected, select all filtered work orders
+              const ids =
+                filteredWorkOrders
+                  ?.map((wo) => wo.work_order_id!)
+                  .filter(Boolean) || [];
+              setSelectedWorkOrderIds(ids);
+            }
+            setIsBatchStatusDialogOpen(true);
+          }}
+        >
           Update Status
         </Button>
-        <Button className="w-full" variant="outline">
+        <Button
+          className="w-full"
+          variant="outline"
+          onClick={() => setIsReportDialogOpen(true)}
+        >
           Generate Report
         </Button>
-        <Button className="w-full" variant="outline">
+        <Button
+          className="w-full"
+          variant="outline"
+          onClick={() => {
+            if (selectedWorkOrderIds.length === 0) {
+              // If no work orders are explicitly selected, select all filtered work orders
+              const ids =
+                filteredWorkOrders
+                  ?.map((wo) => wo.work_order_id!)
+                  .filter(Boolean) || [];
+              setSelectedWorkOrderIds(ids);
+            }
+            setIsCrewDialogOpen(true);
+          }}
+        >
           Manage Crew
         </Button>
       </div>
@@ -723,7 +925,21 @@ const WorkOrders: React.FC = () => {
 
   // Handle save changes
   const handleSaveChanges = () => {
-    toast.success("Changes saved successfully");
+    // In a real implementation, you would call an API to save the changes
+    // For now, we'll simulate the save with a toast notification
+    toast.promise(
+      new Promise((resolve) => {
+        // Simulate API call delay
+        setTimeout(() => {
+          resolve(true);
+        }, 1500);
+      }),
+      {
+        loading: "Saving changes...",
+        success: "Changes saved successfully",
+        error: "Failed to save changes",
+      }
+    );
   };
 
   return (
@@ -775,14 +991,42 @@ const WorkOrders: React.FC = () => {
                     <RefreshCw className="mr-2 h-4 w-4" />
                     Refresh
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsFilterDialogOpen(true)}
+                  >
                     <Filter className="mr-2 h-4 w-4" />
                     Filter
                   </Button>
-                  <Button variant="outline" size="sm">
-                    <Download className="mr-2 h-4 w-4" />
-                    Export
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Download className="mr-2 h-4 w-4" />
+                        Export
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem
+                        onClick={() => handleExportStatusData("pdf")}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        PDF Document
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleExportStatusData("csv")}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        CSV Spreadsheet
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleExportStatusData("excel")}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        Excel Spreadsheet
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <Button size="sm" onClick={handleSaveChanges}>
                     Save Changes
                   </Button>
@@ -1167,17 +1411,21 @@ const WorkOrders: React.FC = () => {
                   <DropdownMenuContent>
                     <DropdownMenuLabel>Update Status</DropdownMenuLabel>
                     <DropdownMenuItem
-                      onClick={() => handleBatchStatusUpdate("In Progress")}
+                      onClick={() =>
+                        handleBatchStatusUpdateForRows("In Progress")
+                      }
                     >
                       Mark as In Progress
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => handleBatchStatusUpdate("Completed")}
+                      onClick={() =>
+                        handleBatchStatusUpdateForRows("Completed")
+                      }
                     >
                       Mark as Completed
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => handleBatchStatusUpdate("On Hold")}
+                      onClick={() => handleBatchStatusUpdateForRows("On Hold")}
                     >
                       Mark as On Hold
                     </DropdownMenuItem>
@@ -2546,6 +2794,232 @@ const WorkOrders: React.FC = () => {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Batch Status Update Dialog */}
+      <Dialog
+        open={isBatchStatusDialogOpen}
+        onOpenChange={setIsBatchStatusDialogOpen}
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Update Work Order Status</DialogTitle>
+            <DialogDescription>
+              Change the status for the selected work orders.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="status">New Status</Label>
+                <Select
+                  value={batchStatusValue}
+                  onValueChange={setBatchStatusValue}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="Scheduled">Scheduled</SelectItem>
+                    <SelectItem value="In Progress">In Progress</SelectItem>
+                    <SelectItem value="On Hold">On Hold</SelectItem>
+                    <SelectItem value="Completed">Completed</SelectItem>
+                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  This will update {selectedWorkOrderIds.length} work order(s).
+                </p>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsBatchStatusDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleBatchStatusUpdate}>Update Status</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Report Generation Dialog */}
+      <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Generate Report</DialogTitle>
+            <DialogDescription>
+              Create a report for work order status and progress.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="reportType">Report Type</Label>
+                <Select value={reportType} onValueChange={setReportType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select report type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="status">Status Report</SelectItem>
+                    <SelectItem value="financial">Financial Report</SelectItem>
+                    <SelectItem value="progress">Progress Report</SelectItem>
+                    <SelectItem value="retainage">Retainage Report</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="reportFormat">Format</Label>
+                <Select value={reportFormat} onValueChange={setReportFormat}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pdf">PDF Document</SelectItem>
+                    <SelectItem value="csv">CSV Spreadsheet</SelectItem>
+                    <SelectItem value="excel">Excel Spreadsheet</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsReportDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleGenerateReport}>Generate Report</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Crew Management Dialog */}
+      <Dialog open={isCrewDialogOpen} onOpenChange={setIsCrewDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Manage Crew Assignment</DialogTitle>
+            <DialogDescription>
+              Assign a crew to the selected work orders.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="crew">Select Crew</Label>
+                <Select value={selectedCrew} onValueChange={setSelectedCrew}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select crew" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Crew A">Crew A</SelectItem>
+                    <SelectItem value="Crew B">Crew B</SelectItem>
+                    <SelectItem value="Crew C">Crew C</SelectItem>
+                    <SelectItem value="Crew D">Crew D</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  This will assign the selected crew to{" "}
+                  {selectedWorkOrderIds.length} work order(s).
+                </p>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsCrewDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleCrewAssignment}>Assign Crew</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Filter Dialog */}
+      <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Filter Work Orders</DialogTitle>
+            <DialogDescription>
+              Apply filters to the work order status view.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="statusFilter">Status</Label>
+                <Select
+                  value={statusFilterValue}
+                  onValueChange={setStatusFilterValue}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="Scheduled">Scheduled</SelectItem>
+                    <SelectItem value="In Progress">In Progress</SelectItem>
+                    <SelectItem value="On Hold">On Hold</SelectItem>
+                    <SelectItem value="Completed">Completed</SelectItem>
+                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dateFrom">From Date</Label>
+                <Input
+                  id="dateFrom"
+                  type="date"
+                  value={dateRangeFilter.from}
+                  onChange={(e) =>
+                    setDateRangeFilter((prev) => ({
+                      ...prev,
+                      from: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dateTo">To Date</Label>
+                <Input
+                  id="dateTo"
+                  type="date"
+                  value={dateRangeFilter.to}
+                  onChange={(e) =>
+                    setDateRangeFilter((prev) => ({
+                      ...prev,
+                      to: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDateRangeFilter({ from: "", to: "" });
+                setStatusFilterValue("all");
+                setIsFilterDialogOpen(false);
+              }}
+            >
+              Reset
+            </Button>
+            <Button onClick={handleApplyFilters}>Apply Filters</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
