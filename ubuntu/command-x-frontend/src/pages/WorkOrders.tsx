@@ -416,18 +416,15 @@ const WorkOrders: React.FC = () => {
     }
   };
 
-  // Handle batch status update for selected rows
-  const handleBatchStatusUpdateForRows = (status: string) => {
-    // In a real app, you might want to use a batch update API endpoint
-    selectedRows.forEach((id) => {
-      const workOrder = workOrders?.find((wo) => wo.work_order_id === id);
-      if (workOrder) {
-        updateWorkOrder(id, { ...workOrder, status });
-      }
-    });
-    queryClient.invalidateQueries({ queryKey: ["workOrders"] });
-    toast.success(`Updated ${selectedRows.length} work orders to ${status}`);
-    setSelectedRows([]);
+  // Handle batch status dialog open
+  const handleBatchStatusDialogOpen = () => {
+    if (selectedRows.length === 0) {
+      toast.error("No work orders selected");
+      return;
+    }
+    // Sync the selected rows with selectedWorkOrderIds when opening the dialog
+    setSelectedWorkOrderIds(selectedRows);
+    setIsBatchStatusDialogOpen(true);
   };
 
   // Handle sort
@@ -724,28 +721,27 @@ const WorkOrders: React.FC = () => {
     }
 
     // In a real implementation, you would call an API to update the status
-    // For now, we'll simulate the update with a toast notification
-    toast.promise(
-      new Promise((resolve) => {
-        // Simulate API call delay
-        setTimeout(() => {
-          resolve(true);
-        }, 1500);
-      }),
-      {
-        loading: `Updating status for ${
-          selectedWorkOrderIds.length
-        } work order${selectedWorkOrderIds.length === 1 ? "" : "s"}...`,
-        success: () => {
-          setIsBatchStatusDialogOpen(false);
-          setSelectedWorkOrderIds([]);
-          return `Updated ${selectedWorkOrderIds.length} work order${
-            selectedWorkOrderIds.length === 1 ? "" : "s"
-          } to ${batchStatusValue}`;
-        },
-        error: "Failed to update work order status",
+    // Actually update the work orders with the selected status
+    selectedWorkOrderIds.forEach((id) => {
+      const workOrder = workOrders?.find((wo) => wo.work_order_id === id);
+      if (workOrder) {
+        updateWorkOrder(id, { ...workOrder, status: batchStatusValue });
       }
+    });
+
+    // Refresh the work orders list
+    queryClient.invalidateQueries({ queryKey: ["workOrders"] });
+
+    // Show success message and close dialog
+    toast.success(
+      `Updated ${selectedWorkOrderIds.length} work order${
+        selectedWorkOrderIds.length === 1 ? "" : "s"
+      } to ${batchStatusValue}`
     );
+
+    setIsBatchStatusDialogOpen(false);
+    setSelectedWorkOrderIds([]);
+    setSelectedRows([]);
   };
 
   // Handle report generation
@@ -876,11 +872,7 @@ const WorkOrders: React.FC = () => {
         <Button
           className="w-full"
           variant="default"
-          onClick={() => {
-            // Open the dialog without pre-selecting all work orders
-            // This allows the user to choose which ones to update
-            setIsBatchStatusDialogOpen(true);
-          }}
+          onClick={handleBatchStatusDialogOpen}
         >
           <CheckCircle2 className="mr-2 h-4 w-4" />
           Update Status
@@ -1457,24 +1449,8 @@ const WorkOrders: React.FC = () => {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
                     <DropdownMenuLabel>Update Status</DropdownMenuLabel>
-                    <DropdownMenuItem
-                      onClick={() =>
-                        handleBatchStatusUpdateForRows("In Progress")
-                      }
-                    >
-                      Mark as In Progress
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() =>
-                        handleBatchStatusUpdateForRows("Completed")
-                      }
-                    >
-                      Mark as Completed
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => handleBatchStatusUpdateForRows("On Hold")}
-                    >
-                      Mark as On Hold
+                    <DropdownMenuItem onClick={handleBatchStatusDialogOpen}>
+                      Update Status
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
@@ -2072,17 +2048,71 @@ const WorkOrders: React.FC = () => {
 
               {/* Mobile-optimized Table View - Only visible on mobile */}
               <div className="md:hidden space-y-4">
+                {/* Mobile selection controls */}
+                <div className="flex justify-between items-center mb-2">
+                  <div className="text-sm text-muted-foreground">
+                    {selectedRows.length > 0 ? (
+                      <span>
+                        {selectedRows.length} work order
+                        {selectedRows.length === 1 ? "" : "s"} selected
+                      </span>
+                    ) : (
+                      <span>Select work orders to update</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={toggleSelectAll}
+                    >
+                      {selectedRows.length === filteredWorkOrders.length
+                        ? "Deselect All"
+                        : "Select All"}
+                    </Button>
+                    {selectedRows.length > 0 && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={handleBatchStatusDialogOpen}
+                      >
+                        Update Status
+                      </Button>
+                    )}
+                  </div>
+                </div>
                 {filteredWorkOrders.map((wo) => (
-                  <Card key={wo.work_order_id} className="overflow-hidden">
+                  <Card
+                    key={wo.work_order_id}
+                    className={`overflow-hidden relative cursor-pointer hover:border-primary ${
+                      selectedRows.includes(wo.work_order_id!)
+                        ? "border-primary bg-primary/5"
+                        : ""
+                    }`}
+                    onClick={() => toggleRowSelection(wo.work_order_id!)}
+                  >
                     <CardHeader className="p-4 pb-2">
                       <div className="flex justify-between items-start">
-                        <div className="flex-1 pr-2">
-                          <CardTitle className="text-base font-medium line-clamp-2">
-                            {wo.description}
-                          </CardTitle>
-                          <CardDescription className="text-sm mt-1">
-                            {getProjectName(wo.project_id)}
-                          </CardDescription>
+                        <div className="flex items-start gap-2">
+                          {/* Add checkbox for mobile selection */}
+                          <Checkbox
+                            className="mt-1"
+                            checked={selectedRows.includes(wo.work_order_id!)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                            }}
+                            onCheckedChange={() => {
+                              toggleRowSelection(wo.work_order_id!);
+                            }}
+                          />
+                          <div className="flex-1 pr-2">
+                            <CardTitle className="text-base font-medium line-clamp-2">
+                              {wo.description}
+                            </CardTitle>
+                            <CardDescription className="text-sm mt-1">
+                              {getProjectName(wo.project_id)}
+                            </CardDescription>
+                          </div>
                         </div>
                         <Badge
                           variant={
@@ -2129,7 +2159,8 @@ const WorkOrders: React.FC = () => {
                         variant="outline"
                         size="sm"
                         className="w-24"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setSelectedWorkOrder(wo);
                           setIsViewDialogOpen(true);
                         }}
@@ -2142,7 +2173,10 @@ const WorkOrders: React.FC = () => {
                           variant="outline"
                           size="sm"
                           className="w-24"
-                          onClick={() => handleEditClick(wo)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditClick(wo);
+                          }}
                         >
                           <Pencil className="mr-2 h-4 w-4" />
                           Edit
@@ -2151,7 +2185,8 @@ const WorkOrders: React.FC = () => {
                           variant="destructive"
                           size="sm"
                           className="w-24"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setSelectedWorkOrder(wo);
                             setIsDeleteDialogOpen(true);
                           }}
@@ -2849,10 +2884,12 @@ const WorkOrders: React.FC = () => {
         open={isBatchStatusDialogOpen}
         onOpenChange={setIsBatchStatusDialogOpen}
       >
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Update Work Order Status</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-center">
+              Update Work Order Status
+            </DialogTitle>
+            <DialogDescription className="text-center">
               Change the status for the selected work orders.
             </DialogDescription>
           </DialogHeader>
@@ -2879,8 +2916,8 @@ const WorkOrders: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <Label>Selected Work Orders</Label>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                  <Label className="text-lg">Selected Work Orders</Label>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
@@ -2911,13 +2948,13 @@ const WorkOrders: React.FC = () => {
                     No work orders selected. Please select at least one work
                     order.
                   </div>
-                ) : selectedWorkOrderIds.length > 5 ? (
+                ) : (
                   <div className="space-y-2">
                     <div className="text-sm text-muted-foreground">
                       {selectedWorkOrderIds.length} work order
                       {selectedWorkOrderIds.length === 1 ? "" : "s"} selected
                     </div>
-                    <ScrollArea className="h-[150px] border rounded-md p-2">
+                    <ScrollArea className="h-[200px] border rounded-md p-2">
                       {selectedWorkOrderIds.map((id) => {
                         const workOrder = filteredWorkOrders?.find(
                           (wo) => wo.work_order_id === id
@@ -2925,9 +2962,9 @@ const WorkOrders: React.FC = () => {
                         return workOrder ? (
                           <div
                             key={id}
-                            className="flex justify-between items-center py-1 border-b last:border-0"
+                            className="flex justify-between items-center py-2 px-1 border-b last:border-0"
                           >
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
                               <Checkbox
                                 checked={true}
                                 onCheckedChange={(checked) => {
@@ -2938,7 +2975,7 @@ const WorkOrders: React.FC = () => {
                                   }
                                 }}
                               />
-                              <span className="text-sm font-medium">
+                              <span className="text-sm font-medium truncate">
                                 {workOrder.description}
                               </span>
                             </div>
@@ -2952,6 +2989,7 @@ const WorkOrders: React.FC = () => {
                                   ? "destructive"
                                   : "outline"
                               }
+                              className="ml-2 whitespace-nowrap"
                             >
                               {workOrder.status}
                             </Badge>
@@ -2960,61 +2998,20 @@ const WorkOrders: React.FC = () => {
                       })}
                     </ScrollArea>
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    {selectedWorkOrderIds.map((id) => {
-                      const workOrder = filteredWorkOrders?.find(
-                        (wo) => wo.work_order_id === id
-                      );
-                      return workOrder ? (
-                        <div
-                          key={id}
-                          className="flex justify-between items-center py-1 border-b last:border-0"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Checkbox
-                              checked={true}
-                              onCheckedChange={(checked) => {
-                                if (!checked) {
-                                  setSelectedWorkOrderIds((prev) =>
-                                    prev.filter((woId) => woId !== id)
-                                  );
-                                }
-                              }}
-                            />
-                            <span className="text-sm font-medium">
-                              {workOrder.description}
-                            </span>
-                          </div>
-                          <Badge
-                            variant={
-                              workOrder.status === "Completed"
-                                ? "default"
-                                : workOrder.status === "In Progress"
-                                ? "secondary"
-                                : workOrder.status === "On Hold"
-                                ? "destructive"
-                                : "outline"
-                            }
-                          >
-                            {workOrder.status}
-                          </Badge>
-                        </div>
-                      ) : null;
-                    })}
-                  </div>
                 )}
               </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
+              className="w-full sm:w-auto"
               onClick={() => setIsBatchStatusDialogOpen(false)}
             >
               Cancel
             </Button>
             <Button
+              className="w-full sm:w-auto"
               onClick={handleBatchStatusUpdate}
               disabled={selectedWorkOrderIds.length === 0}
             >
@@ -3028,8 +3025,8 @@ const WorkOrders: React.FC = () => {
       <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Generate Report</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-center">Generate Report</DialogTitle>
+            <DialogDescription className="text-center">
               Create a report for work order status and progress.
             </DialogDescription>
           </DialogHeader>
@@ -3064,14 +3061,17 @@ const WorkOrders: React.FC = () => {
               </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
+              className="w-full sm:w-auto"
               onClick={() => setIsReportDialogOpen(false)}
             >
               Cancel
             </Button>
-            <Button onClick={handleGenerateReport}>Generate Report</Button>
+            <Button className="w-full sm:w-auto" onClick={handleGenerateReport}>
+              Generate Report
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -3080,8 +3080,10 @@ const WorkOrders: React.FC = () => {
       <Dialog open={isCrewDialogOpen} onOpenChange={setIsCrewDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Manage Crew Assignment</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-center">
+              Manage Crew Assignment
+            </DialogTitle>
+            <DialogDescription className="text-center">
               Assign a crew to the selected work orders.
             </DialogDescription>
           </DialogHeader>
@@ -3101,22 +3103,28 @@ const WorkOrders: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
+              <div className="bg-muted/50 p-3 rounded-md">
+                <p className="text-sm text-muted-foreground text-center">
                   This will assign the selected crew to{" "}
-                  {selectedWorkOrderIds.length} work order(s).
+                  <span className="font-medium">
+                    {selectedWorkOrderIds.length}
+                  </span>{" "}
+                  work order(s).
                 </p>
               </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
+              className="w-full sm:w-auto"
               onClick={() => setIsCrewDialogOpen(false)}
             >
               Cancel
             </Button>
-            <Button onClick={handleCrewAssignment}>Assign Crew</Button>
+            <Button className="w-full sm:w-auto" onClick={handleCrewAssignment}>
+              Assign Crew
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -3125,8 +3133,10 @@ const WorkOrders: React.FC = () => {
       <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Filter Work Orders</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-center">
+              Filter Work Orders
+            </DialogTitle>
+            <DialogDescription className="text-center">
               Apply filters to the work order status view.
             </DialogDescription>
           </DialogHeader>
@@ -3182,9 +3192,10 @@ const WorkOrders: React.FC = () => {
               </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
+              className="w-full sm:w-auto"
               onClick={() => {
                 setDateRangeFilter({ from: "", to: "" });
                 setStatusFilterValue("all");
@@ -3193,7 +3204,9 @@ const WorkOrders: React.FC = () => {
             >
               Reset
             </Button>
-            <Button onClick={handleApplyFilters}>Apply Filters</Button>
+            <Button className="w-full sm:w-auto" onClick={handleApplyFilters}>
+              Apply Filters
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
