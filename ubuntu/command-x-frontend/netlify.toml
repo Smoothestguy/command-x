@@ -1,0 +1,12 @@
+[build]
+  base = "ubuntu/command-x-frontend"
+  publish = "dist"
+  command = "CI=false npm run build || npm run build:no-typecheck"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
