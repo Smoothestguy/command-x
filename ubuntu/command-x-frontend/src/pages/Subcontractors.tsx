@@ -348,7 +348,7 @@ const Subcontractors: React.FC = () => {
   };
 
   // Calculate days until insurance expiry
-  const getDaysUntilExpiry = (expiryDate: string | null) => {
+  const getDaysUntilExpiry = (expiryDate: string | null | undefined) => {
     if (!expiryDate) return null;
 
     const today = new Date();
@@ -360,7 +360,7 @@ const Subcontractors: React.FC = () => {
   };
 
   // Get insurance status badge
-  const getInsuranceStatusBadge = (expiryDate: string | null) => {
+  const getInsuranceStatusBadge = (expiryDate: string | null | undefined) => {
     if (!expiryDate) return <Badge variant="outline">No Data</Badge>;
 
     const daysUntil = getDaysUntilExpiry(expiryDate);
@@ -369,12 +369,18 @@ const Subcontractors: React.FC = () => {
     if (daysUntil < 0) return <Badge variant="destructive">Expired</Badge>;
     if (daysUntil < 30)
       return (
-        <Badge variant="warning" className="bg-orange-500 text-white">
+        <Badge
+          variant="outline"
+          className="bg-orange-500 text-white border-orange-500"
+        >
           Expiring Soon
         </Badge>
       );
     return (
-      <Badge variant="success" className="bg-green-500 text-white">
+      <Badge
+        variant="outline"
+        className="bg-green-500 text-white border-green-500"
+      >
         Valid
       </Badge>
     );
@@ -382,13 +388,15 @@ const Subcontractors: React.FC = () => {
 
   return (
     <div className="p-4 md:p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Subcontractors</h1>
-        <div className="flex gap-2">
+      {/* Mobile-optimized header */}
+      <div className="flex flex-col mb-6">
+        <h1 className="text-3xl font-bold text-center mb-4">Subcontractors</h1>
+        <div className="flex flex-wrap justify-center gap-2 mb-4">
           <Button
             variant="outline"
             onClick={handleRefresh}
             disabled={isRefreshing}
+            className="flex-1 min-w-[120px] max-w-[180px]"
           >
             {isRefreshing ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -397,8 +405,13 @@ const Subcontractors: React.FC = () => {
             )}
             Refresh
           </Button>
-          <Button onClick={handleCreateClick}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Add Subcontractor
+          <Button
+            onClick={handleCreateClick}
+            className="flex-1 min-w-[120px] max-w-[180px]"
+          >
+            <PlusCircle className="mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Add Subcontractor</span>
+            <span className="sm:hidden">Add</span>
           </Button>
         </div>
       </div>
@@ -413,61 +426,63 @@ const Subcontractors: React.FC = () => {
           </TabsList>
         </Tabs>
 
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-grow">
+        <div className="flex flex-col gap-3">
+          <div className="relative w-full">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search subcontractors..."
-              className="pl-8"
+              className="pl-8 w-full"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
-          <Select value={tradeFilter} onValueChange={setTradeFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by Trade" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Trades</SelectItem>
-              {uniqueTrades.map((trade) => (
-                <SelectItem key={trade} value={trade}>
-                  {trade}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex flex-wrap gap-3">
+            <Select value={tradeFilter} onValueChange={setTradeFilter}>
+              <SelectTrigger className="flex-1 min-w-[140px]">
+                <SelectValue placeholder="Filter by Trade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Trades</SelectItem>
+                {uniqueTrades.map((trade) => (
+                  <SelectItem key={trade} value={trade}>
+                    {trade}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="Inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="flex-1 min-w-[140px]">
+                <SelectValue placeholder="Filter by Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="Inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
 
-          <div className="flex border rounded-md">
-            <Button
-              variant={viewMode === "table" ? "default" : "ghost"}
-              size="sm"
-              className="rounded-r-none"
-              onClick={() => setViewMode("table")}
-            >
-              <List className="h-4 w-4 mr-2" />
-              Table
-            </Button>
-            <Button
-              variant={viewMode === "cards" ? "default" : "ghost"}
-              size="sm"
-              className="rounded-l-none"
-              onClick={() => setViewMode("cards")}
-            >
-              <LayoutGrid className="h-4 w-4 mr-2" />
-              Cards
-            </Button>
+            <div className="flex border rounded-md flex-1 min-w-[140px] max-w-[180px]">
+              <Button
+                variant={viewMode === "table" ? "default" : "ghost"}
+                size="sm"
+                className="rounded-r-none flex-1"
+                onClick={() => setViewMode("table")}
+              >
+                <List className="h-4 w-4 mr-2" />
+                Table
+              </Button>
+              <Button
+                variant={viewMode === "cards" ? "default" : "ghost"}
+                size="sm"
+                className="rounded-l-none flex-1"
+                onClick={() => setViewMode("cards")}
+              >
+                <LayoutGrid className="h-4 w-4 mr-2" />
+                Cards
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -665,7 +680,7 @@ const Subcontractors: React.FC = () => {
               </Table>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredSubcontractors.map((sub) => (
                 <Card
                   key={sub.subcontractor_id}
@@ -695,36 +710,40 @@ const Subcontractors: React.FC = () => {
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center">
                         <Briefcase className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className="font-medium">
+                        <span className="font-medium truncate">
                           {sub.trade || "No trade specified"}
                         </span>
                       </div>
                       <div className="flex items-center">
-                        <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span>{sub.email || "No email"}</span>
+                        <Mail className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
+                        <span className="truncate">
+                          {sub.email || "No email"}
+                        </span>
                       </div>
                       <div className="flex items-center">
-                        <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <Phone className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
                         <span>{sub.phone || "No phone"}</span>
                       </div>
                       <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span>{sub.address || "No address"}</span>
+                        <MapPin className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
+                        <span className="truncate">
+                          {sub.address || "No address"}
+                        </span>
                       </div>
                       <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <Calendar className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
                         <span>Insurance: </span>
                         {getInsuranceStatusBadge(sub.insurance_expiry)}
                       </div>
                       {sub.rating && (
                         <div className="flex items-center">
-                          <Star className="h-4 w-4 mr-2 text-yellow-500" />
+                          <Star className="h-4 w-4 mr-2 text-yellow-500 flex-shrink-0" />
                           <span>{sub.rating.toFixed(1)} / 5.0</span>
                         </div>
                       )}
                     </div>
                   </CardContent>
-                  <CardFooter className="flex justify-between pt-2">
+                  <CardFooter className="flex flex-col sm:flex-row sm:justify-between gap-2 pt-2">
                     <div className="text-xs text-muted-foreground">
                       <span className="font-medium">
                         {sub.active_work_orders || 0}
@@ -735,10 +754,11 @@ const Subcontractors: React.FC = () => {
                       </span>{" "}
                       completed
                     </div>
-                    <div className="flex space-x-1">
+                    <div className="flex space-x-2 w-full sm:w-auto justify-center sm:justify-end">
                       <Button
                         variant="outline"
                         size="sm"
+                        className="flex-1 sm:flex-initial"
                         onClick={() => handleViewClick(sub)}
                       >
                         <Eye className="h-3.5 w-3.5 mr-1" />
@@ -747,6 +767,7 @@ const Subcontractors: React.FC = () => {
                       <Button
                         variant="outline"
                         size="sm"
+                        className="flex-1 sm:flex-initial"
                         onClick={() => handleEditClick(sub)}
                       >
                         <Pencil className="h-3.5 w-3.5 mr-1" />
