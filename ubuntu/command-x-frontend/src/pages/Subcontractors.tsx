@@ -513,71 +513,190 @@ const Subcontractors: React.FC = () => {
               </p>
             </div>
           ) : viewMode === "table" ? (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead
-                      className="cursor-pointer"
-                      onClick={() => {
-                        if (sortField === "company_name") {
-                          setSortDirection(
-                            sortDirection === "asc" ? "desc" : "asc"
-                          );
-                        } else {
-                          setSortField("company_name");
-                          setSortDirection("asc");
-                        }
-                      }}
-                    >
-                      Company Name{" "}
-                      {sortField === "company_name" &&
-                        (sortDirection === "asc" ? "↑" : "↓")}
-                    </TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead
-                      className="cursor-pointer"
-                      onClick={() => {
-                        if (sortField === "trade") {
-                          setSortDirection(
-                            sortDirection === "asc" ? "desc" : "asc"
-                          );
-                        } else {
-                          setSortField("trade");
-                          setSortDirection("asc");
-                        }
-                      }}
-                    >
-                      Trade{" "}
-                      {sortField === "trade" &&
-                        (sortDirection === "asc" ? "↑" : "↓")}
-                    </TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Insurance</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredSubcontractors.map((sub) => (
-                    <TableRow
-                      key={sub.subcontractor_id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => handleViewClick(sub)}
-                    >
-                      <TableCell className="font-medium">
-                        {sub.company_name}
-                      </TableCell>
-                      <TableCell>{sub.contact_name}</TableCell>
-                      <TableCell>{sub.email}</TableCell>
-                      <TableCell>{sub.phone}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="bg-primary/10">
-                          {sub.trade}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
+            <div>
+              {/* Desktop Table View - Hidden on small screens */}
+              <div className="rounded-md border hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead
+                        className="cursor-pointer"
+                        onClick={() => {
+                          if (sortField === "company_name") {
+                            setSortDirection(
+                              sortDirection === "asc" ? "desc" : "asc"
+                            );
+                          } else {
+                            setSortField("company_name");
+                            setSortDirection("asc");
+                          }
+                        }}
+                      >
+                        Company Name{" "}
+                        {sortField === "company_name" &&
+                          (sortDirection === "asc" ? "↑" : "↓")}
+                      </TableHead>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead
+                        className="cursor-pointer"
+                        onClick={() => {
+                          if (sortField === "trade") {
+                            setSortDirection(
+                              sortDirection === "asc" ? "desc" : "asc"
+                            );
+                          } else {
+                            setSortField("trade");
+                            setSortDirection("asc");
+                          }
+                        }}
+                      >
+                        Trade{" "}
+                        {sortField === "trade" &&
+                          (sortDirection === "asc" ? "↑" : "↓")}
+                      </TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Insurance</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredSubcontractors.map((sub) => (
+                      <TableRow
+                        key={sub.subcontractor_id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleViewClick(sub)}
+                      >
+                        <TableCell className="font-medium">
+                          {sub.company_name}
+                        </TableCell>
+                        <TableCell>{sub.contact_name}</TableCell>
+                        <TableCell>{sub.email}</TableCell>
+                        <TableCell>{sub.phone}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-primary/10">
+                            {sub.trade}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              sub.status === "Active" ? "default" : "secondary"
+                            }
+                          >
+                            {sub.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center">
+                                  {getInsuranceStatusBadge(
+                                    sub.insurance_expiry
+                                  )}
+                                  {sub.insurance_expiry && (
+                                    <span className="ml-2 text-xs text-muted-foreground">
+                                      {new Date(
+                                        sub.insurance_expiry
+                                      ).toLocaleDateString()}
+                                    </span>
+                                  )}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {sub.insurance_expiry ? (
+                                  <>
+                                    <p>
+                                      Expires:{" "}
+                                      {new Date(
+                                        sub.insurance_expiry
+                                      ).toLocaleDateString()}
+                                    </p>
+                                    <p>
+                                      {getDaysUntilExpiry(
+                                        sub.insurance_expiry
+                                      ) !== null && (
+                                        <>
+                                          {getDaysUntilExpiry(
+                                            sub.insurance_expiry
+                                          )! < 0
+                                            ? `Expired ${Math.abs(
+                                                getDaysUntilExpiry(
+                                                  sub.insurance_expiry
+                                                )!
+                                              )} days ago`
+                                            : `${getDaysUntilExpiry(
+                                                sub.insurance_expiry
+                                              )} days remaining`}
+                                        </>
+                                      )}
+                                    </p>
+                                  </>
+                                ) : (
+                                  <p>No insurance expiry date set</p>
+                                )}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </TableCell>
+                        <TableCell
+                          className="text-right space-x-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewClick(sub);
+                            }}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditClick(sub);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedSubcontractor(sub);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                            disabled={deleteMutation.isPending}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile-Optimized List View - Shown only on small screens */}
+              <div className="space-y-4 md:hidden">
+                {filteredSubcontractors.map((sub) => (
+                  <Card
+                    key={sub.subcontractor_id}
+                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => handleViewClick(sub)}
+                  >
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-center">
+                        <CardTitle className="text-base">
+                          {sub.company_name}
+                        </CardTitle>
                         <Badge
                           variant={
                             sub.status === "Active" ? "default" : "secondary"
@@ -585,99 +704,61 @@ const Subcontractors: React.FC = () => {
                         >
                           {sub.status}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="flex items-center">
-                                {getInsuranceStatusBadge(sub.insurance_expiry)}
-                                {sub.insurance_expiry && (
-                                  <span className="ml-2 text-xs text-muted-foreground">
-                                    {new Date(
-                                      sub.insurance_expiry
-                                    ).toLocaleDateString()}
-                                  </span>
-                                )}
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {sub.insurance_expiry ? (
-                                <>
-                                  <p>
-                                    Expires:{" "}
-                                    {new Date(
-                                      sub.insurance_expiry
-                                    ).toLocaleDateString()}
-                                  </p>
-                                  <p>
-                                    {getDaysUntilExpiry(
-                                      sub.insurance_expiry
-                                    ) !== null && (
-                                      <>
-                                        {getDaysUntilExpiry(
-                                          sub.insurance_expiry
-                                        )! < 0
-                                          ? `Expired ${Math.abs(
-                                              getDaysUntilExpiry(
-                                                sub.insurance_expiry
-                                              )!
-                                            )} days ago`
-                                          : `${getDaysUntilExpiry(
-                                              sub.insurance_expiry
-                                            )} days remaining`}
-                                      </>
-                                    )}
-                                  </p>
-                                </>
-                              ) : (
-                                <p>No insurance expiry date set</p>
-                              )}
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </TableCell>
-                      <TableCell
-                        className="text-right space-x-2"
-                        onClick={(e) => e.stopPropagation()}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pb-2 pt-0">
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="flex items-center">
+                          <Briefcase className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
+                          <span className="font-medium">{sub.trade}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <User className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
+                          <span>{sub.contact_name || "—"}</span>
+                        </div>
+                        <div className="flex items-center col-span-2">
+                          <Phone className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
+                          <span>{sub.phone || "—"}</span>
+                        </div>
+                        <div className="flex items-center col-span-2">
+                          <Calendar className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
+                          <span className="mr-1">Insurance:</span>
+                          {getInsuranceStatusBadge(sub.insurance_expiry)}
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter
+                      className="pt-0 flex justify-end gap-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-2 w-20"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewClick(sub);
+                        }}
                       >
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleViewClick(sub);
-                          }}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditClick(sub);
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedSubcontractor(sub);
-                            setIsDeleteDialogOpen(true);
-                          }}
-                          disabled={deleteMutation.isPending}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                        <Eye className="h-3.5 w-3.5 mr-1" />
+                        View
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-2 w-20"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditClick(sub);
+                        }}
+                      >
+                        <Pencil className="h-3.5 w-3.5 mr-1" />
+                        Edit
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
