@@ -527,9 +527,10 @@ const WorkOrders: React.FC = () => {
 
   return (
     <div className="p-4 md:p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Work Orders</h1>
-        <div className="flex gap-2">
+      {/* Mobile-optimized header with centered title */}
+      <div className="flex flex-col mb-6">
+        <h1 className="text-3xl font-bold text-center mb-4">Work Orders</h1>
+        <div className="flex flex-wrap justify-center gap-2">
           <Button
             variant="outline"
             onClick={handleRefresh}
@@ -548,33 +549,56 @@ const WorkOrders: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Mobile-optimized Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="all">All Work Orders</TabsTrigger>
-          <TabsTrigger value="pending">Pending</TabsTrigger>
-          <TabsTrigger value="inProgress">In Progress</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 overflow-x-auto">
+          <TabsTrigger
+            value="all"
+            className="text-xs sm:text-sm whitespace-nowrap"
+          >
+            All Work Orders
+          </TabsTrigger>
+          <TabsTrigger
+            value="pending"
+            className="text-xs sm:text-sm whitespace-nowrap"
+          >
+            Pending
+          </TabsTrigger>
+          <TabsTrigger
+            value="inProgress"
+            className="text-xs sm:text-sm whitespace-nowrap"
+          >
+            In Progress
+          </TabsTrigger>
+          <TabsTrigger
+            value="completed"
+            className="text-xs sm:text-sm whitespace-nowrap"
+          >
+            Completed
+          </TabsTrigger>
         </TabsList>
       </Tabs>
 
-      {/* Filters */}
+      {/* Mobile-optimized Filters */}
       <Card className="mb-6">
         <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4 mb-4">
-            <div className="flex-1 relative">
+          {/* Search input - full width on mobile */}
+          <div className="flex flex-col gap-4 mb-4">
+            <div className="relative w-full">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search work orders..."
-                className="pl-8"
+                className="pl-8 w-full"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <div className="flex gap-2">
+
+            {/* Filter controls - stacked on mobile, row on desktop */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-row gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Status" />
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder="All Statuses" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
@@ -587,8 +611,8 @@ const WorkOrders: React.FC = () => {
                 </SelectContent>
               </Select>
               <Select value={projectFilter} onValueChange={setProjectFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Project" />
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder="All Projects" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Projects</SelectItem>
@@ -604,7 +628,7 @@ const WorkOrders: React.FC = () => {
               </Select>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-[180px]">
+                  <Button variant="outline" className="w-full md:w-[180px]">
                     <Calendar className="mr-2 h-4 w-4" />
                     Date Range
                   </Button>
@@ -651,13 +675,14 @@ const WorkOrders: React.FC = () => {
             </div>
           </div>
 
-          {/* View mode and batch actions */}
-          <div className="flex justify-between items-center">
-            <div className="flex gap-2">
+          {/* View mode and batch actions - stacked on mobile */}
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
+            <div className="flex gap-2 w-full sm:w-auto justify-center sm:justify-start">
               <Button
                 variant={viewMode === "table" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("table")}
+                className="flex-1 sm:flex-none"
               >
                 <FileText className="mr-2 h-4 w-4" />
                 Table
@@ -666,6 +691,7 @@ const WorkOrders: React.FC = () => {
                 variant={viewMode === "cards" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("cards")}
+                className="flex-1 sm:flex-none"
               >
                 <LayoutGrid className="mr-2 h-4 w-4" />
                 Cards
@@ -673,13 +699,17 @@ const WorkOrders: React.FC = () => {
             </div>
 
             {selectedRows.length > 0 && (
-              <div className="flex gap-2 items-center">
+              <div className="flex gap-2 items-center w-full sm:w-auto justify-center sm:justify-start">
                 <span className="text-sm text-muted-foreground">
                   {selectedRows.length} selected
                 </span>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full sm:w-auto"
+                    >
                       Batch Actions <ChevronDown className="ml-2 h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -881,417 +911,514 @@ const WorkOrders: React.FC = () => {
               ))}
             </div>
           ) : (
-            // Table view
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[50px]">
-                      <Checkbox
-                        checked={
-                          selectedRows.length === filteredWorkOrders.length &&
-                          filteredWorkOrders.length > 0
-                        }
-                        onCheckedChange={toggleSelectAll}
-                      />
-                    </TableHead>
-                    <TableHead>
-                      <div
-                        className="flex items-center cursor-pointer"
-                        onClick={() => handleSort("description")}
-                      >
-                        Description
-                        {sortField === "description" &&
-                          (sortDirection === "asc" ? (
-                            <ChevronUp className="ml-1 h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="ml-1 h-4 w-4" />
-                          ))}
-                      </div>
-                    </TableHead>
-                    <TableHead>
-                      <div
-                        className="flex items-center cursor-pointer"
-                        onClick={() => handleSort("project_id")}
-                      >
-                        Project
-                        {sortField === "project_id" &&
-                          (sortDirection === "asc" ? (
-                            <ChevronUp className="ml-1 h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="ml-1 h-4 w-4" />
-                          ))}
-                      </div>
-                    </TableHead>
-                    <TableHead>
-                      <div
-                        className="flex items-center cursor-pointer"
-                        onClick={() => handleSort("status")}
-                      >
-                        Status
-                        {sortField === "status" &&
-                          (sortDirection === "asc" ? (
-                            <ChevronUp className="ml-1 h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="ml-1 h-4 w-4" />
-                          ))}
-                      </div>
-                    </TableHead>
-                    <TableHead>
-                      <div
-                        className="flex items-center cursor-pointer"
-                        onClick={() => handleSort("scheduled_date")}
-                      >
-                        Scheduled Date
-                        {sortField === "scheduled_date" &&
-                          (sortDirection === "asc" ? (
-                            <ChevronUp className="ml-1 h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="ml-1 h-4 w-4" />
-                          ))}
-                      </div>
-                    </TableHead>
-                    <TableHead>
-                      <div
-                        className="flex items-center cursor-pointer"
-                        onClick={() => handleSort("estimated_cost")}
-                      >
-                        Estimated Cost
-                        {sortField === "estimated_cost" &&
-                          (sortDirection === "asc" ? (
-                            <ChevronUp className="ml-1 h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="ml-1 h-4 w-4" />
-                          ))}
-                      </div>
-                    </TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredWorkOrders.map((wo) => (
-                    <React.Fragment key={wo.work_order_id}>
-                      <TableRow
-                        className={
-                          expandedRows.includes(wo.work_order_id!)
-                            ? "border-b-0"
-                            : ""
-                        }
-                        onClick={() => toggleRowExpansion(wo.work_order_id!)}
-                      >
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            checked={selectedRows.includes(wo.work_order_id!)}
-                            onCheckedChange={() =>
-                              toggleRowSelection(wo.work_order_id!)
-                            }
-                          />
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center">
-                            {expandedRows.includes(wo.work_order_id!) ? (
-                              <ChevronDown className="mr-2 h-4 w-4" />
-                            ) : (
-                              <ChevronRight className="mr-2 h-4 w-4" />
-                            )}
-                            {wo.description}
-                          </div>
-                        </TableCell>
-                        <TableCell>{getProjectName(wo.project_id)}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              wo.status === "Completed"
-                                ? "default"
-                                : wo.status === "In Progress"
-                                ? "secondary"
-                                : wo.status === "On Hold"
-                                ? "destructive"
-                                : "outline"
-                            }
-                          >
-                            {wo.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {wo.scheduled_date
-                            ? new Date(wo.scheduled_date).toLocaleDateString()
-                            : "-"}
-                        </TableCell>
-                        <TableCell>
-                          {wo.estimated_cost
-                            ? `$${wo.estimated_cost.toLocaleString()}`
-                            : "-"}
-                        </TableCell>
-                        <TableCell
-                          className="text-right"
-                          onClick={(e) => e.stopPropagation()}
+            <>
+              {/* Desktop Table View - Hidden on mobile */}
+              <div className="rounded-md border hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[50px]">
+                        <Checkbox
+                          checked={
+                            selectedRows.length === filteredWorkOrders.length &&
+                            filteredWorkOrders.length > 0
+                          }
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
+                      <TableHead>
+                        <div
+                          className="flex items-center cursor-pointer"
+                          onClick={() => handleSort("description")}
                         >
-                          <div className="flex justify-end gap-2">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedWorkOrder(wo);
-                                      setIsViewDialogOpen(true);
-                                    }}
-                                  >
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>View Details</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEditClick(wo);
-                                    }}
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Edit</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="destructive"
-                                    size="icon"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedWorkOrder(wo);
-                                      setIsDeleteDialogOpen(true);
-                                    }}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Delete</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-
-                      {/* Expanded row details */}
-                      {expandedRows.includes(wo.work_order_id!) && (
-                        <TableRow className="bg-muted/50">
-                          <TableCell colSpan={7} className="p-4">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                              <div>
-                                <h4 className="font-medium mb-2">
-                                  Work Order Details
-                                </h4>
-                                <div className="space-y-2 text-sm">
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">
-                                      Subcontractor:
-                                    </span>
-                                    <span>
-                                      {getSubcontractorName(
-                                        wo.assigned_subcontractor_id
-                                      )}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">
-                                      Completion Date:
-                                    </span>
-                                    <span>
-                                      {wo.completion_date
-                                        ? new Date(
-                                            wo.completion_date
-                                          ).toLocaleDateString()
-                                        : "Not completed"}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">
-                                      Actual Cost:
-                                    </span>
-                                    <span>
-                                      {wo.actual_cost
-                                        ? `$${wo.actual_cost.toLocaleString()}`
-                                        : "Not available"}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div>
-                                <h4 className="font-medium mb-2">
-                                  Financial Information
-                                </h4>
-                                <div className="space-y-2 text-sm">
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">
-                                      Amount Billed:
-                                    </span>
-                                    <span>
-                                      {wo.amount_billed
-                                        ? `$${wo.amount_billed.toLocaleString()}`
-                                        : "$0"}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">
-                                      Amount Paid:
-                                    </span>
-                                    <span>
-                                      {wo.amount_paid
-                                        ? `$${wo.amount_paid.toLocaleString()}`
-                                        : "$0"}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">
-                                      Retainage:
-                                    </span>
-                                    <span>
-                                      {wo.retainage_percentage
-                                        ? `${wo.retainage_percentage}%`
-                                        : "0%"}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div>
-                                <h4 className="font-medium mb-2">
-                                  Quick Actions
-                                </h4>
-                                <div className="flex flex-col gap-2">
-                                  <Select
-                                    value={wo.status}
-                                    onValueChange={(value) => {
-                                      if (wo.work_order_id) {
-                                        updateWorkOrder(wo.work_order_id, {
-                                          ...wo,
-                                          status: value,
-                                        });
-                                        queryClient.invalidateQueries({
-                                          queryKey: ["workOrders"],
-                                        });
-                                        toast.success(
-                                          `Status updated to ${value}`
-                                        );
-                                      }
-                                    }}
-                                  >
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Update Status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="Pending">
-                                        Pending
-                                      </SelectItem>
-                                      <SelectItem value="Scheduled">
-                                        Scheduled
-                                      </SelectItem>
-                                      <SelectItem value="In Progress">
-                                        In Progress
-                                      </SelectItem>
-                                      <SelectItem value="On Hold">
-                                        On Hold
-                                      </SelectItem>
-                                      <SelectItem value="Completed">
-                                        Completed
-                                      </SelectItem>
-                                      <SelectItem value="Cancelled">
-                                        Cancelled
-                                      </SelectItem>
-                                    </SelectContent>
-                                  </Select>
-
-                                  <div className="flex gap-2">
+                          Description
+                          {sortField === "description" &&
+                            (sortDirection === "asc" ? (
+                              <ChevronUp className="ml-1 h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="ml-1 h-4 w-4" />
+                            ))}
+                        </div>
+                      </TableHead>
+                      <TableHead>
+                        <div
+                          className="flex items-center cursor-pointer"
+                          onClick={() => handleSort("project_id")}
+                        >
+                          Project
+                          {sortField === "project_id" &&
+                            (sortDirection === "asc" ? (
+                              <ChevronUp className="ml-1 h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="ml-1 h-4 w-4" />
+                            ))}
+                        </div>
+                      </TableHead>
+                      <TableHead>
+                        <div
+                          className="flex items-center cursor-pointer"
+                          onClick={() => handleSort("status")}
+                        >
+                          Status
+                          {sortField === "status" &&
+                            (sortDirection === "asc" ? (
+                              <ChevronUp className="ml-1 h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="ml-1 h-4 w-4" />
+                            ))}
+                        </div>
+                      </TableHead>
+                      <TableHead>
+                        <div
+                          className="flex items-center cursor-pointer"
+                          onClick={() => handleSort("scheduled_date")}
+                        >
+                          Scheduled Date
+                          {sortField === "scheduled_date" &&
+                            (sortDirection === "asc" ? (
+                              <ChevronUp className="ml-1 h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="ml-1 h-4 w-4" />
+                            ))}
+                        </div>
+                      </TableHead>
+                      <TableHead>
+                        <div
+                          className="flex items-center cursor-pointer"
+                          onClick={() => handleSort("estimated_cost")}
+                        >
+                          Estimated Cost
+                          {sortField === "estimated_cost" &&
+                            (sortDirection === "asc" ? (
+                              <ChevronUp className="ml-1 h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="ml-1 h-4 w-4" />
+                            ))}
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredWorkOrders.map((wo) => (
+                      <React.Fragment key={wo.work_order_id}>
+                        <TableRow
+                          className={
+                            expandedRows.includes(wo.work_order_id!)
+                              ? "border-b-0"
+                              : ""
+                          }
+                          onClick={() => toggleRowExpansion(wo.work_order_id!)}
+                        >
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={selectedRows.includes(wo.work_order_id!)}
+                              onCheckedChange={() =>
+                                toggleRowSelection(wo.work_order_id!)
+                              }
+                            />
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center">
+                              {expandedRows.includes(wo.work_order_id!) ? (
+                                <ChevronDown className="mr-2 h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="mr-2 h-4 w-4" />
+                              )}
+                              {wo.description}
+                            </div>
+                          </TableCell>
+                          <TableCell>{getProjectName(wo.project_id)}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                wo.status === "Completed"
+                                  ? "default"
+                                  : wo.status === "In Progress"
+                                  ? "secondary"
+                                  : wo.status === "On Hold"
+                                  ? "destructive"
+                                  : "outline"
+                              }
+                            >
+                              {wo.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {wo.scheduled_date
+                              ? new Date(wo.scheduled_date).toLocaleDateString()
+                              : "-"}
+                          </TableCell>
+                          <TableCell>
+                            {wo.estimated_cost
+                              ? `$${wo.estimated_cost.toLocaleString()}`
+                              : "-"}
+                          </TableCell>
+                          <TableCell
+                            className="text-right"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="flex justify-end gap-2">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
                                     <Button
                                       variant="outline"
-                                      size="sm"
-                                      className="flex-1"
+                                      size="icon"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        handleViewInvoice(wo);
+                                        setSelectedWorkOrder(wo);
+                                        setIsViewDialogOpen(true);
                                       }}
                                     >
-                                      <FileText className="mr-2 h-4 w-4" />
-                                      View Invoice
+                                      <Eye className="h-4 w-4" />
                                     </Button>
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="flex-1"
-                                        >
-                                          <Download className="mr-2 h-4 w-4" />
-                                          Export
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                        <DropdownMenuLabel>
-                                          Export Format
-                                        </DropdownMenuLabel>
-                                        <DropdownMenuItem
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleExport(wo, "pdf");
-                                          }}
-                                        >
-                                          <FileText className="mr-2 h-4 w-4" />
-                                          PDF Document
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleExport(wo, "csv");
-                                          }}
-                                        >
-                                          <FileText className="mr-2 h-4 w-4" />
-                                          CSV Spreadsheet
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleExport(wo, "excel");
-                                          }}
-                                        >
-                                          <FileText className="mr-2 h-4 w-4" />
-                                          Excel Spreadsheet
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </div>
-                                </div>
-                              </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>View Details</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditClick(wo);
+                                      }}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Edit</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="destructive"
+                                      size="icon"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedWorkOrder(wo);
+                                        setIsDeleteDialogOpen(true);
+                                      }}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Delete</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </div>
                           </TableCell>
                         </TableRow>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+
+                        {/* Expanded row details */}
+                        {expandedRows.includes(wo.work_order_id!) && (
+                          <TableRow className="bg-muted/50">
+                            <TableCell colSpan={7} className="p-4">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                  <h4 className="font-medium mb-2">
+                                    Work Order Details
+                                  </h4>
+                                  <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">
+                                        Subcontractor:
+                                      </span>
+                                      <span>
+                                        {getSubcontractorName(
+                                          wo.assigned_subcontractor_id
+                                        )}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">
+                                        Completion Date:
+                                      </span>
+                                      <span>
+                                        {wo.completion_date
+                                          ? new Date(
+                                              wo.completion_date
+                                            ).toLocaleDateString()
+                                          : "Not completed"}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">
+                                        Actual Cost:
+                                      </span>
+                                      <span>
+                                        {wo.actual_cost
+                                          ? `$${wo.actual_cost.toLocaleString()}`
+                                          : "Not available"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h4 className="font-medium mb-2">
+                                    Financial Information
+                                  </h4>
+                                  <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">
+                                        Amount Billed:
+                                      </span>
+                                      <span>
+                                        {wo.amount_billed
+                                          ? `$${wo.amount_billed.toLocaleString()}`
+                                          : "$0"}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">
+                                        Amount Paid:
+                                      </span>
+                                      <span>
+                                        {wo.amount_paid
+                                          ? `$${wo.amount_paid.toLocaleString()}`
+                                          : "$0"}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">
+                                        Retainage:
+                                      </span>
+                                      <span>
+                                        {wo.retainage_percentage
+                                          ? `${wo.retainage_percentage}%`
+                                          : "0%"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h4 className="font-medium mb-2">
+                                    Quick Actions
+                                  </h4>
+                                  <div className="flex flex-col gap-2">
+                                    <Select
+                                      value={wo.status}
+                                      onValueChange={(value) => {
+                                        if (wo.work_order_id) {
+                                          updateWorkOrder(wo.work_order_id, {
+                                            ...wo,
+                                            status: value,
+                                          });
+                                          queryClient.invalidateQueries({
+                                            queryKey: ["workOrders"],
+                                          });
+                                          toast.success(
+                                            `Status updated to ${value}`
+                                          );
+                                        }
+                                      }}
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Update Status" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="Pending">
+                                          Pending
+                                        </SelectItem>
+                                        <SelectItem value="Scheduled">
+                                          Scheduled
+                                        </SelectItem>
+                                        <SelectItem value="In Progress">
+                                          In Progress
+                                        </SelectItem>
+                                        <SelectItem value="On Hold">
+                                          On Hold
+                                        </SelectItem>
+                                        <SelectItem value="Completed">
+                                          Completed
+                                        </SelectItem>
+                                        <SelectItem value="Cancelled">
+                                          Cancelled
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
+
+                                    <div className="flex gap-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-1"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleViewInvoice(wo);
+                                        }}
+                                      >
+                                        <FileText className="mr-2 h-4 w-4" />
+                                        View Invoice
+                                      </Button>
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1"
+                                          >
+                                            <Download className="mr-2 h-4 w-4" />
+                                            Export
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                          <DropdownMenuLabel>
+                                            Export Format
+                                          </DropdownMenuLabel>
+                                          <DropdownMenuItem
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleExport(wo, "pdf");
+                                            }}
+                                          >
+                                            <FileText className="mr-2 h-4 w-4" />
+                                            PDF Document
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleExport(wo, "csv");
+                                            }}
+                                          >
+                                            <FileText className="mr-2 h-4 w-4" />
+                                            CSV Spreadsheet
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleExport(wo, "excel");
+                                            }}
+                                          >
+                                            <FileText className="mr-2 h-4 w-4" />
+                                            Excel Spreadsheet
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile-optimized Table View - Only visible on mobile */}
+              <div className="md:hidden space-y-4">
+                {filteredWorkOrders.map((wo) => (
+                  <Card key={wo.work_order_id} className="overflow-hidden">
+                    <CardHeader className="p-4 pb-2">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 pr-2">
+                          <CardTitle className="text-base font-medium line-clamp-2">
+                            {wo.description}
+                          </CardTitle>
+                          <CardDescription className="text-sm mt-1">
+                            {getProjectName(wo.project_id)}
+                          </CardDescription>
+                        </div>
+                        <Badge
+                          variant={
+                            wo.status === "Completed"
+                              ? "default"
+                              : wo.status === "In Progress"
+                              ? "secondary"
+                              : wo.status === "On Hold"
+                              ? "destructive"
+                              : "outline"
+                          }
+                          className="ml-2 whitespace-nowrap"
+                        >
+                          {wo.status}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-2 pb-2">
+                      <div className="grid grid-cols-2 gap-y-2 text-sm">
+                        <div className="text-muted-foreground">Scheduled:</div>
+                        <div className="text-right font-medium">
+                          {wo.scheduled_date
+                            ? new Date(wo.scheduled_date).toLocaleDateString()
+                            : "-"}
+                        </div>
+
+                        <div className="text-muted-foreground">Est. Cost:</div>
+                        <div className="text-right font-medium">
+                          {wo.estimated_cost
+                            ? `$${wo.estimated_cost.toLocaleString()}`
+                            : "-"}
+                        </div>
+
+                        <div className="text-muted-foreground">
+                          Subcontractor:
+                        </div>
+                        <div className="text-right font-medium truncate">
+                          {getSubcontractorName(wo.assigned_subcontractor_id)}
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="p-4 pt-2 flex justify-between">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-24"
+                        onClick={() => {
+                          setSelectedWorkOrder(wo);
+                          setIsViewDialogOpen(true);
+                        }}
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        View
+                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-24"
+                          onClick={() => handleEditClick(wo)}
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="w-24"
+                          onClick={() => {
+                            setSelectedWorkOrder(wo);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </Button>
+                      </div>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </>
       )}
