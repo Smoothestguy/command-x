@@ -97,6 +97,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const WorkOrderSchema = Yup.object().shape({
   project_id: Yup.number().required("Project is required"),
@@ -524,6 +525,58 @@ const WorkOrders: React.FC = () => {
     getProjectName,
     getSubcontractorName,
   ]);
+
+  const calculateTotals = useMemo(() => {
+    if (!filteredWorkOrders)
+      return {
+        estimatedTotal: 0,
+        actualTotal: 0,
+        billedTotal: 0,
+        paidTotal: 0,
+      };
+
+    return filteredWorkOrders.reduce(
+      (acc, wo) => {
+        return {
+          estimatedTotal: acc.estimatedTotal + (wo.estimated_cost || 0),
+          actualTotal: acc.actualTotal + (wo.actual_cost || 0),
+          billedTotal: acc.billedTotal + (wo.amount_billed || 0),
+          paidTotal: acc.paidTotal + (wo.amount_paid || 0),
+        };
+      },
+      {
+        estimatedTotal: 0,
+        actualTotal: 0,
+        billedTotal: 0,
+        paidTotal: 0,
+      }
+    );
+  }, [filteredWorkOrders]);
+
+  const [isLineItemDialogOpen, setIsLineItemDialogOpen] = useState(false);
+  const [lineItems, setLineItems] = useState<LineItemData[]>([]);
+
+  const handleManageLineItems = async (workOrder: WorkOrderData) => {
+    setSelectedWorkOrder(workOrder);
+    // Fetch line items for this work order
+    try {
+      // In a real implementation, you would fetch from API
+      // For now, we'll use mock data
+      const items = workOrder.line_items || [];
+      setLineItems(items);
+      setIsLineItemDialogOpen(true);
+    } catch (error) {
+      console.error("Error fetching line items:", error);
+      toast.error("Failed to load line items");
+    }
+  };
+
+  const [newLineItem, setNewLineItem] = useState({
+    description: "",
+    quantity: 1,
+    unit_cost: 0,
+    status: "Not Started",
+  });
 
   return (
     <div className="p-4 md:p-8">
