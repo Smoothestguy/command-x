@@ -21,6 +21,452 @@ const apiClient = axios.create({
 // Add a mock adapter to simulate API responses
 const USE_MOCK_DATA = true; // Set to true to use mock data
 
+// Mock database for storing data when using mock mode
+const mockDB = {
+  projects: [
+    {
+      project_id: 1,
+      project_name: "Smith Residence Renovation",
+      location: "123 Main St, Anytown, USA",
+      client_name: "John Smith",
+      start_date: "2025-01-15",
+      end_date: "2025-06-30",
+      budget: 350000,
+      status: "In Progress",
+      description:
+        "Complete renovation of a 3,500 sq ft residential property including kitchen, bathrooms, and exterior work.",
+      progress_percentage: 45,
+      priority: "Medium",
+      category: "Residential",
+      manager_id: 1,
+      manager_name: "Sarah Johnson",
+      team_members: [
+        { id: 2, name: "Mike Wilson", role: "Site Supervisor" },
+        { id: 3, name: "Lisa Chen", role: "Interior Designer" },
+      ],
+      actual_cost: 158000,
+      estimated_hours: 1200,
+      actual_hours: 540,
+      created_at: "2024-12-20T08:30:00Z",
+      updated_at: "2025-02-15T14:45:00Z",
+      tags: ["renovation", "residential", "high-end"],
+      risk_level: "Low",
+      // Accounting-related fields
+      budget_utilization: 45.1,
+      total_invoiced: 175000,
+      total_paid: 158000,
+      outstanding_balance: 17000,
+      retainage_held: 8750,
+      payment_terms: "Net 30",
+      contract_number: "CONT-2025-001",
+      contract_type: "Fixed Price",
+      change_orders_count: 2,
+      change_orders_value: 15000,
+    },
+    {
+      project_id: 2,
+      project_name: "Downtown Office Building",
+      location: "456 Commerce Ave, Anytown, USA",
+      client_name: "ABC Corporation",
+      start_date: "2025-02-01",
+      end_date: "2026-03-15",
+      budget: 1500000,
+      status: "In Progress",
+      description:
+        "Construction of a new 5-story office building with underground parking and LEED certification requirements.",
+      progress_percentage: 25,
+      priority: "High",
+      category: "Commercial",
+      manager_id: 4,
+      manager_name: "Robert Taylor",
+      team_members: [
+        { id: 5, name: "James Rodriguez", role: "Project Engineer" },
+        { id: 6, name: "Emily Parker", role: "Sustainability Consultant" },
+        { id: 7, name: "David Kim", role: "Structural Engineer" },
+      ],
+      actual_cost: 375000,
+      estimated_hours: 8500,
+      actual_hours: 2125,
+      created_at: "2025-01-10T10:15:00Z",
+      updated_at: "2025-02-20T16:30:00Z",
+      tags: ["commercial", "new-construction", "LEED"],
+      risk_level: "Medium",
+      // Accounting-related fields
+      budget_utilization: 25.0,
+      total_invoiced: 400000,
+      total_paid: 375000,
+      outstanding_balance: 25000,
+      retainage_held: 20000,
+      payment_terms: "Net 45",
+      contract_number: "CONT-2025-002",
+      contract_type: "Cost Plus",
+      change_orders_count: 1,
+      change_orders_value: 75000,
+    },
+    {
+      project_id: 3,
+      project_name: "City Park Pavilion",
+      location: "789 Park Rd, Anytown, USA",
+      client_name: "Anytown Municipality",
+      start_date: "2025-03-10",
+      end_date: "2025-08-30",
+      budget: 250000,
+      status: "In Progress",
+      description:
+        "Construction of an outdoor pavilion with restrooms, picnic areas, and landscaping for the city's central park.",
+      progress_percentage: 15,
+      priority: "Medium",
+      category: "Municipal",
+      manager_id: 8,
+      manager_name: "Jessica Adams",
+      team_members: [
+        { id: 9, name: "Thomas Wright", role: "Landscape Architect" },
+        { id: 10, name: "Sophia Martinez", role: "Civil Engineer" },
+      ],
+      actual_cost: 37500,
+      estimated_hours: 950,
+      actual_hours: 142,
+      created_at: "2025-02-15T09:00:00Z",
+      updated_at: "2025-03-12T11:20:00Z",
+      tags: ["municipal", "outdoor", "public-space"],
+      risk_level: "Low",
+      // Accounting-related fields
+      budget_utilization: 15.0,
+      total_invoiced: 40000,
+      total_paid: 37500,
+      outstanding_balance: 2500,
+      retainage_held: 2000,
+      payment_terms: "Net 30",
+      contract_number: "CONT-2025-003",
+      contract_type: "Fixed Price",
+      change_orders_count: 0,
+      change_orders_value: 0,
+    },
+    {
+      project_id: 4,
+      project_name: "Riverside Apartments",
+      location: "321 River View Dr, Anytown, USA",
+      client_name: "Riverfront Development LLC",
+      start_date: "2025-01-05",
+      end_date: "2026-05-20",
+      budget: 4200000,
+      status: "Planning",
+      description:
+        "Development of a 48-unit luxury apartment complex with riverside views, including amenities and parking structure.",
+      progress_percentage: 5,
+      priority: "High",
+      category: "Residential",
+      manager_id: 11,
+      manager_name: "Daniel Brown",
+      team_members: [
+        { id: 12, name: "Olivia Wilson", role: "Architect" },
+        { id: 13, name: "Nathan Lee", role: "MEP Engineer" },
+      ],
+      actual_cost: 210000,
+      estimated_hours: 15000,
+      actual_hours: 750,
+      created_at: "2024-11-30T14:00:00Z",
+      updated_at: "2025-01-10T09:45:00Z",
+      tags: ["residential", "multi-family", "luxury"],
+      risk_level: "Medium",
+      // Accounting-related fields
+      budget_utilization: 5.0,
+      total_invoiced: 210000,
+      total_paid: 210000,
+      outstanding_balance: 0,
+      retainage_held: 0,
+      payment_terms: "Net 30",
+      contract_number: "CONT-2025-004",
+      contract_type: "Cost Plus",
+      change_orders_count: 0,
+      change_orders_value: 0,
+    },
+    {
+      project_id: 5,
+      project_name: "Highway 7 Bridge Repair",
+      location: "Highway 7, Anytown County",
+      client_name: "State Transportation Department",
+      start_date: "2025-04-15",
+      end_date: "2025-07-30",
+      budget: 850000,
+      status: "Pending",
+      description:
+        "Structural repairs and resurfacing of the Highway 7 bridge spanning the Anytown River.",
+      progress_percentage: 0,
+      priority: "Critical",
+      category: "Infrastructure",
+      manager_id: 14,
+      manager_name: "Christopher Johnson",
+      team_members: [],
+      actual_cost: 0,
+      estimated_hours: 2800,
+      actual_hours: 0,
+      created_at: "2025-02-28T11:30:00Z",
+      updated_at: "2025-02-28T11:30:00Z",
+      tags: ["infrastructure", "bridge", "public", "repair"],
+      risk_level: "High",
+      // Accounting-related fields
+      budget_utilization: 0.0,
+      total_invoiced: 0,
+      total_paid: 0,
+      outstanding_balance: 0,
+      retainage_held: 0,
+      payment_terms: "Net 60",
+      contract_number: "CONT-2025-005",
+      contract_type: "Unit Price",
+      change_orders_count: 0,
+      change_orders_value: 0,
+    },
+  ],
+  workOrders: [
+    {
+      work_order_id: 1,
+      project_id: 1,
+      description: "Foundation Work",
+      status: "In Progress",
+      scheduled_date: "2025-02-15",
+      completion_date: "2025-02-28",
+      estimated_cost: 45000,
+      actual_cost: 47500,
+      assigned_subcontractor_id: 1,
+      amount_billed: 47500,
+      amount_paid: 42750,
+      retainage_percentage: 10,
+      payment_status: "Partially Paid",
+      invoice_number: "INV-2025-001",
+      invoice_date: "2025-03-01",
+      payment_date: "2025-03-15",
+      payment_method: "Wire Transfer",
+      payment_reference: "WT-12345",
+      created_at: "2025-02-10T08:30:00Z",
+      updated_at: "2025-03-01T14:45:00Z",
+    },
+    {
+      work_order_id: 2,
+      project_id: 1,
+      description: "Framing",
+      status: "Completed",
+      scheduled_date: "2025-03-01",
+      completion_date: "2025-03-20",
+      estimated_cost: 35000,
+      actual_cost: 34200,
+      assigned_subcontractor_id: 2,
+      amount_billed: 34200,
+      amount_paid: 34200,
+      retainage_percentage: 5,
+      payment_status: "Paid",
+      invoice_number: "INV-2025-002",
+      invoice_date: "2025-03-25",
+      payment_date: "2025-04-10",
+      payment_method: "Check",
+      payment_reference: "CHK-6789",
+      created_at: "2025-02-25T10:15:00Z",
+      updated_at: "2025-04-10T16:30:00Z",
+    },
+    {
+      work_order_id: 3,
+      project_id: 2,
+      description: "Electrical Installation",
+      status: "In Progress",
+      scheduled_date: "2025-04-10",
+      completion_date: null,
+      estimated_cost: 28000,
+      actual_cost: 15000,
+      assigned_subcontractor_id: 3,
+      amount_billed: 15000,
+      amount_paid: 0,
+      retainage_percentage: 10,
+      payment_status: "Unpaid",
+      invoice_number: "INV-2025-003",
+      invoice_date: "2025-04-15",
+      payment_date: null,
+      payment_method: null,
+      payment_reference: null,
+      created_at: "2025-04-05T09:00:00Z",
+      updated_at: "2025-04-15T11:20:00Z",
+    },
+    {
+      work_order_id: 4,
+      project_id: 2,
+      description: "HVAC Installation",
+      status: "Completed",
+      scheduled_date: "2025-03-15",
+      completion_date: "2025-04-05",
+      estimated_cost: 42000,
+      actual_cost: 43500,
+      assigned_subcontractor_id: 4,
+      amount_billed: 43500,
+      amount_paid: 39150,
+      retainage_percentage: 10,
+      payment_status: "Partially Paid",
+      invoice_number: "INV-2025-004",
+      invoice_date: "2025-04-10",
+      payment_date: "2025-04-25",
+      payment_method: "ACH",
+      payment_reference: "ACH-5432",
+      created_at: "2025-03-10T14:00:00Z",
+      updated_at: "2025-04-25T09:45:00Z",
+    },
+    {
+      work_order_id: 5,
+      project_id: 3,
+      description: "Site Preparation",
+      status: "Completed",
+      scheduled_date: "2025-03-10",
+      completion_date: "2025-03-25",
+      estimated_cost: 18000,
+      actual_cost: 17500,
+      assigned_subcontractor_id: 5,
+      amount_billed: 17500,
+      amount_paid: 17500,
+      retainage_percentage: 0,
+      payment_status: "Paid",
+      invoice_number: "INV-2025-005",
+      invoice_date: "2025-03-30",
+      payment_date: "2025-04-15",
+      payment_method: "Wire Transfer",
+      payment_reference: "WT-7890",
+      created_at: "2025-03-05T11:30:00Z",
+      updated_at: "2025-04-15T15:20:00Z",
+    },
+  ],
+  subcontractors: [
+    {
+      subcontractor_id: 1,
+      company_name: "Elite Electrical Services",
+      contact_name: "John Doe",
+      email: "john@eliteelectrical.com",
+      phone: "555-123-4567",
+      trade: "Electrical",
+      insurance_expiry: "2025-12-31",
+      license_number: "EL-12345",
+      status: "Active",
+      address: "456 Circuit Ave, Anytown, USA",
+      rating: 4.8,
+      notes: "Preferred electrical contractor for all projects",
+      created_at: "2024-12-15T10:30:00Z",
+      updated_at: "2025-01-10T14:45:00Z",
+      active_work_orders: 2,
+      completed_work_orders: 5,
+      total_paid: 87500,
+    },
+    {
+      subcontractor_id: 2,
+      company_name: "Premier Plumbing Co.",
+      contact_name: "Jane Smith",
+      email: "jane@premierplumbing.com",
+      phone: "555-987-6543",
+      trade: "Plumbing",
+      insurance_expiry: "2025-10-15",
+      license_number: "PL-54321",
+      status: "Active",
+      address: "789 Water Way, Anytown, USA",
+      rating: 4.5,
+      notes: "Specializes in high-end residential plumbing",
+      created_at: "2024-12-20T09:15:00Z",
+      updated_at: "2025-01-15T11:30:00Z",
+      active_work_orders: 1,
+      completed_work_orders: 3,
+      total_paid: 62000,
+    },
+    {
+      subcontractor_id: 3,
+      company_name: "Concrete Masters",
+      contact_name: "Mike Johnson",
+      email: "mike@concretemaster.com",
+      phone: "555-456-7890",
+      trade: "Concrete",
+      insurance_expiry: "2025-08-22",
+      license_number: "CM-98765",
+      status: "Active",
+      address: "123 Foundation Blvd, Anytown, USA",
+      rating: 4.7,
+      notes: "Excellent for large commercial foundations",
+      created_at: "2025-01-05T08:45:00Z",
+      updated_at: "2025-01-25T16:20:00Z",
+      active_work_orders: 1,
+      completed_work_orders: 2,
+      total_paid: 45000,
+    },
+    {
+      subcontractor_id: 4,
+      company_name: "Skyline HVAC Solutions",
+      contact_name: "Robert Chen",
+      email: "robert@skylinehvac.com",
+      phone: "555-789-1234",
+      trade: "HVAC",
+      insurance_expiry: "2025-11-30",
+      license_number: "HVAC-7890",
+      status: "Active",
+      address: "567 Climate Control Dr, Anytown, USA",
+      rating: 4.6,
+      notes: "Specializes in energy-efficient systems",
+      created_at: "2025-01-10T13:20:00Z",
+      updated_at: "2025-02-05T10:15:00Z",
+      active_work_orders: 1,
+      completed_work_orders: 1,
+      total_paid: 39150,
+    },
+    {
+      subcontractor_id: 5,
+      company_name: "Green Landscape Design",
+      contact_name: "Sarah Williams",
+      email: "sarah@greenlandscape.com",
+      phone: "555-234-5678",
+      trade: "Landscaping",
+      insurance_expiry: "2025-09-15",
+      license_number: "LS-4567",
+      status: "Active",
+      address: "890 Garden Path, Anytown, USA",
+      rating: 4.9,
+      notes: "Sustainable landscaping practices",
+      created_at: "2025-01-15T11:45:00Z",
+      updated_at: "2025-02-10T09:30:00Z",
+      active_work_orders: 0,
+      completed_work_orders: 1,
+      total_paid: 17500,
+    },
+    {
+      subcontractor_id: 6,
+      company_name: "Precision Drywall Inc.",
+      contact_name: "David Martinez",
+      email: "david@precisiondrywall.com",
+      phone: "555-345-6789",
+      trade: "Drywall",
+      insurance_expiry: "2025-07-10",
+      license_number: "DW-2345",
+      status: "Inactive",
+      address: "432 Wall Street, Anytown, USA",
+      rating: 3.8,
+      notes: "Currently inactive due to quality concerns",
+      created_at: "2025-01-20T14:30:00Z",
+      updated_at: "2025-02-15T15:45:00Z",
+      active_work_orders: 0,
+      completed_work_orders: 1,
+      total_paid: 12500,
+    },
+    {
+      subcontractor_id: 7,
+      company_name: "Sunrise Painting",
+      contact_name: "Lisa Thompson",
+      email: "lisa@sunrisepainting.com",
+      phone: "555-456-7890",
+      trade: "Painting",
+      insurance_expiry: "2025-06-30",
+      license_number: "PT-3456",
+      status: "Active",
+      address: "765 Color Ave, Anytown, USA",
+      rating: 4.4,
+      notes: "Excellent for interior finishes",
+      created_at: "2025-01-25T10:15:00Z",
+      updated_at: "2025-02-20T13:20:00Z",
+      active_work_orders: 0,
+      completed_work_orders: 0,
+      total_paid: 0,
+    },
+  ],
+};
+
 // Add a request interceptor to include the JWT token
 apiClient.interceptors.request.use(
   (config) => {
@@ -323,202 +769,9 @@ export interface ProjectData {
 
 export const getProjects = async () => {
   if (USE_MOCK_DATA) {
-    // Return mock project data
-    return [
-      {
-        project_id: 1,
-        project_name: "Smith Residence Renovation",
-        location: "123 Main St, Anytown, USA",
-        client_name: "John Smith",
-        start_date: "2025-01-15",
-        end_date: "2025-06-30",
-        budget: 350000,
-        status: "In Progress",
-        description:
-          "Complete renovation of a 3,500 sq ft residential property including kitchen, bathrooms, and exterior work.",
-        progress_percentage: 45,
-        priority: "Medium",
-        category: "Residential",
-        manager_id: 1,
-        manager_name: "Sarah Johnson",
-        team_members: [
-          { id: 2, name: "Mike Wilson", role: "Site Supervisor" },
-          { id: 3, name: "Lisa Chen", role: "Interior Designer" },
-        ],
-        actual_cost: 158000,
-        estimated_hours: 1200,
-        actual_hours: 540,
-        created_at: "2024-12-20T08:30:00Z",
-        updated_at: "2025-02-15T14:45:00Z",
-        tags: ["renovation", "residential", "high-end"],
-        risk_level: "Low",
-        // Accounting-related fields
-        budget_utilization: 45.1,
-        total_invoiced: 175000,
-        total_paid: 158000,
-        outstanding_balance: 17000,
-        retainage_held: 8750,
-        payment_terms: "Net 30",
-        contract_number: "CONT-2025-001",
-        contract_type: "Fixed Price",
-        change_orders_count: 2,
-        change_orders_value: 15000,
-      },
-      {
-        project_id: 2,
-        project_name: "Downtown Office Building",
-        location: "456 Commerce Ave, Anytown, USA",
-        client_name: "ABC Corporation",
-        start_date: "2025-02-01",
-        end_date: "2026-03-15",
-        budget: 1500000,
-        status: "In Progress",
-        description:
-          "Construction of a new 5-story office building with underground parking and LEED certification requirements.",
-        progress_percentage: 25,
-        priority: "High",
-        category: "Commercial",
-        manager_id: 4,
-        manager_name: "Robert Taylor",
-        team_members: [
-          { id: 5, name: "James Rodriguez", role: "Project Engineer" },
-          { id: 6, name: "Emily Parker", role: "Sustainability Consultant" },
-          { id: 7, name: "David Kim", role: "Structural Engineer" },
-        ],
-        actual_cost: 375000,
-        estimated_hours: 8500,
-        actual_hours: 2125,
-        created_at: "2025-01-10T10:15:00Z",
-        updated_at: "2025-02-20T16:30:00Z",
-        tags: ["commercial", "new-construction", "LEED"],
-        risk_level: "Medium",
-        // Accounting-related fields
-        budget_utilization: 25.0,
-        total_invoiced: 400000,
-        total_paid: 375000,
-        outstanding_balance: 25000,
-        retainage_held: 20000,
-        payment_terms: "Net 45",
-        contract_number: "CONT-2025-002",
-        contract_type: "Cost Plus",
-        change_orders_count: 1,
-        change_orders_value: 75000,
-      },
-      {
-        project_id: 3,
-        project_name: "City Park Pavilion",
-        location: "789 Park Rd, Anytown, USA",
-        client_name: "Anytown Municipality",
-        start_date: "2025-03-10",
-        end_date: "2025-08-30",
-        budget: 250000,
-        status: "In Progress",
-        description:
-          "Construction of an outdoor pavilion with restrooms, picnic areas, and landscaping for the city's central park.",
-        progress_percentage: 15,
-        priority: "Medium",
-        category: "Municipal",
-        manager_id: 8,
-        manager_name: "Jessica Adams",
-        team_members: [
-          { id: 9, name: "Thomas Wright", role: "Landscape Architect" },
-          { id: 10, name: "Sophia Martinez", role: "Civil Engineer" },
-        ],
-        actual_cost: 37500,
-        estimated_hours: 950,
-        actual_hours: 142,
-        created_at: "2025-02-15T09:00:00Z",
-        updated_at: "2025-03-12T11:20:00Z",
-        tags: ["municipal", "outdoor", "public-space"],
-        risk_level: "Low",
-        // Accounting-related fields
-        budget_utilization: 15.0,
-        total_invoiced: 40000,
-        total_paid: 37500,
-        outstanding_balance: 2500,
-        retainage_held: 2000,
-        payment_terms: "Net 30",
-        contract_number: "CONT-2025-003",
-        contract_type: "Fixed Price",
-        change_orders_count: 0,
-        change_orders_value: 0,
-      },
-      {
-        project_id: 4,
-        project_name: "Riverside Apartments",
-        location: "321 River View Dr, Anytown, USA",
-        client_name: "Riverfront Development LLC",
-        start_date: "2025-01-05",
-        end_date: "2026-05-20",
-        budget: 4200000,
-        status: "Planning",
-        description:
-          "Development of a 48-unit luxury apartment complex with riverside views, including amenities and parking structure.",
-        progress_percentage: 5,
-        priority: "High",
-        category: "Residential",
-        manager_id: 11,
-        manager_name: "Daniel Brown",
-        team_members: [
-          { id: 12, name: "Olivia Wilson", role: "Architect" },
-          { id: 13, name: "Nathan Lee", role: "MEP Engineer" },
-        ],
-        actual_cost: 210000,
-        estimated_hours: 15000,
-        actual_hours: 750,
-        created_at: "2024-11-30T14:00:00Z",
-        updated_at: "2025-01-10T09:45:00Z",
-        tags: ["residential", "multi-family", "luxury"],
-        risk_level: "Medium",
-        // Accounting-related fields
-        budget_utilization: 5.0,
-        total_invoiced: 210000,
-        total_paid: 210000,
-        outstanding_balance: 0,
-        retainage_held: 0,
-        payment_terms: "Net 30",
-        contract_number: "CONT-2025-004",
-        contract_type: "Cost Plus",
-        change_orders_count: 0,
-        change_orders_value: 0,
-      },
-      {
-        project_id: 5,
-        project_name: "Highway 7 Bridge Repair",
-        location: "Highway 7, Anytown County",
-        client_name: "State Transportation Department",
-        start_date: "2025-04-15",
-        end_date: "2025-07-30",
-        budget: 850000,
-        status: "Pending",
-        description:
-          "Structural repairs and resurfacing of the Highway 7 bridge spanning the Anytown River.",
-        progress_percentage: 0,
-        priority: "Critical",
-        category: "Infrastructure",
-        manager_id: 14,
-        manager_name: "Christopher Johnson",
-        team_members: [],
-        actual_cost: 0,
-        estimated_hours: 2800,
-        actual_hours: 0,
-        created_at: "2025-02-28T11:30:00Z",
-        updated_at: "2025-02-28T11:30:00Z",
-        tags: ["infrastructure", "bridge", "public", "repair"],
-        risk_level: "High",
-        // Accounting-related fields
-        budget_utilization: 0.0,
-        total_invoiced: 0,
-        total_paid: 0,
-        outstanding_balance: 0,
-        retainage_held: 0,
-        payment_terms: "Net 60",
-        contract_number: "CONT-2025-005",
-        contract_type: "Unit Price",
-        change_orders_count: 0,
-        change_orders_value: 0,
-      },
-    ];
+    // Return projects from our mock database
+    console.log("Fetching projects from mock DB:", mockDB.projects.length);
+    return [...mockDB.projects]; // Return a copy to prevent direct modification
   }
 
   // If not using mock data, make the actual API call
@@ -527,11 +780,85 @@ export const getProjects = async () => {
 };
 
 export const getProjectById = async (projectId: number) => {
+  if (USE_MOCK_DATA) {
+    console.log(`Fetching project with ID ${projectId}`);
+
+    // Find the project in our mock database
+    const project = mockDB.projects.find((p) => p.project_id === projectId);
+
+    if (!project) {
+      console.error(`Project with ID ${projectId} not found`);
+      return Promise.reject({
+        response: {
+          status: 404,
+          data: { message: "Project not found" },
+        },
+      });
+    }
+
+    // Simulate a delay for the API call
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    return { ...project }; // Return a copy to prevent direct modification
+  }
+
+  // If not using mock data, make the actual API call
   const response = await apiClient.get(`/api/projects/${projectId}`);
   return response.data;
 };
 
 export const createProject = async (projectData: ProjectData) => {
+  if (USE_MOCK_DATA) {
+    // Simulate API call with mock data
+    console.log("Creating project with mock data:", projectData);
+
+    // Validate required fields
+    if (!projectData.project_name) {
+      console.error("Missing required field: project_name");
+      return Promise.reject({
+        response: {
+          status: 400,
+          data: { message: "Project name is required" },
+        },
+      });
+    }
+
+    // Find the highest project_id to ensure uniqueness
+    const maxId = mockDB.projects.reduce(
+      (max, project) => Math.max(max, project.project_id || 0),
+      0
+    );
+
+    // Create a new project with mock data
+    const newProject = {
+      ...projectData,
+      project_id: maxId + 1, // Ensure unique ID
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      // Set default values for any missing fields
+      status: projectData.status || "Planning",
+      progress_percentage: 0,
+      actual_cost: 0,
+      budget_utilization: 0,
+      total_invoiced: 0,
+      total_paid: 0,
+      outstanding_balance: 0,
+      retainage_held: 0,
+    };
+
+    // Add the new project to our mock database
+    mockDB.projects.push(newProject);
+
+    console.log("Project created successfully:", newProject);
+    console.log("Updated mock DB projects count:", mockDB.projects.length);
+
+    // Simulate a delay for the API call
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    return newProject;
+  }
+
+  // If not using mock data, make the actual API call
   const response = await apiClient.post("/api/projects", projectData);
   return response.data;
 };
@@ -540,6 +867,43 @@ export const updateProject = async (
   projectId: number,
   projectData: ProjectData
 ) => {
+  if (USE_MOCK_DATA) {
+    console.log(`Updating project ${projectId} with data:`, projectData);
+
+    // Find the project in our mock database
+    const projectIndex = mockDB.projects.findIndex(
+      (p) => p.project_id === projectId
+    );
+
+    if (projectIndex === -1) {
+      console.error(`Project with ID ${projectId} not found`);
+      return Promise.reject({
+        response: {
+          status: 404,
+          data: { message: "Project not found" },
+        },
+      });
+    }
+
+    // Update the project
+    const updatedProject = {
+      ...mockDB.projects[projectIndex],
+      ...projectData,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Replace the old project with the updated one
+    mockDB.projects[projectIndex] = updatedProject;
+
+    console.log("Project updated successfully:", updatedProject);
+
+    // Simulate a delay for the API call
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    return updatedProject;
+  }
+
+  // If not using mock data, make the actual API call
   const response = await apiClient.put(
     `/api/projects/${projectId}`,
     projectData
@@ -548,6 +912,37 @@ export const updateProject = async (
 };
 
 export const deleteProject = async (projectId: number) => {
+  if (USE_MOCK_DATA) {
+    console.log(`Deleting project ${projectId}`);
+
+    // Find the project in our mock database
+    const projectIndex = mockDB.projects.findIndex(
+      (p) => p.project_id === projectId
+    );
+
+    if (projectIndex === -1) {
+      console.error(`Project with ID ${projectId} not found`);
+      return Promise.reject({
+        response: {
+          status: 404,
+          data: { message: "Project not found" },
+        },
+      });
+    }
+
+    // Remove the project from our mock database
+    const deletedProject = mockDB.projects.splice(projectIndex, 1)[0];
+
+    console.log("Project deleted successfully:", deletedProject);
+    console.log("Updated mock DB projects count:", mockDB.projects.length);
+
+    // Simulate a delay for the API call
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    return { success: true, message: "Project deleted successfully" };
+  }
+
+  // If not using mock data, make the actual API call
   const response = await apiClient.delete(`/api/projects/${projectId}`);
   return response.data; // Or just status
 };
@@ -756,116 +1151,17 @@ export interface WorkOrderData {
 
 export const getWorkOrders = async (projectId?: number) => {
   if (USE_MOCK_DATA) {
-    // Return mock work order data
-    const mockWorkOrders = [
-      {
-        work_order_id: 1,
-        project_id: 1,
-        description: "Foundation Work",
-        status: "In Progress",
-        scheduled_date: "2025-02-15",
-        completion_date: "2025-02-28",
-        estimated_cost: 45000,
-        actual_cost: 47500,
-        assigned_subcontractor_id: 1,
-        amount_billed: 47500,
-        amount_paid: 42750,
-        retainage_percentage: 10,
-        payment_status: "Partially Paid",
-        invoice_number: "INV-2025-001",
-        invoice_date: "2025-03-01",
-        payment_date: "2025-03-15",
-        payment_method: "Wire Transfer",
-        payment_reference: "WT-12345",
-      },
-      {
-        work_order_id: 2,
-        project_id: 1,
-        description: "Framing",
-        status: "Completed",
-        scheduled_date: "2025-03-01",
-        completion_date: "2025-03-20",
-        estimated_cost: 35000,
-        actual_cost: 34200,
-        assigned_subcontractor_id: 2,
-        amount_billed: 34200,
-        amount_paid: 34200,
-        retainage_percentage: 5,
-        payment_status: "Paid",
-        invoice_number: "INV-2025-002",
-        invoice_date: "2025-03-25",
-        payment_date: "2025-04-10",
-        payment_method: "Check",
-        payment_reference: "CHK-6789",
-      },
-      {
-        work_order_id: 3,
-        project_id: 2,
-        description: "Electrical Installation",
-        status: "In Progress",
-        scheduled_date: "2025-04-10",
-        completion_date: null,
-        estimated_cost: 28000,
-        actual_cost: 15000,
-        assigned_subcontractor_id: 3,
-        amount_billed: 15000,
-        amount_paid: 0,
-        retainage_percentage: 10,
-        payment_status: "Unpaid",
-        invoice_number: "INV-2025-003",
-        invoice_date: "2025-04-15",
-        payment_date: null,
-        payment_method: null,
-        payment_reference: null,
-      },
-      {
-        work_order_id: 4,
-        project_id: 2,
-        description: "HVAC Installation",
-        status: "Completed",
-        scheduled_date: "2025-03-15",
-        completion_date: "2025-04-05",
-        estimated_cost: 42000,
-        actual_cost: 43500,
-        assigned_subcontractor_id: 4,
-        amount_billed: 43500,
-        amount_paid: 39150,
-        retainage_percentage: 10,
-        payment_status: "Partially Paid",
-        invoice_number: "INV-2025-004",
-        invoice_date: "2025-04-10",
-        payment_date: "2025-04-25",
-        payment_method: "ACH",
-        payment_reference: "ACH-5432",
-      },
-      {
-        work_order_id: 5,
-        project_id: 3,
-        description: "Site Preparation",
-        status: "Completed",
-        scheduled_date: "2025-03-10",
-        completion_date: "2025-03-25",
-        estimated_cost: 18000,
-        actual_cost: 17500,
-        assigned_subcontractor_id: 5,
-        amount_billed: 17500,
-        amount_paid: 17500,
-        retainage_percentage: 0,
-        payment_status: "Paid",
-        invoice_number: "INV-2025-005",
-        invoice_date: "2025-03-30",
-        payment_date: "2025-04-15",
-        payment_method: "Wire Transfer",
-        payment_reference: "WT-7890",
-      },
-    ];
+    console.log("Fetching work orders from mock DB:", mockDB.workOrders.length);
+
+    // Return a copy of the work orders from our mock database
+    const workOrders = [...mockDB.workOrders];
 
     // Filter by project ID if provided
     if (projectId) {
-      return mockWorkOrders.filter((wo) => wo.project_id === projectId);
+      return workOrders.filter((wo) => wo.project_id === projectId);
     }
 
-    return mockWorkOrders;
+    return workOrders;
   }
 
   try {
@@ -880,11 +1176,100 @@ export const getWorkOrders = async (projectId?: number) => {
 };
 
 export const getWorkOrderById = async (workOrderId: number) => {
+  if (USE_MOCK_DATA) {
+    console.log(`Fetching work order with ID ${workOrderId}`);
+
+    // Find the work order in our mock database
+    const workOrder = mockDB.workOrders.find(
+      (wo) => wo.work_order_id === workOrderId
+    );
+
+    if (!workOrder) {
+      console.error(`Work order with ID ${workOrderId} not found`);
+      return Promise.reject({
+        response: {
+          status: 404,
+          data: { message: "Work order not found" },
+        },
+      });
+    }
+
+    // Simulate a delay for the API call
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    return { ...workOrder }; // Return a copy to prevent direct modification
+  }
+
+  // If not using mock data, make the actual API call
   const response = await apiClient.get(`/api/workorders/${workOrderId}`);
   return response.data; // Includes line items based on backend controller
 };
 
 export const createWorkOrder = async (workOrderData: WorkOrderData) => {
+  if (USE_MOCK_DATA) {
+    console.log("Creating work order with mock data:", workOrderData);
+
+    // Validate required fields
+    if (!workOrderData.project_id || !workOrderData.description) {
+      console.error(
+        "Missing required fields: project_id and description are required"
+      );
+      return Promise.reject({
+        response: {
+          status: 400,
+          data: { message: "Project ID and description are required" },
+        },
+      });
+    }
+
+    // Validate that the project exists
+    const projectExists = mockDB.projects.some(
+      (p) => p.project_id === workOrderData.project_id
+    );
+    if (!projectExists) {
+      console.error(`Project with ID ${workOrderData.project_id} not found`);
+      return Promise.reject({
+        response: {
+          status: 404,
+          data: { message: "Project not found" },
+        },
+      });
+    }
+
+    // Find the highest work_order_id to ensure uniqueness
+    const maxId = mockDB.workOrders.reduce(
+      (max, wo) => Math.max(max, wo.work_order_id || 0),
+      0
+    );
+
+    // Create a new work order with mock data
+    const newWorkOrder = {
+      ...workOrderData,
+      work_order_id: maxId + 1, // Ensure unique ID
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      // Set default values for any missing fields
+      status: workOrderData.status || "Pending",
+      actual_cost: 0,
+      amount_billed: 0,
+      amount_paid: 0,
+      payment_status: "Not Billed",
+      retainage_percentage: workOrderData.retainage_percentage || 0,
+    };
+
+    // Add the new work order to our mock database
+    mockDB.workOrders.push(newWorkOrder);
+
+    console.log("Work order created successfully:", newWorkOrder);
+    console.log("Updated mock DB work orders count:", mockDB.workOrders.length);
+
+    // Simulate a delay for the API call
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    return newWorkOrder;
+  }
+
+  // If not using mock data, make the actual API call
   const response = await apiClient.post("/api/workorders", workOrderData);
   return response.data;
 };
@@ -893,6 +1278,43 @@ export const updateWorkOrder = async (
   workOrderId: number,
   workOrderData: Partial<WorkOrderData>
 ) => {
+  if (USE_MOCK_DATA) {
+    console.log(`Updating work order ${workOrderId} with data:`, workOrderData);
+
+    // Find the work order in our mock database
+    const workOrderIndex = mockDB.workOrders.findIndex(
+      (wo) => wo.work_order_id === workOrderId
+    );
+
+    if (workOrderIndex === -1) {
+      console.error(`Work order with ID ${workOrderId} not found`);
+      return Promise.reject({
+        response: {
+          status: 404,
+          data: { message: "Work order not found" },
+        },
+      });
+    }
+
+    // Update the work order
+    const updatedWorkOrder = {
+      ...mockDB.workOrders[workOrderIndex],
+      ...workOrderData,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Replace the old work order with the updated one
+    mockDB.workOrders[workOrderIndex] = updatedWorkOrder;
+
+    console.log("Work order updated successfully:", updatedWorkOrder);
+
+    // Simulate a delay for the API call
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    return updatedWorkOrder;
+  }
+
+  // If not using mock data, make the actual API call
   const response = await apiClient.put(
     `/api/workorders/${workOrderId}`,
     workOrderData
@@ -901,6 +1323,37 @@ export const updateWorkOrder = async (
 };
 
 export const deleteWorkOrder = async (workOrderId: number) => {
+  if (USE_MOCK_DATA) {
+    console.log(`Deleting work order ${workOrderId}`);
+
+    // Find the work order in our mock database
+    const workOrderIndex = mockDB.workOrders.findIndex(
+      (wo) => wo.work_order_id === workOrderId
+    );
+
+    if (workOrderIndex === -1) {
+      console.error(`Work order with ID ${workOrderId} not found`);
+      return Promise.reject({
+        response: {
+          status: 404,
+          data: { message: "Work order not found" },
+        },
+      });
+    }
+
+    // Remove the work order from our mock database
+    const deletedWorkOrder = mockDB.workOrders.splice(workOrderIndex, 1)[0];
+
+    console.log("Work order deleted successfully:", deletedWorkOrder);
+    console.log("Updated mock DB work orders count:", mockDB.workOrders.length);
+
+    // Simulate a delay for the API call
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    return { success: true, message: "Work order deleted successfully" };
+  }
+
+  // If not using mock data, make the actual API call
   const response = await apiClient.delete(`/api/workorders/${workOrderId}`);
   return response.data; // Or just status
 };
@@ -949,47 +1402,26 @@ export interface SubcontractorData {
   insurance_expiry?: string | null;
   license_number?: string;
   status?: string; // e.g., Active, Inactive, Pending Approval
+  address?: string;
+  rating?: number;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+  active_work_orders?: number;
+  completed_work_orders?: number;
+  total_paid?: number;
 }
 
 // Using apiClient as a placeholder - adjust if a different service handles subcontractors
 export const getSubcontractors = async () => {
   if (USE_MOCK_DATA) {
-    // Return mock subcontractor data
-    return [
-      {
-        subcontractor_id: 1,
-        company_name: "Elite Electrical Services",
-        contact_name: "John Doe",
-        email: "john@eliteelectrical.com",
-        phone: "555-123-4567",
-        trade: "Electrical",
-        insurance_expiry: "2025-12-31",
-        license_number: "EL-12345",
-        status: "Active",
-      },
-      {
-        subcontractor_id: 2,
-        company_name: "Premier Plumbing Co.",
-        contact_name: "Jane Smith",
-        email: "jane@premierplumbing.com",
-        phone: "555-987-6543",
-        trade: "Plumbing",
-        insurance_expiry: "2025-10-15",
-        license_number: "PL-54321",
-        status: "Active",
-      },
-      {
-        subcontractor_id: 3,
-        company_name: "Concrete Masters",
-        contact_name: "Mike Johnson",
-        email: "mike@concretemaster.com",
-        phone: "555-456-7890",
-        trade: "Concrete",
-        insurance_expiry: "2025-08-22",
-        license_number: "CM-98765",
-        status: "Active",
-      },
-    ];
+    console.log(
+      "Fetching subcontractors from mock DB:",
+      mockDB.subcontractors.length
+    );
+
+    // Return a copy of the subcontractors from our mock database
+    return [...mockDB.subcontractors];
   }
 
   try {
@@ -1003,19 +1435,90 @@ export const getSubcontractors = async () => {
 };
 
 export const getSubcontractorById = async (subcontractorId: number) => {
+  if (USE_MOCK_DATA) {
+    console.log(`Fetching subcontractor with ID ${subcontractorId}`);
+
+    // Find the subcontractor in our mock database
+    const subcontractor = mockDB.subcontractors.find(
+      (sub) => sub.subcontractor_id === subcontractorId
+    );
+
+    if (!subcontractor) {
+      console.error(`Subcontractor with ID ${subcontractorId} not found`);
+      return Promise.reject({
+        response: {
+          status: 404,
+          data: { message: "Subcontractor not found" },
+        },
+      });
+    }
+
+    // Simulate a delay for the API call
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    return { ...subcontractor }; // Return a copy to prevent direct modification
+  }
+
+  // If not using mock data, make the actual API call
   const response = await apiClient.get(
     `/api/subcontractors/${subcontractorId}`
-  ); // Adjust endpoint
+  );
   return response.data;
 };
 
 export const createSubcontractor = async (
   subcontractorData: SubcontractorData
 ) => {
+  if (USE_MOCK_DATA) {
+    console.log("Creating subcontractor with mock data:", subcontractorData);
+
+    // Validate required fields
+    if (!subcontractorData.company_name) {
+      console.error("Missing required field: company_name");
+      return Promise.reject({
+        response: {
+          status: 400,
+          data: { message: "Company name is required" },
+        },
+      });
+    }
+
+    // Find the highest subcontractor_id to ensure uniqueness
+    const maxId = mockDB.subcontractors.reduce(
+      (max, sub) => Math.max(max, sub.subcontractor_id || 0),
+      0
+    );
+
+    // Create a new subcontractor with mock data
+    const newSubcontractor = {
+      ...subcontractorData,
+      subcontractor_id: maxId + 1, // Ensure unique ID
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      // Set default values for any missing fields
+      status: subcontractorData.status || "Active",
+    };
+
+    // Add the new subcontractor to our mock database
+    mockDB.subcontractors.push(newSubcontractor);
+
+    console.log("Subcontractor created successfully:", newSubcontractor);
+    console.log(
+      "Updated mock DB subcontractors count:",
+      mockDB.subcontractors.length
+    );
+
+    // Simulate a delay for the API call
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    return newSubcontractor;
+  }
+
+  // If not using mock data, make the actual API call
   const response = await apiClient.post(
     "/api/subcontractors",
     subcontractorData
-  ); // Adjust endpoint
+  );
   return response.data;
 };
 
@@ -1023,17 +1526,114 @@ export const updateSubcontractor = async (
   subcontractorId: number,
   subcontractorData: Partial<SubcontractorData>
 ) => {
+  if (USE_MOCK_DATA) {
+    console.log(
+      `Updating subcontractor ${subcontractorId} with data:`,
+      subcontractorData
+    );
+
+    // Find the subcontractor in our mock database
+    const subcontractorIndex = mockDB.subcontractors.findIndex(
+      (sub) => sub.subcontractor_id === subcontractorId
+    );
+
+    if (subcontractorIndex === -1) {
+      console.error(`Subcontractor with ID ${subcontractorId} not found`);
+      return Promise.reject({
+        response: {
+          status: 404,
+          data: { message: "Subcontractor not found" },
+        },
+      });
+    }
+
+    // Update the subcontractor
+    const updatedSubcontractor = {
+      ...mockDB.subcontractors[subcontractorIndex],
+      ...subcontractorData,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Replace the old subcontractor with the updated one
+    mockDB.subcontractors[subcontractorIndex] = updatedSubcontractor;
+
+    console.log("Subcontractor updated successfully:", updatedSubcontractor);
+
+    // Simulate a delay for the API call
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    return updatedSubcontractor;
+  }
+
+  // If not using mock data, make the actual API call
   const response = await apiClient.put(
     `/api/subcontractors/${subcontractorId}`,
     subcontractorData
-  ); // Adjust endpoint
+  );
   return response.data;
 };
 
 export const deleteSubcontractor = async (subcontractorId: number) => {
+  if (USE_MOCK_DATA) {
+    console.log(`Deleting subcontractor ${subcontractorId}`);
+
+    // Find the subcontractor in our mock database
+    const subcontractorIndex = mockDB.subcontractors.findIndex(
+      (sub) => sub.subcontractor_id === subcontractorId
+    );
+
+    if (subcontractorIndex === -1) {
+      console.error(`Subcontractor with ID ${subcontractorId} not found`);
+      return Promise.reject({
+        response: {
+          status: 404,
+          data: { message: "Subcontractor not found" },
+        },
+      });
+    }
+
+    // Check if the subcontractor is used in any work orders
+    const isUsed = mockDB.workOrders.some(
+      (wo) => wo.assigned_subcontractor_id === subcontractorId
+    );
+
+    if (isUsed) {
+      console.error(
+        `Subcontractor with ID ${subcontractorId} is used in work orders and cannot be deleted`
+      );
+      return Promise.reject({
+        response: {
+          status: 400,
+          data: {
+            message:
+              "Cannot delete subcontractor that is assigned to work orders",
+          },
+        },
+      });
+    }
+
+    // Remove the subcontractor from our mock database
+    const deletedSubcontractor = mockDB.subcontractors.splice(
+      subcontractorIndex,
+      1
+    )[0];
+
+    console.log("Subcontractor deleted successfully:", deletedSubcontractor);
+    console.log(
+      "Updated mock DB subcontractors count:",
+      mockDB.subcontractors.length
+    );
+
+    // Simulate a delay for the API call
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    return { success: true, message: "Subcontractor deleted successfully" };
+  }
+
+  // If not using mock data, make the actual API call
   const response = await apiClient.delete(
     `/api/subcontractors/${subcontractorId}`
-  ); // Adjust endpoint
+  );
   return response.data; // Or just status
 };
 
@@ -1215,6 +1815,27 @@ export const getUsers = async () => {
   }
 };
 
+// Function to get a user's password - FOR ADMIN USE ONLY
+// In a real application, this would not exist as passwords should be hashed and not retrievable
+export const getUserPassword = async (
+  userId: number
+): Promise<string | null> => {
+  if (USE_MOCK_DATA) {
+    // Find the user in the mock database
+    const user = mockUsers.find((u) => u.user_id === userId);
+    if (user && user.password) {
+      return user.password;
+    }
+    return null;
+  }
+
+  // In a real application, this would return an error as passwords should be hashed
+  console.warn(
+    "Attempted to retrieve a password in non-mock mode. This operation is not supported in production."
+  );
+  return null;
+};
+
 export const createUser = async (
   userData: Omit<UserData, "user_id" | "created_at"> & { password?: string }
 ) => {
@@ -1286,12 +1907,38 @@ export const updateUser = async (
   userData: Partial<Omit<UserData, "user_id" | "created_at">>
 ) => {
   if (USE_MOCK_DATA) {
-    // Simulate updating a user with mock data
-    return {
-      user_id: userId,
+    console.log(`Updating user ${userId} with data:`, userData);
+
+    // Find the user in our mock database
+    const userIndex = mockUsers.findIndex((u) => u.user_id === userId);
+
+    if (userIndex === -1) {
+      console.error(`User with ID ${userId} not found`);
+      return Promise.reject({
+        response: {
+          status: 404,
+          data: { message: "User not found" },
+        },
+      });
+    }
+
+    // Update the user
+    const updatedUser = {
+      ...mockUsers[userIndex],
       ...userData,
-      created_at: "2025-01-01T00:00:00Z", // Keep original creation date
     };
+
+    // Replace the old user with the updated one
+    mockUsers[userIndex] = updatedUser;
+
+    console.log("User updated successfully:", updatedUser);
+
+    // Simulate a delay for the API call
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Return user data without password
+    const { password, ...userWithoutPassword } = updatedUser;
+    return userWithoutPassword;
   }
 
   try {

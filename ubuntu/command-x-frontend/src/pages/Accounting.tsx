@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -39,6 +40,9 @@ import {
 import { getProjects, getWorkOrders, getSubcontractors } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import WorkOrderStatusTable from "@/components/accounting/WorkOrderStatusTable";
+import PaymentStatusTable from "@/components/accounting/PaymentStatusTable";
+import { workOrderData } from "@/components/accounting/WorkOrderStatusTable";
 
 import {
   Card,
@@ -49,11 +53,37 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { DateRange } from "react-day-picker";
+
+// View configuration interface
+interface ViewConfig {
+  id: string;
+  name: string;
+  filters: {
+    searchTerm: string;
+    projectFilter: string;
+    statusFilter: string;
+    dateRange: DateRange | undefined;
+  };
+  sortConfig: {
+    field: string;
+    direction: "asc" | "desc";
+  };
+}
 
 const Accounting: React.FC = () => {
   const { toast } = useToast();
@@ -69,10 +99,24 @@ const Accounting: React.FC = () => {
   const [isGeneratingStatements, setIsGeneratingStatements] = useState(false);
   const [isPreparingTaxDocs, setIsPreparingTaxDocs] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isSavingView, setIsSavingView] = useState(false);
 
   // State to track if financial statements have been generated
   const [showGeneratedStatements, setShowGeneratedStatements] = useState(false);
   const [generatedDate, setGeneratedDate] = useState<string>("");
+
+  // State for saved views
+  const [savedViews, setSavedViews] = useState<ViewConfig[]>([]);
+  const [isSaveViewDialogOpen, setIsSaveViewDialogOpen] = useState(false);
+  const [newViewName, setNewViewName] = useState("");
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // State for work order management
+  const [selectedWorkOrders, setSelectedWorkOrders] = useState<string[]>([]);
+
+  // State for invoice viewing
+  const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<any | null>(null);
 
   // Fetch projects data
   const { isLoading: projectsLoading, error: projectsError } = useQuery({
@@ -369,6 +413,163 @@ const Accounting: React.FC = () => {
     window.location.reload();
   };
 
+  // Save current view
+  const handleSaveView = () => {
+    setIsSaveViewDialogOpen(true);
+  };
+
+  const saveCurrentView = () => {
+    if (!newViewName.trim()) return;
+
+    setIsSavingView(true);
+
+    // Create new view configuration
+    const newView: ViewConfig = {
+      id: Date.now().toString(),
+      name: newViewName,
+      filters: {
+        searchTerm,
+        projectFilter,
+        statusFilter,
+        dateRange,
+      },
+      sortConfig: {
+        field: sortField,
+        direction: sortDirection,
+      },
+    };
+
+    // Simulate API call to save the view
+    setTimeout(() => {
+      setSavedViews([...savedViews, newView]);
+      setIsSavingView(false);
+      setIsSaveViewDialogOpen(false);
+      setNewViewName("");
+      setHasUnsavedChanges(false);
+
+      toast({
+        title: "View saved",
+        description: `Your view "${newViewName}" has been saved successfully.`,
+        variant: "default",
+      });
+    }, 1000);
+  };
+
+  // Load a saved view
+  const handleLoadView = (view: ViewConfig) => {
+    setSearchTerm(view.filters.searchTerm);
+    setProjectFilter(view.filters.projectFilter);
+    setStatusFilter(view.filters.statusFilter);
+    setDateRange(view.filters.dateRange);
+    setSortField(view.sortConfig.field);
+    setSortDirection(view.sortConfig.direction);
+
+    toast({
+      title: "View loaded",
+      description: `View "${view.name}" has been loaded successfully.`,
+      variant: "default",
+    });
+  };
+
+  // Work Order Status Management Handlers
+  const handleUpdateStatus = () => {
+    // Show the status update modal
+    setShowStatusUpdateModal(true);
+    // Default to selecting all work orders
+    setSelectedWorkOrders(workOrderData.map((wo) => wo.id));
+  };
+
+  const handleStatusUpdateConfirm = () => {
+    setIsUpdatingStatus(true);
+
+    // Show initial toast
+    toast({
+      title: "Updating work order status",
+      description: "Processing your request...",
+    });
+
+    // Simulate API call with timeout
+    setTimeout(() => {
+      // Update would happen here in a real implementation
+
+      // Show success toast
+      toast({
+        title: "Status updated successfully",
+        description: `${selectedWorkOrders.length} work orders updated to "${selectedStatus}"`,
+        variant: "default",
+      });
+
+      setIsUpdatingStatus(false);
+      setShowStatusUpdateModal(false);
+    }, 1500);
+  };
+
+  const handleGenerateReport = () => {
+    setShowReportModal(true);
+  };
+
+  const handleReportGeneration = () => {
+    setIsGeneratingWorkOrderReport(true);
+
+    // Show initial toast
+    toast({
+      title: "Generating work order report",
+      description: "Processing your request...",
+    });
+
+    // Simulate API call with timeout
+    setTimeout(() => {
+      toast({
+        title: "Report generated successfully",
+        description: "Your work order report is ready to download",
+        action: (
+          <ToastAction
+            altText="Download"
+            onClick={() => {
+              // Simulate file download
+              const link = document.createElement("a");
+              link.href =
+                "data:application/pdf;base64,JVBERi0xLjcKJeLjz9MKNSAwIG9iago8PAovRmlsdGVyIC9GbGF0ZURlY29kZQovTGVuZ3RoIDM4Cj4+CnN0cmVhbQp4nCvkMlAwUDC1NNUzMVGwMDHUszRSKErMKwktStVLLCjISQUAXX8HCWVUC3RzdHJ1Y3R1cmUgdHJlZQo1IDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovS2lkcyBbNiAwIFJdCi9Db3VudCAxCj4+CmVuZG9iago2IDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCi9SZXNvdXJjZXMgPDwKL0ZvbnQgPDwKL0YxIDcgMCBSCj4+Cj4+Ci9Db250ZW50cyA4IDAgUgovUGFyZW50IDUgMCBSCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9GaWx0ZXIgL0ZsYXRlRGVjb2RlCi9MZW5ndGggMTI5Cj4+CnN0cmVhbQp4nDPQM1QwUDAzNVEwMDRRMAdiCwVDCwUjPQMzE4WiRCCXK5zzUCGXS8FYz8xEwdxAz9JIwdLI0FDBxNTM0kjBzMzC0NTSQMHMwMjA0MhIwcDcwMDY0sJYwdDC0NjC0AQAKXgTnAplbmRzdHJlYW0KZW5kb2JqCjcgMCBvYmoKPDwKL1R5cGUgL0ZvbnQKL1N1YnR5cGUgL1R5cGUxCi9CYXNlRm9udCAvSGVsdmV0aWNhCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCj4+CmVuZG9iagozIDAgb2JqCjw8Cj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyA1IDAgUgo+PgplbmRvYmoKNCAwIG9iago8PAovUHJvZHVjZXIgKGlUZXh0IDIuMS43IGJ5IDFUM1hUKQovTW9kRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKL0NyZWF0aW9uRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKPj4KZW5kb2JqCnhyZWYKMCA5CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwNTc1IDAwMDAwIG4gCjAwMDAwMDA1NDYgMDAwMDAgbiAKMDAwMDAwMDYyNCAwMDAwMCBuIAowMDAwMDAwMDkzIDAwMDAwIG4gCjAwMDAwMDAxNDkgMDAwMDAgbiAKMDAwMDAwMDQ2NyAwMDAwMCBuIAowMDAwMDAwMjc5IDAwMDAwIG4gCnRyYWlsZXIKPDwKL1NpemUgOQovUm9vdCAyIDAgUgovSW5mbyA0IDAgUgovSUQgWzw2YWJhMzBhZGY3YTRmMzc1YmFkMWJmMTk4ZWNjMGIyZD4gPDZhYmEzMGFkZjdhNGYzNzViYWQxYmYxOThlY2MwYjJkPl0KPj4Kc3RhcnR4cmVmCjczNAolJUVPRgo=";
+              link.setAttribute("download", "work_order_report.pdf");
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }}
+          >
+            Download
+          </ToastAction>
+        ),
+        variant: "default",
+      });
+
+      setIsGeneratingWorkOrderReport(false);
+      setShowReportModal(false);
+    }, 2000);
+  };
+
+  const handleManageCrew = () => {
+    setShowCrewManagementModal(true);
+  };
+
+  const handleCrewAssignment = (crewName: string) => {
+    // Show initial toast
+    toast({
+      title: "Updating crew assignment",
+      description: "Processing your request...",
+    });
+
+    // Simulate API call with timeout
+    setTimeout(() => {
+      toast({
+        title: "Crew assigned successfully",
+        description: `Crew "${crewName}" has been assigned to the selected work orders.`,
+        variant: "default",
+      });
+
+      setShowCrewManagementModal(false);
+    }, 1500);
+  };
+
   // Handle sorting
   const handleSort = (field: string) => {
     if (field === sortField) {
@@ -603,9 +804,23 @@ const Accounting: React.FC = () => {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button variant="outline" size="sm">
-            <Save className="h-4 w-4 mr-2" />
-            Save View
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSaveView}
+            disabled={isSavingView}
+          >
+            {isSavingView ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save View
+              </>
+            )}
           </Button>
         </div>
       </div>
@@ -814,6 +1029,10 @@ const Accounting: React.FC = () => {
                           variant="ghost"
                           size="sm"
                           className="h-8 w-8 p-0"
+                          onClick={() => {
+                            setSelectedEntry(entry);
+                            setIsInvoiceDialogOpen(true);
+                          }}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -882,10 +1101,14 @@ const Accounting: React.FC = () => {
           {/* Enhanced Accounting Features */}
           <div className="mt-8">
             <Tabs defaultValue="dashboard" className="w-full">
-              <TabsList className="grid grid-cols-7 mb-4">
+              <TabsList className="grid grid-cols-8 mb-4">
                 <TabsTrigger value="dashboard">
                   <BarChart2 className="h-4 w-4 mr-2" />
                   Financial Dashboard
+                </TabsTrigger>
+                <TabsTrigger value="workorders">
+                  <FileCheck className="h-4 w-4 mr-2" />
+                  Work Orders
                 </TabsTrigger>
                 <TabsTrigger value="filters">
                   <Filter className="h-4 w-4 mr-2" />
@@ -913,9 +1136,198 @@ const Accounting: React.FC = () => {
                 </TabsTrigger>
               </TabsList>
 
+              {/* Work Orders Tab */}
+              <TabsContent value="workorders" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Work Order Status Management</CardTitle>
+                    <CardDescription>
+                      Track and manage work order status and completion
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      <div className="flex justify-between items-center">
+                        <div className="flex space-x-2">
+                          <Button variant="outline" size="sm">
+                            <Filter className="h-4 w-4 mr-2" />
+                            Filter
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Refresh
+                          </Button>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button variant="outline" size="sm">
+                            <Download className="h-4 w-4 mr-2" />
+                            Export
+                          </Button>
+                          <Button variant="default" size="sm">
+                            <Save className="h-4 w-4 mr-2" />
+                            Save Changes
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">
+                          Work Order Status Details
+                        </h3>
+                        <WorkOrderStatusTable />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base">
+                              Status Summary
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Total Work Orders:
+                                </span>
+                                <span className="font-medium">4</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Completed:
+                                </span>
+                                <span className="font-medium text-green-600">
+                                  4
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Total SWO Amount:
+                                </span>
+                                <span className="font-medium">$69,670.25</span>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base">
+                              Retainage Summary
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Total Retainage:
+                                </span>
+                                <span className="font-medium">$987.08</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Retainage Held:
+                                </span>
+                                <span className="font-medium">$0.00</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Pending COs:
+                                </span>
+                                <span className="font-medium">0</span>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base">
+                              Quick Actions
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2">
+                              <Button
+                                size="sm"
+                                className="w-full"
+                                onClick={() => {
+                                  toast({
+                                    title: "Status Updated",
+                                    description:
+                                      "Work order status has been updated successfully.",
+                                  });
+                                }}
+                              >
+                                Update Status
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full"
+                                onClick={() => {
+                                  toast({
+                                    title: "Report Generated",
+                                    description:
+                                      "Work order report has been generated successfully.",
+                                    action: (
+                                      <ToastAction
+                                        altText="Download"
+                                        onClick={() => {
+                                          const link =
+                                            document.createElement("a");
+                                          link.href =
+                                            "data:application/pdf;base64,JVBERi0xLjcKJeLjz9MKNSAwIG9iago8PAovRmlsdGVyIC9GbGF0ZURlY29kZQovTGVuZ3RoIDM4Cj4+CnN0cmVhbQp4nCvkMlAwUDC1NNUzMVGwMDHUszRSKErMKwktStVLLCjISQUAXX8HCWVUC3RzdHJ1Y3R1cmUgdHJlZQo1IDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovS2lkcyBbNiAwIFJdCi9Db3VudCAxCj4+CmVuZG9iago2IDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCi9SZXNvdXJjZXMgPDwKL0ZvbnQgPDwKL0YxIDcgMCBSCj4+Cj4+Ci9Db250ZW50cyA4IDAgUgovUGFyZW50IDUgMCBSCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9GaWx0ZXIgL0ZsYXRlRGVjb2RlCi9MZW5ndGggMTI5Cj4+CnN0cmVhbQp4nDPQM1QwUDAzNVEwMDRRMAdiCwVDCwUjPQMzE4WiRCCXK5zzUCGXS8FYz8xEwdxAz9JIwdLI0FDBxNTM0kjBzMzC0NTSQMHMwMjA0MhIwcDcwMDY0sJYwdDC0NjC0AQAKXgTnAplbmRzdHJlYW0KZW5kb2JqCjcgMCBvYmoKPDwKL1R5cGUgL0ZvbnQKL1N1YnR5cGUgL1R5cGUxCi9CYXNlRm9udCAvSGVsdmV0aWNhCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCj4+CmVuZG9iagozIDAgb2JqCjw8Cj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyA1IDAgUgo+PgplbmRvYmoKNCAwIG9iago8PAovUHJvZHVjZXIgKGlUZXh0IDIuMS43IGJ5IDFUM1hUKQovTW9kRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKL0NyZWF0aW9uRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKPj4KZW5kb2JqCnhyZWYKMCA5CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwNTc1IDAwMDAwIG4gCjAwMDAwMDA1NDYgMDAwMDAgbiAKMDAwMDAwMDYyNCAwMDAwMCBuIAowMDAwMDAwMDkzIDAwMDAwIG4gCjAwMDAwMDAxNDkgMDAwMDAgbiAKMDAwMDAwMDQ2NyAwMDAwMCBuIAowMDAwMDAwMjc5IDAwMDAwIG4gCnRyYWlsZXIKPDwKL1NpemUgOQovUm9vdCAyIDAgUgovSW5mbyA0IDAgUgovSUQgWzw2YWJhMzBhZGY3YTRmMzc1YmFkMWJmMTk4ZWNjMGIyZD4gPDZhYmEzMGFkZjdhNGYzNzViYWQxYmYxOThlY2MwYjJkPl0KPj4Kc3RhcnR4cmVmCjczNAolJUVPRgo=";
+                                          link.setAttribute(
+                                            "download",
+                                            "work_order_report.pdf"
+                                          );
+                                          document.body.appendChild(link);
+                                          link.click();
+                                          document.body.removeChild(link);
+                                        }}
+                                      >
+                                        Download
+                                      </ToastAction>
+                                    ),
+                                  });
+                                }}
+                              >
+                                Generate Report
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full"
+                                onClick={() => {
+                                  toast({
+                                    title: "Crew Assigned",
+                                    description:
+                                      "Abel Duran has been assigned to the selected work orders.",
+                                  });
+                                }}
+                              >
+                                Manage Crew
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
               {/* Financial Dashboard Tab */}
               <TabsContent value="dashboard" className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <h3 className="text-lg font-medium mb-4">
+                    Work Order Status Overview
+                  </h3>
+                  <WorkOrderStatusTable />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
                   <Card>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-lg">
@@ -1163,10 +1575,12 @@ const Accounting: React.FC = () => {
                       </div>
                     </CardContent>
                     <CardFooter>
-                      <Button variant="outline" size="sm" className="w-full">
-                        <Eye className="h-4 w-4 mr-2" />
-                        View All Activity
-                      </Button>
+                      <Link to="/activity" className="w-full">
+                        <Button variant="outline" size="sm" className="w-full">
+                          <Eye className="h-4 w-4 mr-2" />
+                          View All Activity
+                        </Button>
+                      </Link>
                     </CardFooter>
                   </Card>
                 </div>
@@ -1414,7 +1828,7 @@ const Accounting: React.FC = () => {
                 </Card>
               </TabsContent>
 
-              {/* Placeholder for other tabs */}
+              {/* Payment Tracking Tab */}
               <TabsContent value="payments">
                 <Card>
                   <CardHeader>
@@ -1424,9 +1838,102 @@ const Accounting: React.FC = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <p>
-                      Payment tracking visualizations would be displayed here
-                    </p>
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">
+                          Payment Status Overview
+                        </h3>
+                        <PaymentStatusTable />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base">
+                              Payment Summary
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Eligible for Payment:
+                                </span>
+                                <span className="font-medium">4</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Pending QC:
+                                </span>
+                                <span className="font-medium">4</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Completed:
+                                </span>
+                                <span className="font-medium">4</span>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base">
+                              Payment Actions
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2">
+                              <Button size="sm" className="w-full">
+                                Process Selected Payments
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full"
+                              >
+                                Export Payment Report
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base">
+                              Payment Metrics
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Total Items:
+                                </span>
+                                <span className="font-medium">460</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Completion Rate:
+                                </span>
+                                <span className="font-medium text-green-600">
+                                  100%
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  QC Approval Rate:
+                                </span>
+                                <span className="font-medium text-amber-600">
+                                  Pending
+                                </span>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -1876,6 +2383,355 @@ const Accounting: React.FC = () => {
           )}
         </>
       )}
+
+      {/* Save View Dialog */}
+      <Dialog
+        open={isSaveViewDialogOpen}
+        onOpenChange={setIsSaveViewDialogOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save View</DialogTitle>
+            <DialogDescription>
+              Save your current filters, sorting, and configuration as a custom
+              view.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="view-name">View Name</Label>
+            <Input
+              id="view-name"
+              value={newViewName}
+              onChange={(e) => setNewViewName(e.target.value)}
+              placeholder="My Custom View"
+              className="mt-1"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsSaveViewDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={saveCurrentView}
+              disabled={!newViewName.trim() || isSavingView}
+            >
+              {isSavingView ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save View"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Saved Views Dialog */}
+      {savedViews.length > 0 && (
+        <Dialog>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Saved Views</DialogTitle>
+              <DialogDescription>
+                Select a saved view to load its configuration.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <div className="space-y-2">
+                {savedViews.map((view) => (
+                  <div
+                    key={view.id}
+                    className="flex items-center justify-between p-2 border rounded-md hover:bg-muted cursor-pointer"
+                    onClick={() => handleLoadView(view)}
+                  >
+                    <span className="font-medium">{view.name}</span>
+                    <Button variant="ghost" size="sm">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Invoice View Dialog */}
+      <Dialog open={isInvoiceDialogOpen} onOpenChange={setIsInvoiceDialogOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Invoice Details</DialogTitle>
+            <DialogDescription>
+              {selectedEntry && `Work Order: ${selectedEntry.workOrderNumber}`}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedEntry && (
+            <div className="space-y-6">
+              {/* Invoice Header */}
+              <div className="border-b pb-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-lg font-bold">
+                      Command X Construction
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      123 Builder Street
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Construction City, CC 12345
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Phone: (555) 123-4567
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <h3 className="text-lg font-bold">INVOICE</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Invoice #: INV-{selectedEntry.id}-2023
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Date: {new Date().toLocaleDateString()}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Due Date:{" "}
+                      {new Date(
+                        Date.now() + 30 * 24 * 60 * 60 * 1000
+                      ).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Client & Project Info */}
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-medium mb-2">Bill To:</h4>
+                  <p className="text-sm">{selectedEntry.subcontractor}</p>
+                  <p className="text-sm text-muted-foreground">
+                    123 Contractor Lane
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Construction City, CC 12345
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-2">Project:</h4>
+                  <p className="text-sm">{selectedEntry.project}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Work Order: {selectedEntry.workOrderNumber}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Status: {selectedEntry.status}
+                  </p>
+                </div>
+              </div>
+
+              {/* Invoice Items */}
+              <div>
+                <h4 className="font-medium mb-2">Invoice Items:</h4>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Quantity</TableHead>
+                      <TableHead className="text-right">Unit Price</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell>
+                        Construction Services - {selectedEntry.workOrderNumber}
+                      </TableCell>
+                      <TableCell className="text-right">1</TableCell>
+                      <TableCell className="text-right">
+                        ${selectedEntry.swoTotal.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        ${selectedEntry.swoTotal.toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                    {selectedEntry.completed < 100 && (
+                      <TableRow>
+                        <TableCell>
+                          Partial Completion Adjustment (
+                          {selectedEntry.completed}%)
+                        </TableCell>
+                        <TableCell className="text-right">1</TableCell>
+                        <TableCell className="text-right">
+                          -$
+                          {(
+                            selectedEntry.swoTotal *
+                            (1 - selectedEntry.completed / 100)
+                          ).toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          -$
+                          {(
+                            selectedEntry.swoTotal *
+                            (1 - selectedEntry.completed / 100)
+                          ).toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    <TableRow>
+                      <TableCell>
+                        Retainage ({selectedEntry.retainage}%)
+                      </TableCell>
+                      <TableCell className="text-right">1</TableCell>
+                      <TableCell className="text-right">
+                        -${selectedEntry.retainageAmount.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        -${selectedEntry.retainageAmount.toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Invoice Summary */}
+              <div className="border-t pt-4">
+                <div className="flex justify-end">
+                  <div className="w-64">
+                    <div className="flex justify-between py-1">
+                      <span className="font-medium">Subtotal:</span>
+                      <span>${selectedEntry.swoTotal.toFixed(2)}</span>
+                    </div>
+                    {selectedEntry.completed < 100 && (
+                      <div className="flex justify-between py-1">
+                        <span className="font-medium">Partial Completion:</span>
+                        <span>
+                          -$
+                          {(
+                            selectedEntry.swoTotal *
+                            (1 - selectedEntry.completed / 100)
+                          ).toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between py-1">
+                      <span className="font-medium">Retainage:</span>
+                      <span>-${selectedEntry.retainageAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-t border-dashed mt-2 pt-2">
+                      <span className="font-bold">Total Due:</span>
+                      <span className="font-bold">
+                        ${selectedEntry.paidAmount.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-1 mt-2">
+                      <span className="font-medium">Amount Paid:</span>
+                      <span>
+                        $
+                        {selectedEntry.status === "Approved"
+                          ? selectedEntry.paidAmount.toFixed(2)
+                          : "0.00"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-1 border-t mt-2 pt-2">
+                      <span className="font-bold">Balance Due:</span>
+                      <span className="font-bold">
+                        $
+                        {selectedEntry.status === "Approved"
+                          ? "0.00"
+                          : selectedEntry.paidAmount.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div className="border-t pt-4">
+                <h4 className="font-medium mb-2">Notes:</h4>
+                <p className="text-sm text-muted-foreground">
+                  Payment is due within 30 days. Please make checks payable to
+                  Command X Construction or pay online at commandx.com/pay.
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Thank you for your business!
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="flex justify-between items-center border-t pt-4 mt-4">
+            <div className="flex gap-2">
+              <Badge
+                variant={
+                  selectedEntry?.status === "Approved"
+                    ? "success"
+                    : selectedEntry?.status === "Pending"
+                    ? "outline"
+                    : "destructive"
+                }
+              >
+                {selectedEntry?.status}
+              </Badge>
+              <Badge variant="outline">
+                Completion: {selectedEntry?.completed}%
+              </Badge>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsInvoiceDialogOpen(false)}
+              >
+                Close
+              </Button>
+              <Button
+                onClick={() => {
+                  toast({
+                    title: "Invoice downloaded",
+                    description:
+                      "The invoice has been downloaded successfully.",
+                  });
+
+                  // Simulate download
+                  setTimeout(() => {
+                    const link = document.createElement("a");
+                    link.href =
+                      "data:application/pdf;base64,JVBERi0xLjcKJeLjz9MKNSAwIG9iago8PAovRmlsdGVyIC9GbGF0ZURlY29kZQovTGVuZ3RoIDM4Cj4+CnN0cmVhbQp4nCvkMlAwUDC1NNUzMVGwMDHUszRSKErMKwktStVLLCjISQUAXX8HCWVUC3RzdHJ1Y3R1cmUgdHJlZQo1IDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovS2lkcyBbNiAwIFJdCi9Db3VudCAxCj4+CmVuZG9iago2IDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCi9SZXNvdXJjZXMgPDwKL0ZvbnQgPDwKL0YxIDcgMCBSCj4+Cj4+Ci9Db250ZW50cyA4IDAgUgovUGFyZW50IDUgMCBSCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9GaWx0ZXIgL0ZsYXRlRGVjb2RlCi9MZW5ndGggMTI5Cj4+CnN0cmVhbQp4nDPQM1QwUDAzNVEwMDRRMAdiCwVDCwUjPQMzE4WiRCCXK5zzUCGXS8FYz8xEwdxAz9JIwdLI0FDBxNTM0kjBzMzC0NTSQMHMwMjA0MhIwcDcwMDY0sJYwdDC0NjC0AQAKXgTnAplbmRzdHJlYW0KZW5kb2JqCjcgMCBvYmoKPDwKL1R5cGUgL0ZvbnQKL1N1YnR5cGUgL1R5cGUxCi9CYXNlRm9udCAvSGVsdmV0aWNhCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCj4+CmVuZG9iagozIDAgb2JqCjw8Cj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyA1IDAgUgo+PgplbmRvYmoKNCAwIG9iago8PAovUHJvZHVjZXIgKGlUZXh0IDIuMS43IGJ5IDFUM1hUKQovTW9kRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKL0NyZWF0aW9uRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKPj4KZW5kb2JqCnhyZWYKMCA5CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwNTc1IDAwMDAwIG4gCjAwMDAwMDA1NDYgMDAwMDAgbiAKMDAwMDAwMDYyNCAwMDAwMCBuIAowMDAwMDAwMDkzIDAwMDAwIG4gCjAwMDAwMDAxNDkgMDAwMDAgbiAKMDAwMDAwMDQ2NyAwMDAwMCBuIAowMDAwMDAwMjc5IDAwMDAwIG4gCnRyYWlsZXIKPDwKL1NpemUgOQovUm9vdCAyIDAgUgovSW5mbyA0IDAgUgovSUQgWzw2YWJhMzBhZGY3YTRmMzc1YmFkMWJmMTk4ZWNjMGIyZD4gPDZhYmEzMGFkZjdhNGYzNzViYWQxYmYxOThlY2MwYjJkPl0KPj4Kc3RhcnR4cmVmCjczNAolJUVPRgo=";
+                    link.setAttribute(
+                      "download",
+                      `invoice-${selectedEntry?.workOrderNumber}.pdf`
+                    );
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }, 500);
+                }}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+              <Button
+                onClick={() => {
+                  toast({
+                    title: "Invoice printed",
+                    description: "The invoice has been sent to the printer.",
+                  });
+
+                  // In a real app, this would trigger a print dialog
+                  setTimeout(() => {
+                    window.print();
+                  }, 500);
+                }}
+              >
+                <Printer className="h-4 w-4 mr-2" />
+                Print
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

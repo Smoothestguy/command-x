@@ -16,6 +16,7 @@ import DocumentsPage from "./pages/DocumentsPage";
 import Accounting from "./pages/Accounting";
 import ReportsPage from "./pages/ReportsPage";
 import UserManagement from "./pages/UserManagement";
+import AllActivity from "./pages/AllActivity";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage"; // Import LoginPage
 import { useEffect } from "react";
@@ -74,6 +75,7 @@ function App() {
           <Route path="/accounting" element={<Accounting />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/user-management" element={<UserManagement />} />
+          <Route path="/activity" element={<AllActivity />} />
         </Route>
 
         {/* Catch-all Not Found Route */}

@@ -19,7 +19,11 @@ const Header: React.FC = () => {
   return (
     <header className="bg-gray-800 text-white p-4 shadow-md flex justify-between items-center">
       <Link to="/" className="flex items-center gap-2">
-        <img src="/command-x-logo.png" alt="Command X Logo" className="h-10" />
+        <img
+          src="/command-x-logo-white.png"
+          alt="Command X Logo"
+          className="h-10"
+        />
       </Link>
       <div className="flex items-center gap-4">
         {user && (

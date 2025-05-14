@@ -35,11 +35,41 @@ import {
   Folder,
   ChevronRight,
   Home,
+  FileText,
+  FileCheck,
+  Image,
+  BarChart,
+  Calendar,
+  Clock,
+  Filter,
+  SlidersHorizontal,
+  MoreHorizontal,
+  Star,
+  StarHalf,
+  Info,
+  AlertCircle,
+  CheckCircle,
+  X,
+  Plus,
+  ArrowUpDown,
+  ArrowDown,
+  ArrowUp,
+  FileIcon,
+  Share2,
+  Copy,
+  Edit,
+  History,
+  Tag,
+  Tags,
+  Users,
+  User,
+  Bookmark,
 } from "lucide-react";
 import { DocumentData } from "@/services/api";
 import { formatFileSize, cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,6 +87,20 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Mock document data for each category
 const mockDocuments: Record<string, DocumentData[]> = {
@@ -340,29 +384,57 @@ const DocumentsPage: React.FC = () => {
     toast.success(`Downloading ${doc.file_name}`);
   };
 
+  // Document deletion state
+  const [isDeleteDocumentDialogOpen, setIsDeleteDocumentDialogOpen] =
+    useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<DocumentData | null>(
+    null
+  );
+
   // 3. Implement delete functionality
-  const handleDelete = async (doc: DocumentData) => {
-    // Show confirmation dialog
-    if (window.confirm(`Are you sure you want to delete ${doc.file_name}?`)) {
-      try {
-        // In a real app, this would call the API to delete the document
-        // await deleteDocument(doc.document_id);
+  const handleDelete = (doc: DocumentData) => {
+    setDocumentToDelete(doc);
+    setIsDeleteDocumentDialogOpen(true);
+  };
 
-        // For demo purposes, we'll update the local state
-        if (selectedCategory) {
-          const updatedDocs = { ...documents };
-          updatedDocs[selectedCategory] = updatedDocs[selectedCategory].filter(
-            (document) => document.document_id !== doc.document_id
+  // Confirm document deletion
+  const confirmDeleteDocument = async () => {
+    if (!documentToDelete || !selectedCategory) return;
+
+    try {
+      // In a real app, this would call the API to delete the document
+      // await deleteDocument(documentToDelete.document_id);
+
+      // For demo purposes, we'll update the local state
+      const updatedDocs = { ...documents };
+
+      // Check if we're in a folder or at the root level
+      if (currentPath.length === 0) {
+        // Root level - update the category documents
+        updatedDocs[selectedCategory] = updatedDocs[selectedCategory].filter(
+          (document) => document.document_id !== documentToDelete.document_id
+        );
+      } else {
+        // In a folder - update the folder documents
+        const folderPathKey = `category:${selectedCategory}:${currentPath.join(
+          "/"
+        )}`;
+        if (updatedDocs[folderPathKey]) {
+          updatedDocs[folderPathKey] = updatedDocs[folderPathKey].filter(
+            (document) => document.document_id !== documentToDelete.document_id
           );
-          setDocuments(updatedDocs);
         }
-
-        // Show success notification
-        toast.success(`${doc.file_name} has been deleted`);
-      } catch (error) {
-        console.error("Error deleting document:", error);
-        toast.error(`Failed to delete ${doc.file_name}`);
       }
+
+      setDocuments(updatedDocs);
+
+      // Close dialog and show success notification
+      setIsDeleteDocumentDialogOpen(false);
+      setDocumentToDelete(null);
+      toast.success(`${documentToDelete.file_name} has been deleted`);
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      toast.error(`Failed to delete ${documentToDelete.file_name}`);
     }
   };
 
@@ -738,40 +810,6 @@ const DocumentsPage: React.FC = () => {
     console.log("Current folders state:", updatedFoldersByCategory);
   };
 
-  // Navigate to folder
-  const navigateToFolder = (folder: Folder) => {
-    // Verify we're navigating to a folder in the current category
-    if (folder.category !== selectedCategory) {
-      console.warn(
-        `Attempted to navigate to folder from different category: ${folder.category} vs ${selectedCategory}`
-      );
-      return;
-    }
-
-    // Split the path into parts
-    const folderPathParts = folder.path.split("/");
-
-    // Set the current path
-    setCurrentPath(folderPathParts);
-
-    // Log for debugging
-    console.log(`Navigating to folder in ${folder.category}:`, {
-      folder,
-      newPath: folderPathParts,
-    });
-  };
-
-  // Navigate to specific path in breadcrumb
-  const navigateToBreadcrumb = (index: number) => {
-    if (index === -1) {
-      // Navigate to root
-      setCurrentPath([]);
-    } else {
-      // Navigate to specific folder in path
-      setCurrentPath(currentPath.slice(0, index + 1));
-    }
-  };
-
   // Handle folder deletion
   const handleDeleteFolder = (folder: Folder) => {
     // Set the folder to delete and open confirmation dialog
@@ -820,6 +858,40 @@ const DocumentsPage: React.FC = () => {
     }
   };
 
+  // Navigate to a folder
+  const navigateToFolder = (folder: Folder) => {
+    // Verify we're navigating to a folder in the current category
+    if (folder.category !== selectedCategory) {
+      console.warn(
+        `Attempted to navigate to folder from different category: ${folder.category} vs ${selectedCategory}`
+      );
+      return;
+    }
+
+    // Split the path into parts
+    const folderPathParts = folder.path.split("/");
+
+    // Set the current path
+    setCurrentPath(folderPathParts);
+
+    // Log for debugging
+    console.log(`Navigating to folder in ${folder.category}:`, {
+      folder,
+      newPath: folderPathParts,
+    });
+  };
+
+  // Navigate to specific path in breadcrumb
+  const navigateToBreadcrumb = (index: number) => {
+    if (index === -1) {
+      // Navigate to root
+      setCurrentPath([]);
+    } else {
+      // Navigate to specific folder in path
+      setCurrentPath(currentPath.slice(0, index + 1));
+    }
+  };
+
   // Get current items (documents and folders) for the current path
   const getCurrentItems = (): DocumentOrFolder[] => {
     if (!selectedCategory) return [];
@@ -857,23 +929,90 @@ const DocumentsPage: React.FC = () => {
     return [...currentFolders, ...currentDocuments];
   };
 
+  // Get document count for each category
+  const getCategoryDocumentCount = (category: string) => {
+    if (!documents[category]) return 0;
+    return documents[category].length;
+  };
+
+  // Get icon for each category
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case "Project Plans":
+        return <FileText className="h-10 w-10 text-blue-500" />;
+      case "Contracts":
+        return <FileCheck className="h-10 w-10 text-indigo-500" />;
+      case "Invoices":
+        return <FileText className="h-10 w-10 text-green-500" />;
+      case "Permits":
+        return <FileCheck className="h-10 w-10 text-amber-500" />;
+      case "Photos":
+        return <Image className="h-10 w-10 text-rose-500" />;
+      case "Reports":
+        return <BarChart className="h-10 w-10 text-purple-500" />;
+      default:
+        return <Folder className="h-10 w-10 text-gray-500" />;
+    }
+  };
+
   return (
-    <div className="p-4 md:p-8">
-      <h1 className="text-3xl font-bold mb-6">Documents</h1>
+    <div className="p-4 md:p-8 max-w-7xl mx-auto">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Documents</h1>
+        <div className="relative">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search all documents..."
+            className="pl-8 w-[250px]"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {categories.map((category) => (
           <Card
             key={category.title}
-            className="cursor-pointer hover:shadow-md transition-shadow"
+            className="cursor-pointer hover:shadow-md transition-all hover:translate-y-[-2px] border-l-4"
+            style={{
+              borderLeftColor:
+                category.title === "Project Plans"
+                  ? "#3b82f6"
+                  : category.title === "Contracts"
+                  ? "#6366f1"
+                  : category.title === "Invoices"
+                  ? "#22c55e"
+                  : category.title === "Permits"
+                  ? "#f59e0b"
+                  : category.title === "Photos"
+                  ? "#e11d48"
+                  : category.title === "Reports"
+                  ? "#9333ea"
+                  : "#6b7280",
+            }}
             onClick={() => handleCardClick(category.title)}
           >
-            <CardHeader>
-              <CardTitle>{category.title}</CardTitle>
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-start">
+                <CardTitle className="text-xl">{category.title}</CardTitle>
+                <Badge variant="outline" className="ml-2">
+                  {getCategoryDocumentCount(category.title)} files
+                </Badge>
+              </div>
               <CardDescription>{category.description}</CardDescription>
             </CardHeader>
-            <CardContent>
-              <p>{category.content}</p>
+            <CardContent className="pt-2">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {category.content}
+                  </p>
+                </div>
+                <div className="ml-4 flex-shrink-0 p-2 bg-muted rounded-full">
+                  {getCategoryIcon(category.title)}
+                </div>
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -881,77 +1020,191 @@ const DocumentsPage: React.FC = () => {
 
       {/* Document Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>{selectedCategory}</DialogTitle>
-            <DialogDescription>
-              {selectedCategory &&
-                categories.find((c) => c.title === selectedCategory)
-                  ?.description}
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="max-w-5xl h-[85vh] flex flex-col p-0 gap-0">
+          <div className="p-6 pb-2">
+            <DialogHeader>
+              <div className="flex items-center gap-2">
+                {selectedCategory && (
+                  <div className="p-2 rounded-full bg-muted">
+                    {getCategoryIcon(selectedCategory)}
+                  </div>
+                )}
+                <div>
+                  <DialogTitle className="text-2xl">
+                    {selectedCategory}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {selectedCategory &&
+                      categories.find((c) => c.title === selectedCategory)
+                        ?.description}
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+          </div>
 
-          {/* Breadcrumb Navigation */}
-          <Breadcrumb className="mb-4">
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink
-                  onClick={() => navigateToBreadcrumb(-1)}
-                  className="flex items-center cursor-pointer"
-                >
-                  <Home className="h-4 w-4 mr-1" />
-                  {selectedCategory}
-                </BreadcrumbLink>
-              </BreadcrumbItem>
+          <div className="flex-1 overflow-hidden flex flex-col">
+            {/* Toolbar with breadcrumb, search, and actions */}
+            <div className="border-y bg-muted/40 px-6 py-2">
+              <div className="flex flex-col sm:flex-row gap-4 items-center">
+                {/* Breadcrumb Navigation */}
+                <div className="flex-1 overflow-x-auto w-full sm:w-auto">
+                  <Breadcrumb>
+                    <BreadcrumbList>
+                      <BreadcrumbItem>
+                        <BreadcrumbLink
+                          onClick={() => navigateToBreadcrumb(-1)}
+                          className="flex items-center cursor-pointer hover:bg-muted px-2 py-1 rounded-md"
+                        >
+                          <Home className="h-4 w-4 mr-1" />
+                          <span className="font-medium">
+                            {selectedCategory}
+                          </span>
+                        </BreadcrumbLink>
+                      </BreadcrumbItem>
 
-              {currentPath.map((folder, index) => (
-                <BreadcrumbItem key={index}>
-                  <BreadcrumbSeparator>
-                    <ChevronRight className="h-4 w-4" />
-                  </BreadcrumbSeparator>
-                  <BreadcrumbLink
-                    onClick={() => navigateToBreadcrumb(index)}
-                    className="cursor-pointer"
+                      {currentPath.map((folder, index) => (
+                        <BreadcrumbItem key={index}>
+                          <BreadcrumbSeparator>
+                            <ChevronRight className="h-4 w-4" />
+                          </BreadcrumbSeparator>
+                          <BreadcrumbLink
+                            onClick={() => navigateToBreadcrumb(index)}
+                            className="cursor-pointer hover:bg-muted px-2 py-1 rounded-md"
+                          >
+                            {folder}
+                          </BreadcrumbLink>
+                        </BreadcrumbItem>
+                      ))}
+                    </BreadcrumbList>
+                  </Breadcrumb>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex gap-2 flex-shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleUpload}
+                    className="flex items-center gap-1"
+                    disabled={isUploading}
                   >
-                    {folder}
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-              ))}
-            </BreadcrumbList>
-          </Breadcrumb>
-
-          {/* Search and Filter Controls */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search documents..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+                    {isUploading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="h-3.5 w-3.5" />
+                    )}
+                    {isUploading ? "Uploading..." : "Upload"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1"
+                    onClick={handleNewFolderClick}
+                  >
+                    <FolderPlus className="h-3.5 w-3.5" />
+                    New Folder
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setIsModalOpen(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
-            <Button
-              variant="outline"
-              onClick={handleUpload}
-              className="flex items-center gap-2"
-              disabled={isUploading}
-            >
-              {isUploading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Upload className="h-4 w-4" />
-              )}
-              {isUploading ? "Uploading..." : "Upload"}
-            </Button>
-            <Button
-              variant="outline"
-              className="flex items-center gap-2"
-              onClick={handleNewFolderClick}
-            >
-              <FolderPlus className="h-4 w-4" />
-              New Folder
-            </Button>
+
+            {/* Search and Filter Controls */}
+            <div className="px-6 py-3 flex flex-col sm:flex-row gap-3 items-center">
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search documents..."
+                  className="pl-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-2 flex-shrink-0 w-full sm:w-auto">
+                <div className="flex border rounded-md">
+                  <Button
+                    variant={sortBy === "name" ? "default" : "ghost"}
+                    size="sm"
+                    className="gap-1"
+                    onClick={() => {
+                      setSortBy("name");
+                      setSortDirection(
+                        sortDirection === "asc" ? "desc" : "asc"
+                      );
+                    }}
+                  >
+                    Name
+                    {sortBy === "name" &&
+                      (sortDirection === "asc" ? (
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      ) : (
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      ))}
+                  </Button>
+                  <Button
+                    variant={sortBy === "date" ? "default" : "ghost"}
+                    size="sm"
+                    className="gap-1"
+                    onClick={() => {
+                      setSortBy("date");
+                      setSortDirection(
+                        sortDirection === "asc" ? "desc" : "asc"
+                      );
+                    }}
+                  >
+                    Date
+                    {sortBy === "date" &&
+                      (sortDirection === "asc" ? (
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      ) : (
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      ))}
+                  </Button>
+                  <Button
+                    variant={sortBy === "size" ? "default" : "ghost"}
+                    size="sm"
+                    className="gap-1"
+                    onClick={() => {
+                      setSortBy("size");
+                      setSortDirection(
+                        sortDirection === "asc" ? "desc" : "asc"
+                      );
+                    }}
+                  >
+                    Size
+                    {sortBy === "size" &&
+                      (sortDirection === "asc" ? (
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      ) : (
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      ))}
+                  </Button>
+                </div>
+                <Button variant="outline" size="sm" className="gap-1">
+                  <Filter className="h-3.5 w-3.5" />
+                  Filter
+                </Button>
+              </div>
+            </div>
+
+            {/* Upload Progress */}
+            {isUploading && (
+              <div className="px-6 mb-2">
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm">Uploading...</span>
+                  <span className="text-sm">{Math.round(uploadProgress)}%</span>
+                </div>
+                <Progress value={uploadProgress} className="h-2" />
+              </div>
+            )}
 
             {/* Hidden file input - accept all file types */}
             <input
@@ -962,165 +1215,192 @@ const DocumentsPage: React.FC = () => {
               accept="*/*"
               multiple
             />
-          </div>
 
-          {/* Upload Progress */}
-          {isUploading && (
-            <div className="mb-4">
-              <div className="flex justify-between mb-1">
-                <span className="text-sm">Uploading...</span>
-                <span className="text-sm">{Math.round(uploadProgress)}%</span>
-              </div>
-              <Progress value={uploadProgress} className="h-2" />
-            </div>
-          )}
-
-          {/* Documents Table */}
-          <div className="border rounded-md">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead
-                    className="w-[40%] cursor-pointer"
-                    onClick={() => toggleSort("name")}
-                  >
-                    Name{" "}
-                    {sortBy === "name" && (sortDirection === "asc" ? "↑" : "↓")}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer"
-                    onClick={() => toggleSort("date")}
-                  >
-                    Date{" "}
-                    {sortBy === "date" && (sortDirection === "asc" ? "↑" : "↓")}
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer"
-                    onClick={() => toggleSort("size")}
-                  >
-                    Size{" "}
-                    {sortBy === "size" && (sortDirection === "asc" ? "↑" : "↓")}
-                  </TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {getFilteredAndSortedDocuments().map((item) => (
-                  <TableRow
-                    key={isFolder(item) ? item.id : item.document_id}
-                    className={
-                      isFolder(item) ? "hover:bg-muted cursor-pointer" : ""
-                    }
-                    onClick={
-                      isFolder(item) ? () => navigateToFolder(item) : undefined
-                    }
-                  >
-                    <TableCell className="font-medium">
-                      <div className="flex items-center">
-                        {isFolder(item) ? (
-                          <>
-                            <Folder className="h-4 w-4 mr-2 text-blue-500" />
-                            {item.name}
-                          </>
-                        ) : (
-                          <>
-                            {/* Show thumbnail for images */}
-                            {item.file_type.startsWith("image/") && (
+            {/* Documents and Folders */}
+            <div className="flex-1 overflow-auto px-6 pb-6">
+              {getFilteredAndSortedDocuments().length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full py-12 text-center">
+                  <div className="bg-muted/50 p-4 rounded-full mb-4">
+                    {currentPath.length === 0 ? (
+                      <FileText className="h-10 w-10 text-muted-foreground" />
+                    ) : (
+                      <Folder className="h-10 w-10 text-muted-foreground" />
+                    )}
+                  </div>
+                  <h3 className="text-lg font-medium mb-1">
+                    No documents found
+                  </h3>
+                  <p className="text-muted-foreground mb-4 max-w-md">
+                    {currentPath.length === 0
+                      ? "Upload a document or create a folder to get started."
+                      : "This folder is empty. Upload a document or create a subfolder."}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button onClick={handleUpload} className="gap-1">
+                      <Upload className="h-4 w-4" />
+                      Upload Files
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleNewFolderClick}
+                      className="gap-1"
+                    >
+                      <FolderPlus className="h-4 w-4" />
+                      New Folder
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-4">
+                  {getFilteredAndSortedDocuments().map((item) => (
+                    <div
+                      key={isFolder(item) ? item.id : item.document_id}
+                      className={cn(
+                        "group border rounded-lg overflow-hidden hover:shadow-md transition-all",
+                        isFolder(item)
+                          ? "cursor-pointer hover:border-blue-400"
+                          : "hover:border-gray-400"
+                      )}
+                      onClick={
+                        isFolder(item)
+                          ? () => navigateToFolder(item)
+                          : undefined
+                      }
+                    >
+                      {isFolder(item) ? (
+                        // Folder item
+                        <div className="p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center">
+                              <div className="p-2 bg-blue-50 rounded-md mr-3">
+                                <Folder className="h-6 w-6 text-blue-500" />
+                              </div>
+                              <div>
+                                <h3 className="font-medium truncate max-w-[150px]">
+                                  {item.name}
+                                </h3>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(
+                                    item.createdAt
+                                  ).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 opacity-0 group-hover:opacity-100"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteFolder(item);
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        // Document item
+                        <div>
+                          {/* Preview area */}
+                          <div
+                            className="h-32 bg-muted/30 flex items-center justify-center border-b relative group"
+                            onClick={() => handleView(item)}
+                          >
+                            {item.file_type.startsWith("image/") ? (
                               <img
                                 src={item.file_path}
                                 alt={item.file_name}
-                                className="h-8 w-8 object-cover rounded mr-2"
+                                className="h-full w-full object-cover"
                               />
+                            ) : (
+                              <div className="p-3 bg-muted/50 rounded-md">
+                                {item.file_type.includes("pdf") ? (
+                                  <FileText className="h-10 w-10 text-red-500" />
+                                ) : item.file_type.includes("word") ? (
+                                  <FileText className="h-10 w-10 text-blue-500" />
+                                ) : item.file_type.includes("sheet") ||
+                                  item.file_type.includes("excel") ? (
+                                  <FileText className="h-10 w-10 text-green-500" />
+                                ) : item.file_type.includes("presentation") ||
+                                  item.file_type.includes("powerpoint") ? (
+                                  <FileText className="h-10 w-10 text-orange-500" />
+                                ) : (
+                                  <FileIcon className="h-10 w-10 text-gray-500" />
+                                )}
+                              </div>
                             )}
-                            {item.file_name}
+                            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                className="gap-1"
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                                View
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Document info */}
+                          <div className="p-3">
+                            <div className="flex items-start justify-between mb-1">
+                              <h3
+                                className="font-medium text-sm truncate max-w-[180px]"
+                                title={item.file_name}
+                              >
+                                {item.file_name}
+                              </h3>
+                              <div className="flex">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownload(item);
+                                  }}
+                                >
+                                  <Download className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDelete(item);
+                                  }}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="flex justify-between items-center text-xs text-muted-foreground">
+                              <span>{formatFileSize(item.file_size)}</span>
+                              <span>
+                                {new Date(
+                                  item.uploaded_at
+                                ).toLocaleDateString()}
+                              </span>
+                            </div>
                             {item.description && (
-                              <p className="text-sm text-muted-foreground">
+                              <p
+                                className="text-xs text-muted-foreground mt-1 line-clamp-2"
+                                title={item.description}
+                              >
                                 {item.description}
                               </p>
                             )}
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {isFolder(item)
-                        ? new Date(item.createdAt).toLocaleDateString()
-                        : new Date(item.uploaded_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      {isFolder(item)
-                        ? "Folder"
-                        : formatFileSize(item.file_size)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {isFolder(item) ? (
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteFolder(item);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleView(item);
-                            }}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDownload(item);
-                            }}
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(item);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          </div>
                         </div>
                       )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {getFilteredAndSortedDocuments().length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-4">
-                      {currentPath.length === 0
-                        ? "No documents found. Upload a document or create a folder to get started."
-                        : "This folder is empty. Upload a document or create a subfolder."}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -1129,15 +1409,31 @@ const DocumentsPage: React.FC = () => {
         open={isNewFolderDialogOpen}
         onOpenChange={setIsNewFolderDialogOpen}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Create New Folder</AlertDialogTitle>
-            <AlertDialogDescription>
-              Enter a name for the new folder.
-            </AlertDialogDescription>
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-blue-50 rounded-full">
+                <FolderPlus className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <AlertDialogTitle>Create New Folder</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Enter a name for the new folder
+                  {currentPath.length > 0 ? ` in ${currentPath.join("/")}` : ""}
+                  .
+                </AlertDialogDescription>
+              </div>
+            </div>
           </AlertDialogHeader>
 
           <div className="py-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Folder className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">
+                {selectedCategory}
+                {currentPath.length > 0 ? ` / ${currentPath.join(" / ")}` : ""}
+              </span>
+            </div>
             <Input
               placeholder="Folder name"
               value={newFolderName}
@@ -1146,9 +1442,13 @@ const DocumentsPage: React.FC = () => {
                 setNewFolderError(null);
               }}
               className={cn(newFolderError && "border-red-500")}
+              autoFocus
             />
             {newFolderError && (
-              <p className="text-sm text-red-500 mt-1">{newFolderError}</p>
+              <div className="flex items-center gap-1 mt-2">
+                <AlertCircle className="h-3.5 w-3.5 text-red-500" />
+                <p className="text-sm text-red-500">{newFolderError}</p>
+              </div>
             )}
           </div>
 
@@ -1156,7 +1456,8 @@ const DocumentsPage: React.FC = () => {
             <AlertDialogCancel onClick={() => setIsNewFolderDialogOpen(false)}>
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction onClick={createNewFolder}>
+            <AlertDialogAction onClick={createNewFolder} className="gap-1">
+              <FolderPlus className="h-4 w-4" />
               Create Folder
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1168,14 +1469,50 @@ const DocumentsPage: React.FC = () => {
         open={isDeleteFolderDialogOpen}
         onOpenChange={setIsDeleteFolderDialogOpen}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Folder</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete the folder "{folderToDelete?.name}
-              "? This action cannot be undone.
-            </AlertDialogDescription>
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-red-50 rounded-full">
+                <Trash2 className="h-5 w-5 text-red-500" />
+              </div>
+              <div>
+                <AlertDialogTitle>Delete Folder</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this folder? This action
+                  cannot be undone.
+                </AlertDialogDescription>
+              </div>
+            </div>
           </AlertDialogHeader>
+
+          {folderToDelete && (
+            <div className="py-4">
+              <div className="flex items-start p-3 border rounded-md bg-muted/20">
+                <div className="p-2 bg-blue-50 rounded-md mr-3">
+                  <Folder className="h-6 w-6 text-blue-500" />
+                </div>
+                <div>
+                  <h4 className="font-medium">{folderToDelete.name}</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Created:{" "}
+                    {new Date(folderToDelete.createdAt).toLocaleDateString()}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Path: {folderToDelete.path}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 mt-4 p-3 bg-amber-50 text-amber-800 rounded-md">
+                <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                <p className="text-sm">
+                  Deleting this folder will remove all files and subfolders it
+                  contains.
+                </p>
+              </div>
+            </div>
+          )}
+
           <AlertDialogFooter>
             <AlertDialogCancel
               onClick={() => {
@@ -1187,9 +1524,101 @@ const DocumentsPage: React.FC = () => {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteFolder}
-              className="bg-red-500 hover:bg-red-600"
+              className="bg-red-500 hover:bg-red-600 gap-1"
             >
-              Delete
+              <Trash2 className="h-4 w-4" />
+              Delete Folder
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Document Delete Confirmation Dialog */}
+      <AlertDialog
+        open={isDeleteDocumentDialogOpen}
+        onOpenChange={(open) => {
+          setIsDeleteDocumentDialogOpen(open);
+          if (!open) setDocumentToDelete(null);
+        }}
+      >
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-red-50 rounded-full">
+                <Trash2 className="h-5 w-5 text-red-500" />
+              </div>
+              <div>
+                <AlertDialogTitle>Delete Document</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this document? This action
+                  cannot be undone.
+                </AlertDialogDescription>
+              </div>
+            </div>
+          </AlertDialogHeader>
+
+          {documentToDelete && (
+            <div className="py-4">
+              <div className="flex items-start p-3 border rounded-md bg-muted/20">
+                <div className="p-2 bg-muted/50 rounded-md mr-3">
+                  {documentToDelete.file_type.startsWith("image/") ? (
+                    <div className="h-10 w-10 rounded-md overflow-hidden">
+                      <img
+                        src={documentToDelete.file_path}
+                        alt={documentToDelete.file_name}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ) : documentToDelete.file_type.includes("pdf") ? (
+                    <FileText className="h-6 w-6 text-red-500" />
+                  ) : documentToDelete.file_type.includes("word") ? (
+                    <FileText className="h-6 w-6 text-blue-500" />
+                  ) : documentToDelete.file_type.includes("sheet") ||
+                    documentToDelete.file_type.includes("excel") ? (
+                    <FileText className="h-6 w-6 text-green-500" />
+                  ) : documentToDelete.file_type.includes("presentation") ||
+                    documentToDelete.file_type.includes("powerpoint") ? (
+                    <FileText className="h-6 w-6 text-orange-500" />
+                  ) : (
+                    <FileIcon className="h-6 w-6 text-gray-500" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4
+                    className="font-medium truncate"
+                    title={documentToDelete.file_name}
+                  >
+                    {documentToDelete.file_name}
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    Size: {formatFileSize(documentToDelete.file_size)} •
+                    Uploaded:{" "}
+                    {new Date(
+                      documentToDelete.uploaded_at
+                    ).toLocaleDateString()}
+                  </p>
+                  {documentToDelete.description && (
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                      {documentToDelete.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => setIsDeleteDocumentDialogOpen(false)}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteDocument}
+              className="bg-red-500 hover:bg-red-600 gap-1"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete Document
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

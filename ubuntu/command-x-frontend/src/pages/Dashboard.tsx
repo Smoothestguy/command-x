@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getDashboardSummary } from "../services/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Briefcase,
@@ -12,6 +18,10 @@ import {
   Filter,
   RefreshCw,
   Clock,
+  FileText,
+  Loader2,
+  BarChart2,
+  Printer,
 } from "lucide-react";
 import {
   BarChart,
@@ -27,6 +37,17 @@ import {
   Cell,
 } from "recharts";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface DashboardSummary {
   projectCount: number;
@@ -100,6 +121,17 @@ const Dashboard: React.FC = () => {
   const [dateFilter, setDateFilter] = useState<string>("week"); // "week", "month", "quarter", "year"
   const [showFilters, setShowFilters] = useState<boolean>(false);
 
+  // Export dialog state
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState<"pdf" | "excel" | "csv">(
+    "pdf"
+  );
+  const [isExporting, setIsExporting] = useState(false);
+  const [includeCharts, setIncludeCharts] = useState(true);
+  const [includeProjects, setIncludeProjects] = useState(true);
+  const [includeWorkOrders, setIncludeWorkOrders] = useState(true);
+  const [includeFinancials, setIncludeFinancials] = useState(true);
+
   useEffect(() => {
     fetchSummary();
   }, [dateFilter]); // Refetch when date filter changes
@@ -125,8 +157,45 @@ const Dashboard: React.FC = () => {
   };
 
   const handleExport = () => {
-    toast.success("Dashboard data exported successfully!");
-    // In a real app, this would generate a CSV/PDF export
+    setIsExportDialogOpen(true);
+  };
+
+  const executeExport = () => {
+    setIsExporting(true);
+
+    // Simulate export process
+    toast.info("Preparing dashboard export...");
+
+    setTimeout(() => {
+      toast.info("Processing data...");
+
+      setTimeout(() => {
+        toast.info("Generating charts and visualizations...");
+
+        setTimeout(() => {
+          setIsExporting(false);
+          setIsExportDialogOpen(false);
+
+          toast.success("Dashboard data exported successfully!");
+
+          // Simulate file download
+          setTimeout(() => {
+            const link = document.createElement("a");
+            link.href =
+              "data:application/pdf;base64,JVBERi0xLjcKJeLjz9MKNSAwIG9iago8PAovRmlsdGVyIC9GbGF0ZURlY29kZQovTGVuZ3RoIDM4Cj4+CnN0cmVhbQp4nCvkMlAwUDC1NNUzMVGwMDHUszRSKErMKwktStVLLCjISQUAXX8HCWVUC3RzdHJ1Y3R1cmUgdHJlZQo1IDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovS2lkcyBbNiAwIFJdCi9Db3VudCAxCj4+CmVuZG9iago2IDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCi9SZXNvdXJjZXMgPDwKL0ZvbnQgPDwKL0YxIDcgMCBSCj4+Cj4+Ci9Db250ZW50cyA4IDAgUgovUGFyZW50IDUgMCBSCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9GaWx0ZXIgL0ZsYXRlRGVjb2RlCi9MZW5ndGggMTI5Cj4+CnN0cmVhbQp4nDPQM1QwUDAzNVEwMDRRMAdiCwVDCwUjPQMzE4WiRCCXK5zzUCGXS8FYz8xEwdxAz9JIwdLI0FDBxNTM0kjBzMzC0NTSQMHMwMjA0MhIwcDcwMDY0sJYwdDC0NjC0AQAKXgTnAplbmRzdHJlYW0KZW5kb2JqCjcgMCBvYmoKPDwKL1R5cGUgL0ZvbnQKL1N1YnR5cGUgL1R5cGUxCi9CYXNlRm9udCAvSGVsdmV0aWNhCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCj4+CmVuZG9iagozIDAgb2JqCjw8Cj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyA1IDAgUgo+PgplbmRvYmoKNCAwIG9iago8PAovUHJvZHVjZXIgKGlUZXh0IDIuMS43IGJ5IDFUM1hUKQovTW9kRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKL0NyZWF0aW9uRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKPj4KZW5kb2JqCnhyZWYKMCA5CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwNTc1IDAwMDAwIG4gCjAwMDAwMDA1NDYgMDAwMDAgbiAKMDAwMDAwMDYyNCAwMDAwMCBuIAowMDAwMDAwMDkzIDAwMDAwIG4gCjAwMDAwMDAxNDkgMDAwMDAgbiAKMDAwMDAwMDQ2NyAwMDAwMCBuIAowMDAwMDAwMjc5IDAwMDAwIG4gCnRyYWlsZXIKPDwKL1NpemUgOQovUm9vdCAyIDAgUgovSW5mbyA0IDAgUgovSUQgWzw2YWJhMzBhZGY3YTRmMzc1YmFkMWJmMTk4ZWNjMGIyZD4gPDZhYmEzMGFkZjdhNGYzNzViYWQxYmYxOThlY2MwYjJkPl0KPj4Kc3RhcnR4cmVmCjczNAolJUVPRgo=";
+
+            // Set the filename based on the selected format
+            const filename = `dashboard_export_${dateFilter}_${
+              new Date().toISOString().split("T")[0]
+            }.${exportFormat}`;
+            link.setAttribute("download", filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }, 500);
+        }, 800);
+      }, 800);
+    }, 800);
   };
 
   const handleCardClick = (destination: string) => {
@@ -403,6 +472,133 @@ const Dashboard: React.FC = () => {
           </div>
         </>
       )}
+
+      {/* Export Dialog */}
+      <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Export Dashboard Data</DialogTitle>
+            <DialogDescription>
+              Choose your export options and format
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Export Format</h3>
+              <RadioGroup
+                value={exportFormat}
+                onValueChange={(value) =>
+                  setExportFormat(value as "pdf" | "excel" | "csv")
+                }
+                className="flex flex-col space-y-1"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="pdf" id="pdf" />
+                  <Label htmlFor="pdf" className="flex items-center">
+                    <FileText className="h-4 w-4 mr-2" />
+                    PDF Document
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="excel" id="excel" />
+                  <Label htmlFor="excel" className="flex items-center">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Excel Spreadsheet
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="csv" id="csv" />
+                  <Label htmlFor="csv" className="flex items-center">
+                    <FileText className="h-4 w-4 mr-2" />
+                    CSV File
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Include in Export</h3>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="charts"
+                    checked={includeCharts}
+                    onCheckedChange={(checked) =>
+                      setIncludeCharts(checked as boolean)
+                    }
+                  />
+                  <Label htmlFor="charts" className="flex items-center">
+                    <BarChart2 className="h-4 w-4 mr-2" />
+                    Charts and Visualizations
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="projects"
+                    checked={includeProjects}
+                    onCheckedChange={(checked) =>
+                      setIncludeProjects(checked as boolean)
+                    }
+                  />
+                  <Label htmlFor="projects" className="flex items-center">
+                    <Briefcase className="h-4 w-4 mr-2" />
+                    Project Data
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="workorders"
+                    checked={includeWorkOrders}
+                    onCheckedChange={(checked) =>
+                      setIncludeWorkOrders(checked as boolean)
+                    }
+                  />
+                  <Label htmlFor="workorders" className="flex items-center">
+                    <Construction className="h-4 w-4 mr-2" />
+                    Work Order Data
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="financials"
+                    checked={includeFinancials}
+                    onCheckedChange={(checked) =>
+                      setIncludeFinancials(checked as boolean)
+                    }
+                  />
+                  <Label htmlFor="financials" className="flex items-center">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Financial Data
+                  </Label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsExportDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={executeExport} disabled={isExporting}>
+              {isExporting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" />
+                  Export
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
