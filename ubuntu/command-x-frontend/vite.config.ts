@@ -4,6 +4,7 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [react()],
+  base: "/",
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -13,5 +14,9 @@ export default defineConfig({
     rollupOptions: {
       external: ["jwt-decode"],
     },
+    outDir: "dist",
+    assetsDir: "assets",
+    sourcemap: true,
+    minify: "terser",
   },
 });
