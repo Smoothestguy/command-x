@@ -1,7 +1,7 @@
 [build]
   base = "ubuntu/command-x-frontend"
   publish = "dist"
-  command = "pnpm install --no-frozen-lockfile && CI=false pnpm run build:no-typecheck"
+  command = "cd ubuntu/command-x-frontend && pnpm install --no-frozen-lockfile && CI=false pnpm run build:no-typecheck"
 
 [build.environment]
   NODE_VERSION = "18"
