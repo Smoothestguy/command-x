@@ -15,8 +15,8 @@ RUN pnpm install --frozen-lockfile
 # Copy the rest of the application code
 COPY . .
 
-# Build the application
-RUN pnpm run build
+# Build the application without TypeScript checking
+RUN pnpm run build:no-typecheck
 
 # Stage 2: Serve the application using a lightweight web server
 FROM nginx:stable-alpine

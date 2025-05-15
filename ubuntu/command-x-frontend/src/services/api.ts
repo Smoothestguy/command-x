@@ -12,7 +12,7 @@ import axios, { AxiosRequestConfig } from "axios";
 // Create base Axios instance
 const apiClient = axios.create({
   // You might set a common base URL if using an API Gateway
-  baseURL: "http://localhost:8081/api", // Set to the frontend URL for mock data
+  baseURL: "http://localhost:8082/api", // Set to the frontend URL for mock data
   headers: {
     "Content-Type": "application/json",
   },
