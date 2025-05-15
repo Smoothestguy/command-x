@@ -1,12 +1,18 @@
 [build]
   base = "."
   publish = "dist"
-  command = "pnpm install --no-frozen-lockfile && CI=false pnpm run build:no-typecheck"
+  command = "pnpm install --no-frozen-lockfile && pnpm add terser -D && CI=false pnpm run build:no-typecheck"
 
 [build.environment]
   NODE_VERSION = "18"
+  VITE_BASE_URL = "/"
 
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+[[headers]]
+  for = "/*"
+    [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

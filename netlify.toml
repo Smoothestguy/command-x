@@ -1,7 +1,7 @@
 [build]
-  base = "."
-  publish = "ubuntu/command-x-frontend/dist"
-  command = "npm install --legacy-peer-deps && cd ubuntu/command-x-frontend && npm install terser --save-dev && cd .. && cd .. && npm run build"
+  base = "ubuntu/command-x-frontend"
+  publish = "dist"
+  command = "pnpm install --no-frozen-lockfile && pnpm add terser -D && CI=false pnpm run build:no-typecheck"
 
 [build.environment]
   NODE_VERSION = "18"
