@@ -10,10 +10,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
-
-# Install jwt-decode package
-RUN pnpm add jwt-decode
+RUN pnpm install --no-frozen-lockfile
 
 # Copy the rest of the application code
 COPY . .
