@@ -1,0 +1,9 @@
+{
+  "name": "command-x-root",
+  "version": "1.0.0",
+  "description": "Root package for Command-X application",
+  "scripts": {
+    "build": "cd ubuntu/command-x-frontend && pnpm install --no-frozen-lockfile && CI=false pnpm run build:no-typecheck"
+  },
+  "private": true
+}
