@@ -9,11 +9,11 @@ WORKDIR /app
 # Copy package.json and pnpm-lock.yaml
 COPY package.json pnpm-lock.yaml ./
 
+# Add jwt-decode to package.json
+RUN npm pkg set dependencies.jwt-decode="^4.0.0"
+
 # Install dependencies
 RUN pnpm install --no-frozen-lockfile
-
-# Install jwt-decode explicitly
-RUN npm install jwt-decode
 
 # Copy the rest of the application code
 COPY . .
