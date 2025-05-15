@@ -1,0 +1,38 @@
+/* Styles for large screens (1440px and above) */
+
+@media screen and (min-width: 1440px) {
+  /* Ensure text is visible and properly formatted on large screens */
+  .table-cell-content {
+    max-width: none;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  /* Light mode text colors */
+  :root:not(.dark) .table-cell-content,
+  :root:not(.dark) th,
+  :root:not(.dark) td {
+    color: #27272a; /* zinc-800 */
+  }
+
+  /* Dark mode text colors */
+  .dark .table-cell-content,
+  .dark th,
+  .dark td {
+    color: #e4e4e7; /* zinc-200 */
+  }
+
+  /* Improve table layout for large screens */
+  table {
+    table-layout: auto;
+  }
+
+  /* Ensure badges and status indicators are visible */
+  .badge,
+  [class*="rounded-full"],
+  [class*="rounded-md"] {
+    display: inline-block;
+    visibility: visible;
+  }
+}
