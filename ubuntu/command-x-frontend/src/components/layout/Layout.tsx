@@ -44,7 +44,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, []);
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 relative">
+    <div className="flex h-screen bg-gray-50 relative">
       {/* Mobile sidebar overlay */}
       {isMobileView && sidebarOpen && (
         <div
@@ -78,7 +78,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </Button>
         </Header>
         <main
-          className={`flex-1 overflow-x-hidden overflow-y-auto bg-gray-200 dark:bg-gray-800 p-2 sm:p-4 md:p-6
+          className={`flex-1 overflow-x-hidden overflow-y-auto bg-gray-200 p-2 sm:p-4 md:p-6
           ${
             isIPhone
               ? "iphone-padding-bottom iphone-padding-left iphone-padding-right"

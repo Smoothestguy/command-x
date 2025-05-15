@@ -44,15 +44,15 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
   const getStatusColor = (status?: string) => {
     switch (status) {
       case "In Progress":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100";
+        return "bg-blue-100 text-blue-800";
       case "Completed":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100";
+        return "bg-green-100 text-green-800";
       case "Planning":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100";
+        return "bg-purple-100 text-purple-800";
       case "Pending":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100";
+        return "bg-yellow-100 text-yellow-800";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100";
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -60,15 +60,15 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
   const getPriorityColor = (priority?: string) => {
     switch (priority) {
       case "Critical":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100";
+        return "bg-red-100 text-red-800";
       case "High":
-        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100";
+        return "bg-orange-100 text-orange-800";
       case "Medium":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100";
+        return "bg-yellow-100 text-yellow-800";
       case "Low":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100";
+        return "bg-green-100 text-green-800";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100";
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -88,9 +88,7 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
     <>
       {/* Main row */}
       <TableRow
-        className={`cursor-pointer ${
-          isExpanded ? "bg-gray-50 dark:bg-gray-800" : ""
-        }`}
+        className={`cursor-pointer ${isExpanded ? "bg-gray-50" : ""}`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
         {columns.includes("name") && (
@@ -205,7 +203,7 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
       {isExpanded && (
         <TableRow>
           <TableCell colSpan={columns.length + 1} className="p-0">
-            <div className="p-4 bg-gray-50 dark:bg-gray-800">
+            <div className="p-4 bg-gray-50">
               <Tabs defaultValue="details">
                 <TabsList className="mb-4">
                   <TabsTrigger value="details">
@@ -234,7 +232,7 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
                         <h3 className="font-medium mb-2">
                           Project Description
                         </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                        <p className="text-sm text-gray-600">
                           {project.description || "No description available."}
                         </p>
 
@@ -242,33 +240,17 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
                           Project Details
                         </h3>
                         <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div className="text-gray-500 dark:text-gray-400">
-                            Category:
-                          </div>
-                          <div className="dark:text-gray-300">
-                            {project.category || "-"}
-                          </div>
+                          <div className="text-gray-500">Category:</div>
+                          <div>{project.category || "-"}</div>
 
-                          <div className="text-gray-500 dark:text-gray-400">
-                            Risk Level:
-                          </div>
-                          <div className="dark:text-gray-300">
-                            {project.risk_level || "-"}
-                          </div>
+                          <div className="text-gray-500">Risk Level:</div>
+                          <div>{project.risk_level || "-"}</div>
 
-                          <div className="text-gray-500 dark:text-gray-400">
-                            Created:
-                          </div>
-                          <div className="dark:text-gray-300">
-                            {formatDate(project.created_at)}
-                          </div>
+                          <div className="text-gray-500">Created:</div>
+                          <div>{formatDate(project.created_at)}</div>
 
-                          <div className="text-gray-500 dark:text-gray-400">
-                            Last Updated:
-                          </div>
-                          <div className="dark:text-gray-300">
-                            {formatDate(project.updated_at)}
-                          </div>
+                          <div className="text-gray-500">Last Updated:</div>
+                          <div>{formatDate(project.updated_at)}</div>
                         </div>
                       </CardContent>
                     </Card>
@@ -295,7 +277,7 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
                               // Use className for styling instead of indicatorClassName
                               // The indicator will be styled with CSS
                             />
-                            <div className="text-right text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <div className="text-right text-xs text-gray-500 mt-1">
                               {budgetUtilization.toFixed(1)}%
                             </div>
                           </div>
@@ -316,7 +298,7 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
                               className="h-2"
                               // Use className for styling instead of indicatorClassName
                             />
-                            <div className="text-right text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <div className="text-right text-xs text-gray-500 mt-1">
                               {timeUtilization.toFixed(1)}%
                             </div>
                           </div>

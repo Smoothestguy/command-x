@@ -11,7 +11,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 interface HeaderProps {
   children?: React.ReactNode;
@@ -61,7 +60,6 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
 
       {/* Desktop view */}
       <div className="hidden md:flex items-center gap-4">
-        <ThemeToggle />
         {user && (
           <>
             <div className="flex items-center gap-2">
@@ -82,8 +80,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
       </div>
 
       {/* Mobile view */}
-      <div className="md:hidden flex items-center gap-2">
-        <ThemeToggle />
+      <div className="md:hidden">
         {user && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
