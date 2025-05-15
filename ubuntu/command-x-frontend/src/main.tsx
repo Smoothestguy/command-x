@@ -15,8 +15,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider enableAutoTheme={true}>
-          <Toaster position="top-right" />
+        <ThemeProvider defaultTheme="dark" enableAutoTheme={true}>
+          <Toaster position="top-right" theme="system" />
           <App />
         </ThemeProvider>
       </QueryClientProvider>

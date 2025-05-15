@@ -53,20 +53,20 @@ export function ThemeProvider({
   useEffect(() => {
     if (!isAutoTheme) return;
 
+    // Function to apply the time-based theme
+    const applyTimeBasedTheme = () => {
+      const timeBasedTheme = getThemeByTime();
+      setTheme(timeBasedTheme);
+    };
+
     // Initial theme setting
-    const timeBasedTheme = getThemeByTime();
-    document.documentElement.classList.remove("light", "dark");
-    document.documentElement.classList.add(timeBasedTheme);
+    applyTimeBasedTheme();
 
     // Set up interval to check time and update theme
-    const interval = setInterval(() => {
-      const newTheme = getThemeByTime();
-      document.documentElement.classList.remove("light", "dark");
-      document.documentElement.classList.add(newTheme);
-    }, 60000); // Check every minute
+    const interval = setInterval(applyTimeBasedTheme, 60000); // Check every minute
 
     return () => clearInterval(interval);
-  }, [isAutoTheme, lightStart, darkStart]);
+  }, [isAutoTheme, lightStart, darkStart, setTheme]);
 
   return (
     <NextThemesProvider

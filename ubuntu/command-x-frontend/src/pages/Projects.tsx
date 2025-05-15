@@ -357,12 +357,14 @@ const Projects: React.FC = () => {
   };
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="p-4 md:p-8 bg-white dark:bg-gray-900 rounded-lg shadow">
       {/* Mobile-optimized header with centered title */}
       <div className="flex flex-col mb-6">
-        <h1 className="text-3xl font-bold text-center mb-4">Projects</h1>
+        <h1 className="text-3xl font-bold text-center mb-4 dark:text-white">
+          Projects
+        </h1>
         <div className="flex flex-wrap justify-center gap-2">
-          <div className="flex border rounded-md overflow-hidden">
+          <div className="flex border dark:border-gray-700 rounded-md overflow-hidden">
             <Button
               variant={viewMode === "table" ? "default" : "outline"}
               size="sm"
@@ -498,12 +500,12 @@ const Projects: React.FC = () => {
                         <div
                           className={`px-2 py-1 rounded-full text-xs text-center ${
                             project.status === "In Progress"
-                              ? "bg-blue-100 text-blue-800"
+                              ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100"
                               : project.status === "Completed"
-                              ? "bg-green-100 text-green-800"
+                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
                               : project.status === "Planning"
-                              ? "bg-purple-100 text-purple-800"
-                              : "bg-gray-100 text-gray-800"
+                              ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100"
+                              : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100"
                           }`}
                         >
                           {project.status || "Unknown"}
@@ -553,7 +555,7 @@ const Projects: React.FC = () => {
               )}
 
               {filteredProjects.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                   No projects match your current filters.
                 </div>
               )}
