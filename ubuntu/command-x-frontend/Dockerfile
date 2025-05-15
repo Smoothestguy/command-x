@@ -9,8 +9,9 @@ WORKDIR /app
 # Copy package.json and pnpm-lock.yaml
 COPY package.json pnpm-lock.yaml ./
 
-# Add jwt-decode to package.json
-RUN npm pkg set dependencies.jwt-decode="^4.0.0"
+# Add jwt-decode and terser to package.json
+RUN npm pkg set dependencies.jwt-decode="^4.0.0" && \
+    npm pkg set devDependencies.terser="^5.29.2"
 
 # Install dependencies
 RUN pnpm install --no-frozen-lockfile
