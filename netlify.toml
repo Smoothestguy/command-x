@@ -1,7 +1,7 @@
 [build]
   base = "ubuntu/command-x-frontend"
   publish = "dist"
-  command = "npm install -g pnpm && npm pkg set dependencies.jwt-decode=\"^4.0.0\" && npm pkg set devDependencies.terser=\"^5.29.2\" && pnpm install --no-frozen-lockfile && pnpm run build:no-typecheck"
+  command = "npm install --legacy-peer-deps && npm run build:no-typecheck"
 
 [build.environment]
   NODE_VERSION = "18"
