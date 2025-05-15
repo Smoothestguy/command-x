@@ -1,6 +1,6 @@
 [build]
-  base = "ubuntu/command-x-frontend"
-  publish = "dist"
+  base = "."
+  publish = "ubuntu/command-x-frontend/dist"
   command = "cd ubuntu/command-x-frontend && pnpm install --no-frozen-lockfile && CI=false pnpm run build:no-typecheck"
 
 [build.environment]
