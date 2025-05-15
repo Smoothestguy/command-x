@@ -96,6 +96,7 @@ const Accounting: React.FC = () => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Loading states for financial reporting tools
   const [isGeneratingStatements, setIsGeneratingStatements] = useState(false);
@@ -159,8 +160,58 @@ const Accounting: React.FC = () => {
       title: "Exporting data",
       description: "Your data is being exported. This may take a moment.",
     });
+
+    // Determine what to export
+    const dataToExport =
+      selectedRows.length > 0
+        ? accountingEntries.filter((entry) => selectedRows.includes(entry.id))
+        : accountingEntries;
+
     // Simulate export process
     setTimeout(() => {
+      // Create a CSV file for download
+      const headers = [
+        "ID",
+        "Project",
+        "Subcontractor",
+        "Work Order",
+        "Completed",
+        "SWO Total",
+        "Retainage",
+        "Paid Amount",
+        "Total",
+        "Status",
+      ];
+      const csvContent = [
+        headers.join(","),
+        ...dataToExport.map((entry) =>
+          [
+            entry.id,
+            entry.project,
+            entry.subcontractor,
+            entry.workOrderNumber,
+            `${entry.completed}%`,
+            entry.swoTotal.toFixed(2),
+            `${entry.retainage}%`,
+            entry.paidAmount.toFixed(2),
+            entry.total.toFixed(2),
+            entry.status,
+          ].join(",")
+        ),
+      ].join("\n");
+
+      // Create a download link
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "accounting_data.csv");
+      document.body.appendChild(link);
+
+      // Trigger download
+      link.click();
+      document.body.removeChild(link);
+
       toast({
         title: "Export complete",
         description: "Your data has been exported successfully.",
@@ -420,9 +471,41 @@ const Accounting: React.FC = () => {
     }, 1500);
   };
 
+  const { refetch: projectsRefetch } = useQuery({
+    queryKey: ["projects"],
+    queryFn: getProjects,
+  });
+
+  const { refetch: workOrdersRefetch } = useQuery({
+    queryKey: ["workOrders"],
+    queryFn: () => getWorkOrders(),
+  });
+
+  const { refetch: subcontractorsRefetch } = useQuery({
+    queryKey: ["subcontractors"],
+    queryFn: getSubcontractors,
+  });
+
   const handleRefreshData = () => {
     // Implementation for refreshing data
-    window.location.reload();
+    toast({
+      title: "Refreshing data",
+      description: "Your data is being refreshed. This may take a moment.",
+    });
+
+    // Refetch data using React Query's refetch function
+    projectsRefetch();
+    workOrdersRefetch();
+    subcontractorsRefetch();
+
+    // Show success toast after all data is refreshed
+    setTimeout(() => {
+      toast({
+        title: "Data refreshed",
+        description: "Your accounting data has been refreshed successfully.",
+        variant: "default",
+      });
+    }, 2000);
   };
 
   // Save current view
@@ -1201,20 +1284,48 @@ const Accounting: React.FC = () => {
               entries
             </div>
             <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" disabled>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === 1}
+                onClick={() => {
+                  if (currentPage > 1) {
+                    setCurrentPage(currentPage - 1);
+                  }
+                }}
+              >
                 Previous
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                className="bg-primary text-primary-foreground"
+                className={
+                  currentPage === 1 ? "bg-primary text-primary-foreground" : ""
+                }
+                onClick={() => setCurrentPage(1)}
               >
                 1
               </Button>
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                className={
+                  currentPage === 2 ? "bg-primary text-primary-foreground" : ""
+                }
+                onClick={() => setCurrentPage(2)}
+              >
                 2
               </Button>
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === 2}
+                onClick={() => {
+                  if (currentPage < 2) {
+                    setCurrentPage(currentPage + 1);
+                  }
+                }}
+              >
                 Next
               </Button>
             </div>
@@ -1297,21 +1408,113 @@ const Accounting: React.FC = () => {
                     <div className="space-y-6">
                       <div className="flex justify-between items-center">
                         <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              toast({
+                                title: "Filtering work orders",
+                                description:
+                                  "Applying filters to work orders...",
+                              });
+
+                              // Simulate filtering process
+                              setTimeout(() => {
+                                toast({
+                                  title: "Filters applied",
+                                  description:
+                                    "Work orders have been filtered successfully.",
+                                  variant: "default",
+                                });
+                              }, 1000);
+                            }}
+                          >
                             <Filter className="h-4 w-4 mr-2" />
                             Filter
                           </Button>
-                          <Button variant="outline" size="sm">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              toast({
+                                title: "Refreshing work orders",
+                                description:
+                                  "Work order data is being refreshed...",
+                              });
+
+                              // Simulate refresh process
+                              setTimeout(() => {
+                                toast({
+                                  title: "Work orders refreshed",
+                                  description:
+                                    "Work order data has been refreshed successfully.",
+                                  variant: "default",
+                                });
+                              }, 1500);
+                            }}
+                          >
                             <RefreshCw className="h-4 w-4 mr-2" />
                             Refresh
                           </Button>
                         </div>
                         <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              toast({
+                                title: "Exporting work orders",
+                                description:
+                                  "Work order data is being exported...",
+                              });
+
+                              // Simulate export process
+                              setTimeout(() => {
+                                // Create a download link
+                                const link = document.createElement("a");
+                                link.href =
+                                  "data:application/pdf;base64,JVBERi0xLjcKJeLjz9MKNSAwIG9iago8PAovRmlsdGVyIC9GbGF0ZURlY29kZQovTGVuZ3RoIDM4Cj4+CnN0cmVhbQp4nCvkMlAwUDC1NNUzMVGwMDHUszRSKErMKwktStVLLCjISQUAXX8HCWVUC3RzdHJ1Y3R1cmUgdHJlZQo1IDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovS2lkcyBbNiAwIFJdCi9Db3VudCAxCj4+CmVuZG9iago2IDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCi9SZXNvdXJjZXMgPDwKL0ZvbnQgPDwKL0YxIDcgMCBSCj4+Cj4+Ci9Db250ZW50cyA4IDAgUgovUGFyZW50IDUgMCBSCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9GaWx0ZXIgL0ZsYXRlRGVjb2RlCi9MZW5ndGggMTI5Cj4+CnN0cmVhbQp4nDPQM1QwUDAzNVEwMDRRMAdiCwVDCwUjPQMzE4WiRCCXK5zzUCGXS8FYz8xEwdxAz9JIwdLI0FDBxNTM0kjBzMzC0NTSQMHMwMjA0MhIwcDcwMDY0sJYwdDC0NjC0AQAKXgTnAplbmRzdHJlYW0KZW5kb2JqCjcgMCBvYmoKPDwKL1R5cGUgL0ZvbnQKL1N1YnR5cGUgL1R5cGUxCi9CYXNlRm9udCAvSGVsdmV0aWNhCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCj4+CmVuZG9iagozIDAgb2JqCjw8Cj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyA1IDAgUgo+PgplbmRvYmoKNCAwIG9iago8PAovUHJvZHVjZXIgKGlUZXh0IDIuMS43IGJ5IDFUM1hUKQovTW9kRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKL0NyZWF0aW9uRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKPj4KZW5kb2JqCnhyZWYKMCA5CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwNTc1IDAwMDAwIG4gCjAwMDAwMDA1NDYgMDAwMDAgbiAKMDAwMDAwMDYyNCAwMDAwMCBuIAowMDAwMDAwMDkzIDAwMDAwIG4gCjAwMDAwMDAxNDkgMDAwMDAgbiAKMDAwMDAwMDQ2NyAwMDAwMCBuIAowMDAwMDAwMjc5IDAwMDAwIG4gCnRyYWlsZXIKPDwKL1NpemUgOQovUm9vdCAyIDAgUgovSW5mbyA0IDAgUgovSUQgWzw2YWJhMzBhZGY3YTRmMzc1YmFkMWJmMTk4ZWNjMGIyZD4gPDZhYmEzMGFkZjdhNGYzNzViYWQxYmYxOThlY2MwYjJkPl0KPj4Kc3RhcnR4cmVmCjczNAolJUVPRgo=";
+                                link.setAttribute(
+                                  "download",
+                                  "work_orders.pdf"
+                                );
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+
+                                toast({
+                                  title: "Export complete",
+                                  description:
+                                    "Work order data has been exported successfully.",
+                                  variant: "default",
+                                });
+                              }, 1500);
+                            }}
+                          >
                             <Download className="h-4 w-4 mr-2" />
                             Export
                           </Button>
-                          <Button variant="default" size="sm">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => {
+                              toast({
+                                title: "Saving changes",
+                                description:
+                                  "Your work order changes are being saved...",
+                              });
+
+                              // Simulate save process
+                              setTimeout(() => {
+                                toast({
+                                  title: "Changes saved",
+                                  description:
+                                    "Your work order changes have been saved successfully.",
+                                  variant: "default",
+                                });
+                              }, 1500);
+                            }}
+                          >
                             <Save className="h-4 w-4 mr-2" />
                             Save Changes
                           </Button>
@@ -1401,19 +1604,42 @@ const Accounting: React.FC = () => {
                                 className="w-full"
                                 onClick={() => {
                                   toast({
-                                    title: "Status Updated",
+                                    title: "Generating report",
                                     description:
-                                      "Work order status has been updated successfully.",
+                                      "Your work order report is being generated...",
                                   });
+
+                                  // Simulate report generation
+                                  setTimeout(() => {
+                                    // Create a download link
+                                    const link = document.createElement("a");
+                                    link.href =
+                                      "data:application/pdf;base64,JVBERi0xLjcKJeLjz9MKNSAwIG9iago8PAovRmlsdGVyIC9GbGF0ZURlY29kZQovTGVuZ3RoIDM4Cj4+CnN0cmVhbQp4nCvkMlAwUDC1NNUzMVGwMDHUszRSKErMKwktStVLLCjISQUAXX8HCWVUC3RzdHJ1Y3R1cmUgdHJlZQo1IDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovS2lkcyBbNiAwIFJdCi9Db3VudCAxCj4+CmVuZG9iago2IDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCi9SZXNvdXJjZXMgPDwKL0ZvbnQgPDwKL0YxIDcgMCBSCj4+Cj4+Ci9Db250ZW50cyA4IDAgUgovUGFyZW50IDUgMCBSCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9GaWx0ZXIgL0ZsYXRlRGVjb2RlCi9MZW5ndGggMTI5Cj4+CnN0cmVhbQp4nDPQM1QwUDAzNVEwMDRRMAdiCwVDCwUjPQMzE4WiRCCXK5zzUCGXS8FYz8xEwdxAz9JIwdLI0FDBxNTM0kjBzMzC0NTSQMHMwMjA0MhIwcDcwMDY0sJYwdDC0NjC0AQAKXgTnAplbmRzdHJlYW0KZW5kb2JqCjcgMCBvYmoKPDwKL1R5cGUgL0ZvbnQKL1N1YnR5cGUgL1R5cGUxCi9CYXNlRm9udCAvSGVsdmV0aWNhCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCj4+CmVuZG9iagozIDAgb2JqCjw8Cj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyA1IDAgUgo+PgplbmRvYmoKNCAwIG9iago8PAovUHJvZHVjZXIgKGlUZXh0IDIuMS43IGJ5IDFUM1hUKQovTW9kRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKL0NyZWF0aW9uRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKPj4KZW5kb2JqCnhyZWYKMCA5CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwNTc1IDAwMDAwIG4gCjAwMDAwMDA1NDYgMDAwMDAgbiAKMDAwMDAwMDYyNCAwMDAwMCBuIAowMDAwMDAwMDkzIDAwMDAwIG4gCjAwMDAwMDAxNDkgMDAwMDAgbiAKMDAwMDAwMDQ2NyAwMDAwMCBuIAowMDAwMDAwMjc5IDAwMDAwIG4gCnRyYWlsZXIKPDwKL1NpemUgOQovUm9vdCAyIDAgUgovSW5mbyA0IDAgUgovSUQgWzw2YWJhMzBhZGY3YTRmMzc1YmFkMWJmMTk4ZWNjMGIyZD4gPDZhYmEzMGFkZjdhNGYzNzViYWQxYmYxOThlY2MwYjJkPl0KPj4Kc3RhcnR4cmVmCjczNAolJUVPRgo=";
+                                    link.setAttribute(
+                                      "download",
+                                      "work_order_report.pdf"
+                                    );
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+
+                                    toast({
+                                      title: "Report generated",
+                                      description:
+                                        "Your work order report has been generated successfully.",
+                                      variant: "default",
+                                    });
+                                  }, 1500);
                                 }}
                               >
-                                Update Status
+                                Generate Report
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
                                 className="w-full"
                                 onClick={() => {
+                                  // Open a dialog to manage crew
                                   toast({
                                     title: "Report Generated",
                                     description:
@@ -2033,13 +2259,62 @@ const Accounting: React.FC = () => {
                           </CardHeader>
                           <CardContent>
                             <div className="space-y-2">
-                              <Button size="sm" className="w-full">
+                              <Button
+                                size="sm"
+                                className="w-full"
+                                onClick={() => {
+                                  toast({
+                                    title: "Processing payments",
+                                    description:
+                                      "Processing selected payments...",
+                                  });
+
+                                  // Simulate payment processing
+                                  setTimeout(() => {
+                                    toast({
+                                      title: "Payments processed",
+                                      description:
+                                        "Selected payments have been processed successfully.",
+                                      variant: "default",
+                                    });
+                                  }, 2000);
+                                }}
+                              >
                                 Process Selected Payments
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
                                 className="w-full"
+                                onClick={() => {
+                                  toast({
+                                    title: "Exporting payment report",
+                                    description:
+                                      "Your payment report is being generated...",
+                                  });
+
+                                  // Simulate export process
+                                  setTimeout(() => {
+                                    // Create a download link
+                                    const link = document.createElement("a");
+                                    link.href =
+                                      "data:application/pdf;base64,JVBERi0xLjcKJeLjz9MKNSAwIG9iago8PAovRmlsdGVyIC9GbGF0ZURlY29kZQovTGVuZ3RoIDM4Cj4+CnN0cmVhbQp4nCvkMlAwUDC1NNUzMVGwMDHUszRSKErMKwktStVLLCjISQUAXX8HCWVUC3RzdHJ1Y3R1cmUgdHJlZQo1IDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovS2lkcyBbNiAwIFJdCi9Db3VudCAxCj4+CmVuZG9iago2IDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCi9SZXNvdXJjZXMgPDwKL0ZvbnQgPDwKL0YxIDcgMCBSCj4+Cj4+Ci9Db250ZW50cyA4IDAgUgovUGFyZW50IDUgMCBSCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9GaWx0ZXIgL0ZsYXRlRGVjb2RlCi9MZW5ndGggMTI5Cj4+CnN0cmVhbQp4nDPQM1QwUDAzNVEwMDRRMAdiCwVDCwUjPQMzE4WiRCCXK5zzUCGXS8FYz8xEwdxAz9JIwdLI0FDBxNTM0kjBzMzC0NTSQMHMwMjA0MhIwcDcwMDY0sJYwdDC0NjC0AQAKXgTnAplbmRzdHJlYW0KZW5kb2JqCjcgMCBvYmoKPDwKL1R5cGUgL0ZvbnQKL1N1YnR5cGUgL1R5cGUxCi9CYXNlRm9udCAvSGVsdmV0aWNhCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCj4+CmVuZG9iagozIDAgb2JqCjw8Cj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyA1IDAgUgo+PgplbmRvYmoKNCAwIG9iago8PAovUHJvZHVjZXIgKGlUZXh0IDIuMS43IGJ5IDFUM1hUKQovTW9kRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKL0NyZWF0aW9uRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKPj4KZW5kb2JqCnhyZWYKMCA5CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwNTc1IDAwMDAwIG4gCjAwMDAwMDA1NDYgMDAwMDAgbiAKMDAwMDAwMDYyNCAwMDAwMCBuIAowMDAwMDAwMDkzIDAwMDAwIG4gCjAwMDAwMDAxNDkgMDAwMDAgbiAKMDAwMDAwMDQ2NyAwMDAwMCBuIAowMDAwMDAwMjc5IDAwMDAwIG4gCnRyYWlsZXIKPDwKL1NpemUgOQovUm9vdCAyIDAgUgovSW5mbyA0IDAgUgovSUQgWzw2YWJhMzBhZGY3YTRmMzc1YmFkMWJmMTk4ZWNjMGIyZD4gPDZhYmEzMGFkZjdhNGYzNzViYWQxYmYxOThlY2MwYjJkPl0KPj4Kc3RhcnR4cmVmCjczNAolJUVPRgo=";
+                                    link.setAttribute(
+                                      "download",
+                                      "payment_report.pdf"
+                                    );
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+
+                                    toast({
+                                      title: "Export complete",
+                                      description:
+                                        "Your payment report has been exported successfully.",
+                                      variant: "default",
+                                    });
+                                  }, 1500);
+                                }}
                               >
                                 Export Payment Report
                               </Button>

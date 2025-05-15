@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye, Edit } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 // Define the type for payment status data
 interface PaymentStatusData {
@@ -55,7 +56,7 @@ const paymentStatusData: PaymentStatusData[] = [
     percentApproved: 0,
     percentWaitingApproval: 0,
     percentComplete: 100,
-    amountWaitingApproval: 0
+    amountWaitingApproval: 0,
   },
   {
     id: "2",
@@ -76,7 +77,7 @@ const paymentStatusData: PaymentStatusData[] = [
     percentApproved: 0,
     percentWaitingApproval: 0,
     percentComplete: 100,
-    amountWaitingApproval: 0
+    amountWaitingApproval: 0,
   },
   {
     id: "3",
@@ -97,7 +98,7 @@ const paymentStatusData: PaymentStatusData[] = [
     percentApproved: 0,
     percentWaitingApproval: 0,
     percentComplete: 100,
-    amountWaitingApproval: 0
+    amountWaitingApproval: 0,
   },
   {
     id: "4",
@@ -118,14 +119,14 @@ const paymentStatusData: PaymentStatusData[] = [
     percentApproved: 0,
     percentWaitingApproval: 0,
     percentComplete: 100,
-    amountWaitingApproval: 0
-  }
+    amountWaitingApproval: 0,
+  },
 ];
 
 // Helper function to render status badges
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   let bgColor = "";
-  
+
   if (status === "Completed") {
     bgColor = "bg-green-500";
   } else if (status === "Pending QC") {
@@ -135,18 +136,14 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   } else {
     bgColor = "bg-blue-500";
   }
-  
-  return (
-    <Badge className={`${bgColor} text-white`}>
-      {status}
-    </Badge>
-  );
+
+  return <Badge className={`${bgColor} text-white`}>{status}</Badge>;
 };
 
 // Helper function to render percentage cells with color coding
 const PercentageCell: React.FC<{ value: number }> = ({ value }) => {
   let bgColor = "";
-  
+
   if (value === 0) {
     bgColor = "bg-red-500";
   } else if (value === 100) {
@@ -158,29 +155,28 @@ const PercentageCell: React.FC<{ value: number }> = ({ value }) => {
   } else {
     bgColor = "bg-red-500";
   }
-  
+
   return (
     <TableCell className="text-center">
-      <Badge className={`${bgColor} text-white w-14`}>
-        {value}%
-      </Badge>
+      <Badge className={`${bgColor} text-white w-14`}>{value}%</Badge>
     </TableCell>
   );
 };
 
 // Format currency values
 const formatCurrency = (value: number) => {
-  return value === 0 ? 
-    "$0.00" : 
-    new Intl.NumberFormat('en-US', { 
-      style: 'currency', 
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2 
-    }).format(value);
+  return value === 0
+    ? "$0.00"
+    : new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(value);
 };
 
 const PaymentStatusTable: React.FC = () => {
+  const { toast } = useToast();
   return (
     <div className="rounded-md border overflow-x-auto">
       <Table>
@@ -188,7 +184,9 @@ const PaymentStatusTable: React.FC = () => {
           <TableRow>
             <TableHead className="text-center">Action</TableHead>
             <TableHead className="text-center">Project Name</TableHead>
-            <TableHead className="text-center">Subcontractors Company</TableHead>
+            <TableHead className="text-center">
+              Subcontractors Company
+            </TableHead>
             <TableHead className="text-center">Sub Work Order Status</TableHead>
             <TableHead className="text-center">Inspection Status</TableHead>
             <TableHead className="text-center">Payment Status</TableHead>
@@ -202,9 +200,13 @@ const PaymentStatusTable: React.FC = () => {
             <TableHead className="text-center">Complete Count</TableHead>
             <TableHead className="text-center">QC Total Count</TableHead>
             <TableHead className="text-center">% QC Approved</TableHead>
-            <TableHead className="text-center">% Value Waiting Approval</TableHead>
+            <TableHead className="text-center">
+              % Value Waiting Approval
+            </TableHead>
             <TableHead className="text-center">% Value Complete</TableHead>
-            <TableHead className="text-center">Amount Waiting Approval</TableHead>
+            <TableHead className="text-center">
+              Amount Waiting Approval
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -212,10 +214,32 @@ const PaymentStatusTable: React.FC = () => {
             <TableRow key={row.id} className="hover:bg-muted/50">
               <TableCell className="text-center">
                 <div className="flex space-x-2 justify-center">
-                  <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => {
+                      // Show payment details
+                      toast({
+                        title: "Viewing Payment Details",
+                        description: `Payment details for ${row.fullName} - Work Order ID: ${row.workOrderId}`,
+                      });
+                    }}
+                  >
                     <Eye className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => {
+                      // Edit payment details
+                      toast({
+                        title: "Editing Payment Details",
+                        description: `Now editing payment details for ${row.fullName} - Work Order ID: ${row.workOrderId}`,
+                      });
+                    }}
+                  >
                     <Edit className="h-4 w-4" />
                   </Button>
                 </div>
@@ -243,7 +267,9 @@ const PaymentStatusTable: React.FC = () => {
               <PercentageCell value={row.percentApproved} />
               <PercentageCell value={row.percentWaitingApproval} />
               <PercentageCell value={row.percentComplete} />
-              <TableCell className="text-center">{formatCurrency(row.amountWaitingApproval)}</TableCell>
+              <TableCell className="text-center">
+                {formatCurrency(row.amountWaitingApproval)}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
