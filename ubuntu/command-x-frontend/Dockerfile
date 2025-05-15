@@ -12,6 +12,9 @@ COPY package.json pnpm-lock.yaml ./
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
+# Install jwt-decode package
+RUN pnpm add jwt-decode
+
 # Copy the rest of the application code
 COPY . .
 
