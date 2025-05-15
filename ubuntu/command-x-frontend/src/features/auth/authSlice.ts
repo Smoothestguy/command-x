@@ -1,5 +1,15 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import apiClient from "../../services/api";
+import jwtDecode from "jwt-decode";
+
+// Define types for JWT payload
+interface JwtPayload {
+  id: number;
+  username: string;
+  role: string;
+  iat: number;
+  exp: number;
+}
 
 // Define types for user and auth state
 interface User {
@@ -14,6 +24,7 @@ interface AuthState {
   token: string | null;
   isLoading: boolean;
   error: string | null;
+  tokenExpiration: number | null;
 }
 
 // Define initial state
@@ -22,7 +33,34 @@ const initialState: AuthState = {
   token: localStorage.getItem("authToken"), // Initialize token from local storage
   isLoading: false,
   error: null,
+  tokenExpiration: null,
 };
+
+// Function to initialize state from stored token
+const initializeStateFromToken = (): Partial<AuthState> => {
+  const token = localStorage.getItem("authToken");
+  if (!token) return {};
+
+  try {
+    const decoded = jwtDecode<JwtPayload>(token);
+    return {
+      token,
+      tokenExpiration: decoded.exp * 1000, // Convert to milliseconds
+      user: {
+        userId: decoded.id,
+        username: decoded.username,
+        role: decoded.role,
+      },
+    };
+  } catch (error) {
+    // Invalid token
+    localStorage.removeItem("authToken");
+    return {};
+  }
+};
+
+// Apply the initialization
+Object.assign(initialState, initializeStateFromToken());
 
 // Import the loginUser function from the API service
 import { loginUser as apiLoginUser } from "../../services/api";
@@ -79,12 +117,22 @@ const authSlice = createSlice({
     logout: (state) => {
       state.user = null;
       state.token = null;
+      state.tokenExpiration = null;
       localStorage.removeItem("authToken");
     },
     // Reducer to manually set user/token if needed (e.g., on initial load)
     setUser: (state, action: PayloadAction<{ user: User; token: string }>) => {
       state.user = action.payload.user;
       state.token = action.payload.token;
+
+      try {
+        // Decode token to get expiration
+        const decoded = jwtDecode<JwtPayload>(action.payload.token);
+        state.tokenExpiration = decoded.exp * 1000; // Convert to milliseconds
+      } catch (error) {
+        console.error("Error decoding JWT token:", error);
+        state.tokenExpiration = null;
+      }
     },
   },
   extraReducers: (builder) => {
@@ -99,6 +147,15 @@ const authSlice = createSlice({
         state.token = action.payload.token;
         state.user = action.payload.user;
         state.error = null;
+
+        try {
+          // Decode token to get expiration
+          const decoded = jwtDecode<JwtPayload>(action.payload.token);
+          state.tokenExpiration = decoded.exp * 1000; // Convert to milliseconds
+        } catch (error) {
+          console.error("Error decoding JWT token:", error);
+        }
+
         // Save token to localStorage
         localStorage.setItem("authToken", action.payload.token);
       })
@@ -107,6 +164,7 @@ const authSlice = createSlice({
         state.error = action.payload as string;
         state.user = null;
         state.token = null;
+        state.tokenExpiration = null;
         localStorage.removeItem("authToken");
       })
       // Registration cases (optional)
@@ -126,4 +184,21 @@ const authSlice = createSlice({
 });
 
 export const { logout, setUser } = authSlice.actions;
+
+// Selector to check if the token is expired
+export const selectIsTokenExpired = (state: { auth: AuthState }) => {
+  const { tokenExpiration } = state.auth;
+  if (!tokenExpiration) return true;
+  return Date.now() > tokenExpiration;
+};
+
+// Selector to get the current user
+export const selectCurrentUser = (state: { auth: AuthState }) =>
+  state.auth.user;
+
+// Selector to check if the user is authenticated
+export const selectIsAuthenticated = (state: { auth: AuthState }) => {
+  return !!state.auth.token && !selectIsTokenExpired(state);
+};
+
 export default authSlice.reducer;
