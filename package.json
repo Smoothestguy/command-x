@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "Root package for Command-X application",
   "scripts": {
-    "build": "cd ubuntu/command-x-frontend && pnpm install --no-frozen-lockfile && CI=false pnpm run build:no-typecheck",
-    "postinstall": "cd ubuntu/command-x-frontend && npm install jwt-decode --legacy-peer-deps"
+    "build": "cd ubuntu/command-x-frontend && pnpm install --no-frozen-lockfile && pnpm add terser -D && CI=false pnpm run build:no-typecheck",
+    "postinstall": "cd ubuntu/command-x-frontend && npm install jwt-decode terser --legacy-peer-deps"
   },
   "dependencies": {
     "jwt-decode": "^4.0.0"
