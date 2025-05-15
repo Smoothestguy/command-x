@@ -12,6 +12,9 @@ COPY package.json pnpm-lock.yaml ./
 # Install dependencies
 RUN pnpm install --no-frozen-lockfile
 
+# Install jwt-decode explicitly
+RUN npm install jwt-decode
+
 # Copy the rest of the application code
 COPY . .
 
