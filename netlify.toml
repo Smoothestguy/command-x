@@ -1,7 +1,7 @@
 [build]
-  base = "ubuntu/command-x-frontend"
-  publish = "dist"
-  command = "npm install --legacy-peer-deps && npm run build:no-typecheck"
+  base = "."
+  publish = "ubuntu/command-x-frontend/dist"
+  command = "cd ubuntu/command-x-frontend && npm install --legacy-peer-deps && npm run build:no-typecheck"
 
 [build.environment]
   NODE_VERSION = "18"
