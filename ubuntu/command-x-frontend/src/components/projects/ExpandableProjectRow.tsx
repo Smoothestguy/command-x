@@ -93,7 +93,7 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
       >
         {columns.includes("name") && (
           <TableCell className="font-medium">
-            <div className="flex items-center">
+            <div className="flex items-center table-cell-content">
               {isExpanded ? (
                 <ChevronUp className="h-4 w-4 mr-2" />
               ) : (
@@ -105,36 +105,52 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
         )}
 
         {columns.includes("location") && (
-          <TableCell>{project.location || "-"}</TableCell>
+          <TableCell>
+            <span className="table-cell-content">
+              {project.location || "-"}
+            </span>
+          </TableCell>
         )}
 
         {columns.includes("client") && (
-          <TableCell>{project.client_name || "-"}</TableCell>
+          <TableCell>
+            <span className="table-cell-content">
+              {project.client_name || "-"}
+            </span>
+          </TableCell>
         )}
 
         {columns.includes("status") && (
           <TableCell>
-            <Badge className={getStatusColor(project.status)}>
-              {project.status || "Unknown"}
-            </Badge>
+            <span className="table-cell-content">
+              <Badge className={getStatusColor(project.status)}>
+                {project.status || "Unknown"}
+              </Badge>
+            </span>
           </TableCell>
         )}
 
         {columns.includes("priority") && (
           <TableCell>
-            <Badge className={getPriorityColor(project.priority)}>
-              {project.priority || "None"}
-            </Badge>
+            <span className="table-cell-content">
+              <Badge className={getPriorityColor(project.priority)}>
+                {project.priority || "None"}
+              </Badge>
+            </span>
           </TableCell>
         )}
 
         {columns.includes("category") && (
-          <TableCell>{project.category || "-"}</TableCell>
+          <TableCell>
+            <span className="table-cell-content">
+              {project.category || "-"}
+            </span>
+          </TableCell>
         )}
 
         {columns.includes("progress") && (
           <TableCell>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 table-cell-content">
               <Progress
                 value={project.progress_percentage || 0}
                 className="h-2 w-24"
@@ -147,26 +163,40 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
         )}
 
         {columns.includes("start_date") && (
-          <TableCell>{formatDate(project.start_date)}</TableCell>
+          <TableCell>
+            <span className="table-cell-content">
+              {formatDate(project.start_date)}
+            </span>
+          </TableCell>
         )}
 
         {columns.includes("end_date") && (
-          <TableCell>{formatDate(project.end_date)}</TableCell>
+          <TableCell>
+            <span className="table-cell-content">
+              {formatDate(project.end_date)}
+            </span>
+          </TableCell>
         )}
 
         {columns.includes("budget") && (
           <TableCell>
-            {project.budget ? `$${project.budget.toLocaleString()}` : "-"}
+            <span className="table-cell-content">
+              {project.budget ? `$${project.budget.toLocaleString()}` : "-"}
+            </span>
           </TableCell>
         )}
 
         {columns.includes("manager") && (
-          <TableCell>{project.manager_name || "-"}</TableCell>
+          <TableCell>
+            <span className="table-cell-content">
+              {project.manager_name || "-"}
+            </span>
+          </TableCell>
         )}
 
         {columns.includes("tags") && (
           <TableCell>
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1 table-cell-content">
               {project.tags?.map((tag) => (
                 <Badge key={tag} variant="outline" className="text-xs">
                   {tag}
@@ -178,7 +208,7 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
 
         <TableCell className="text-right">
           <div
-            className="flex justify-end gap-2"
+            className="flex justify-end gap-2 table-cell-content"
             onClick={(e) => e.stopPropagation()}
           >
             <Button
@@ -227,14 +257,16 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
                 {/* Details Tab */}
                 <TabsContent value="details">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Card>
-                      <CardContent className="p-4">
+                    <Card className="overflow-visible">
+                      <CardContent className="p-4 overflow-visible">
                         <h3 className="font-medium mb-2">
                           Project Description
                         </h3>
-                        <p className="text-sm text-gray-600">
-                          {project.description || "No description available."}
-                        </p>
+                        <div className="w-full overflow-visible">
+                          <p className="text-sm text-gray-600 project-description">
+                            {project.description || "No description available."}
+                          </p>
+                        </div>
 
                         <h3 className="font-medium mt-4 mb-2">
                           Project Details

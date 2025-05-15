@@ -20,6 +20,20 @@
     color: #27272a; /* zinc-800 */
     background-color: #ffffff;
   }
+}
+
+/* Global styles for project descriptions */
+.project-description {
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+  word-break: normal !important;
+  hyphens: auto !important;
+  max-width: 100% !important;
+  display: block !important;
+  text-overflow: ellipsis !important;
+  overflow: visible !important;
+}
 
   .dark {
     --sidebar-background: 240 5.9% 10%;

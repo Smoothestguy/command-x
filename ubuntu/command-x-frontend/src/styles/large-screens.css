@@ -1,5 +1,47 @@
-/* Styles for large screens (1440px and above) */
+/* Styles for MacBook Pro screens (1280px to 1439px) */
+@media screen and (min-width: 1280px) and (max-width: 1439px) {
+  /* Ensure text is visible and properly formatted on MacBook Pro screens */
+  .table-cell-content {
+    max-width: none;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
 
+  /* Project description text handling for MacBook Pro screens */
+  .project-description {
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: normal;
+    hyphens: auto;
+    max-width: 100%;
+    display: block;
+  }
+
+  /* Light mode text colors */
+  :root:not(.dark) .table-cell-content,
+  :root:not(.dark) th,
+  :root:not(.dark) td,
+  :root:not(.dark) .project-description {
+    color: #27272a; /* zinc-800 */
+  }
+
+  /* Dark mode text colors */
+  .dark .table-cell-content,
+  .dark th,
+  .dark td,
+  .dark .project-description {
+    color: #e4e4e7; /* zinc-200 */
+  }
+
+  /* Improve table layout for MacBook Pro screens */
+  table {
+    table-layout: auto;
+  }
+}
+
+/* Styles for large screens (1440px and above) */
 @media screen and (min-width: 1440px) {
   /* Ensure text is visible and properly formatted on large screens */
   .table-cell-content {
@@ -9,17 +51,30 @@
     text-overflow: clip;
   }
 
+  /* Project description text handling for large screens */
+  .project-description {
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: normal;
+    hyphens: auto;
+    max-width: 100%;
+    display: block;
+  }
+
   /* Light mode text colors */
   :root:not(.dark) .table-cell-content,
   :root:not(.dark) th,
-  :root:not(.dark) td {
+  :root:not(.dark) td,
+  :root:not(.dark) .project-description {
     color: #27272a; /* zinc-800 */
   }
 
   /* Dark mode text colors */
   .dark .table-cell-content,
   .dark th,
-  .dark td {
+  .dark td,
+  .dark .project-description {
     color: #e4e4e7; /* zinc-200 */
   }
 
