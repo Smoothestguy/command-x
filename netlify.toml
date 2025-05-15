@@ -6,7 +6,21 @@
 [build.environment]
   NODE_VERSION = "18"
 
+# Handle SPA routing
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Force HTTPS
+[[redirects]]
+  from = "http://*"
+  to = "https://:splat"
+  status = 301
+  force = true
+
+# Handle asset paths
+[[headers]]
+  for = "/*"
+    [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
