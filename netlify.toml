@@ -1,7 +1,7 @@
 [build]
   base = "ubuntu/command-x-frontend"
   publish = "dist"
-  command = "pnpm install --no-frozen-lockfile && pnpm add terser -D && CI=false pnpm run build:no-typecheck"
+  command = "npm install --legacy-peer-deps && npm run build:no-typecheck"
 
 [build.environment]
   NODE_VERSION = "18"
