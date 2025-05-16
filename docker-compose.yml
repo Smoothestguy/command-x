@@ -1,0 +1,55 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:14-alpine
+    container_name: command_x_db
+    environment:
+      POSTGRES_DB: command_x_db
+      POSTGRES_USER: command_x_user
+      POSTGRES_PASSWORD: securepassword
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432" # Map container port 5432 to host port 5433
+    networks:
+      - commandx_network
+
+  backend:
+    build:
+      context: ./command-x-backend
+      dockerfile: Dockerfile
+    container_name: backend_service
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://command_x_user:securepassword@db:5432/command_x_db
+      JWT_SECRET: aVerySecureSecretKeyPleaseChangeMe
+      PORT: 8081
+      NODE_ENV: production
+      UPLOAD_DIR: /uploads
+    volumes:
+      - ./command_x_uploads:/uploads
+    ports:
+      - "8081:8081"
+    networks:
+      - commandx_network
+
+  frontend:
+    build:
+      context: ./command-x-frontend
+      dockerfile: Dockerfile
+    container_name: frontend_service
+    ports:
+      - "8082:80" # Map container port 80 to host port 8082
+    depends_on:
+      - backend
+    networks:
+      - commandx_network
+
+networks:
+  commandx_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
