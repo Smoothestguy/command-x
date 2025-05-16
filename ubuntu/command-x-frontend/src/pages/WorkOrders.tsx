@@ -2724,7 +2724,7 @@ const WorkOrders: React.FC = () => {
           selectedWorkOrder ? setIsEditDialogOpen : setIsCreateDialogOpen
         }
       >
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {selectedWorkOrder ? "Edit Work Order" : "Create Work Order"}
@@ -2791,7 +2791,6 @@ const WorkOrders: React.FC = () => {
                 ) : null}
               </div>
 
-              {/* Add other fields like Status (Select), Subcontractor (Select), Dates (Input type=date), Costs (Input type=number) */}
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="status" className="text-right">
                   Status
