@@ -968,7 +968,11 @@ const WorkOrders: React.FC = () => {
             Refresh
           </Button>
           <Button
-            onClick={handleCreateClick}
+            onClick={() => {
+              setSelectedWorkOrder(null);
+              formik.resetForm();
+              setIsCreateDialogOpen(true);
+            }}
             className="flex items-center justify-center"
           >
             <PlusCircle className="mr-2 h-4 w-4" /> Create Work Order
