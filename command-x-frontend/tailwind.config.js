@@ -1,0 +1,1 @@
+../ubuntu/command-x-frontend/tailwind.config.js
