@@ -1500,7 +1500,14 @@ const WorkOrders: React.FC = () => {
                   <p className="text-sm text-muted-foreground mt-2">
                     Try adjusting your filters or create a new work order.
                   </p>
-                  <Button className="mt-4" onClick={handleCreateClick}>
+                  <Button
+                    className="mt-4"
+                    onClick={() => {
+                      setSelectedWorkOrder(null);
+                      formik.resetForm();
+                      setIsCreateDialogOpen(true);
+                    }}
+                  >
                     <PlusCircle className="mr-2 h-4 w-4" /> Create Work Order
                   </Button>
                 </div>
