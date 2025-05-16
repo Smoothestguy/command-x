@@ -2817,6 +2817,41 @@ const WorkOrders: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-4 items-center gap-4">
+                <Label
+                  htmlFor="assigned_subcontractor_id"
+                  className="text-right"
+                >
+                  Assigned Subcontractor
+                </Label>
+                <Select
+                  value={
+                    formik.values.assigned_subcontractor_id?.toString() || ""
+                  }
+                  onValueChange={(value) =>
+                    formik.setFieldValue(
+                      "assigned_subcontractor_id",
+                      value ? Number(value) : null
+                    )
+                  }
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select a subcontractor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {subcontractors?.map((s) => (
+                      <SelectItem
+                        key={s.subcontractor_id}
+                        value={s.subcontractor_id!.toString()}
+                      >
+                        {s.company_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="scheduled_date" className="text-right">
                   Scheduled
                 </Label>
@@ -2851,8 +2886,6 @@ const WorkOrders: React.FC = () => {
                   </div>
                 ) : null}
               </div>
-
-              {/* TODO: Add Subcontractor Select field */}
             </div>
             <DialogFooter>
               <Button
