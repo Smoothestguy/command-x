@@ -132,10 +132,11 @@ export const workOrderData: WorkOrderData[] = [
 ];
 
 // Helper function to render percentage cells with color coding
-const PercentageCell: React.FC<{ value: number; color?: string }> = ({
-  value,
-  color,
-}) => {
+const PercentageCell: React.FC<{
+  value: number;
+  color?: string;
+  className?: string;
+}> = ({ value, color, className = "" }) => {
   let bgColor = "";
 
   if (color) {
@@ -153,8 +154,12 @@ const PercentageCell: React.FC<{ value: number; color?: string }> = ({
   }
 
   return (
-    <TableCell className="text-center">
-      <Badge className={`${bgColor} text-white w-14`}>{value}%</Badge>
+    <TableCell className={`text-center ${className}`}>
+      <Badge
+        className={`${bgColor} text-white w-20 font-medium text-sm px-3 py-1`}
+      >
+        {value}%
+      </Badge>
     </TableCell>
   );
 };
@@ -400,75 +405,147 @@ const WorkOrderStatusTable: React.FC = () => {
   }
 
   return (
-    <div className="rounded-md border overflow-x-auto">
-      <Table>
-        <TableHeader className="bg-muted/50">
+    <div
+      className="rounded-md border overflow-x-auto max-w-full"
+      style={{ maxHeight: "calc(100vh - 200px)" }}
+    >
+      <Table className="accounting-table w-full min-w-max" responsive={true}>
+        <TableHeader className="bg-muted/50 sticky top-0 z-10">
           <TableRow>
-            <TableHead className="text-center">% Completed</TableHead>
-            <TableHead className="text-center">% Work Not Started</TableHead>
-            <TableHead className="text-center">SWO Total</TableHead>
-            <TableHead className="text-center">Sub W.O. Material</TableHead>
-            <TableHead className="text-center">W.O. Amount</TableHead>
-            <TableHead className="text-center">Unbillable Amount</TableHead>
-            <TableHead className="text-center">Unbillable Held</TableHead>
-            <TableHead className="text-center">Retainage Held</TableHead>
-            <TableHead className="text-center">Retainage Amount</TableHead>
-            <TableHead className="text-center">W.O. Amount Due</TableHead>
-            <TableHead className="text-center">Pending COs</TableHead>
-            <TableHead className="text-center">Change Order Notes</TableHead>
-            <TableHead className="text-center">Due Date</TableHead>
-            <TableHead className="text-center">% Percent Failures</TableHead>
-            <TableHead className="text-center">% of Pass</TableHead>
-            <TableHead className="text-center">% Assigned</TableHead>
-            <TableHead className="text-center">% Completed</TableHead>
-            <TableHead className="text-center">% Pending</TableHead>
-            <TableHead className="text-center">% Started</TableHead>
-            <TableHead className="text-center">Crew Name</TableHead>
+            <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
+              % Completed
+            </TableHead>
+            <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
+              % Not Started
+            </TableHead>
+            <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
+              SWO Total
+            </TableHead>
+            <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
+              Sub W.O. Material
+            </TableHead>
+            <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
+              W.O. Amount
+            </TableHead>
+            <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
+              Unbillable Amount
+            </TableHead>
+            <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
+              Unbillable Held
+            </TableHead>
+            <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
+              Retainage Held
+            </TableHead>
+            <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
+              Retainage Amount
+            </TableHead>
+            <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
+              W.O. Amount Due
+            </TableHead>
+            <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
+              Pending COs
+            </TableHead>
+            <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
+              Change Order Notes
+            </TableHead>
+            <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
+              Due Date
+            </TableHead>
+            <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
+              % Failures
+            </TableHead>
+            <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
+              % of Pass
+            </TableHead>
+            <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
+              % Assigned
+            </TableHead>
+            <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
+              % Completed
+            </TableHead>
+            <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
+              % Pending
+            </TableHead>
+            <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
+              % Started
+            </TableHead>
+            <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
+              Crew Name
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {workOrderData.map((row) => (
             <TableRow key={row.id} className="hover:bg-muted/50">
-              <PercentageCell value={row.percentComplete} />
-              <TableCell className="text-center">
+              <PercentageCell
+                value={row.percentComplete}
+                className="whitespace-nowrap px-2 py-2"
+              />
+              <TableCell className="text-center whitespace-nowrap px-2 py-2">
                 ${row.notStarted.toFixed(2)}
               </TableCell>
-              <TableCell className="text-center">
+              <TableCell className="text-center whitespace-nowrap px-2 py-2">
                 {formatCurrency(row.swoTotal)}
               </TableCell>
-              <TableCell className="text-center">
+              <TableCell className="text-center whitespace-nowrap px-2 py-2">
                 {formatCurrency(row.subMaterialAmount)}
               </TableCell>
-              <TableCell className="text-center">
+              <TableCell className="text-center whitespace-nowrap px-2 py-2">
                 {formatCurrency(row.woAmount)}
               </TableCell>
-              <TableCell className="text-center">
+              <TableCell className="text-center whitespace-nowrap px-2 py-2">
                 {formatCurrency(row.unbillableAmount)}
               </TableCell>
-              <TableCell className="text-center">
+              <TableCell className="text-center whitespace-nowrap px-2 py-2">
                 {formatCurrency(row.unbillableHeld)}
               </TableCell>
-              <TableCell className="text-center">
+              <TableCell className="text-center whitespace-nowrap px-2 py-2">
                 {formatCurrency(row.retainageHeld)}
               </TableCell>
-              <TableCell className="text-center">
+              <TableCell className="text-center whitespace-nowrap px-2 py-2">
                 {formatCurrency(row.retainageAmount)}
               </TableCell>
-              <TableCell className="text-center">
+              <TableCell className="text-center whitespace-nowrap px-2 py-2">
                 {formatCurrency(row.woDueAmount)}
               </TableCell>
-              <TableCell className="text-center">{row.pendingCOs}</TableCell>
-              <TableCell className="text-center">
+              <TableCell className="text-center whitespace-nowrap px-2 py-2">
+                {row.pendingCOs}
+              </TableCell>
+              <TableCell className="text-center whitespace-nowrap px-2 py-2">
                 {row.changeOrderNotes}
               </TableCell>
-              <TableCell className="text-center">{row.dueDate}</TableCell>
-              <PercentageCell value={0} color="bg-green-500" />
-              <PercentageCell value={row.percentOfPass} />
-              <PercentageCell value={row.percentAssigned} />
-              <PercentageCell value={row.percentCompleted} />
-              <PercentageCell value={row.percentPending} />
-              <PercentageCell value={row.percentStarted} color="bg-red-500" />
-              <TableCell>{row.crewName}</TableCell>
+              <TableCell className="text-center whitespace-nowrap px-2 py-2">
+                {row.dueDate}
+              </TableCell>
+              <PercentageCell
+                value={0}
+                color="bg-green-500"
+                className="whitespace-nowrap px-2 py-2"
+              />
+              <PercentageCell
+                value={row.percentOfPass}
+                className="whitespace-nowrap px-2 py-2"
+              />
+              <PercentageCell
+                value={row.percentAssigned}
+                className="whitespace-nowrap px-2 py-2"
+              />
+              <PercentageCell
+                value={row.percentCompleted}
+                className="whitespace-nowrap px-2 py-2"
+              />
+              <PercentageCell
+                value={row.percentPending}
+                className="whitespace-nowrap px-2 py-2"
+              />
+              <PercentageCell
+                value={row.percentStarted}
+                color="bg-red-500"
+                className="whitespace-nowrap px-2 py-2"
+              />
+              <TableCell className="whitespace-nowrap px-2 py-2">
+                {row.crewName}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

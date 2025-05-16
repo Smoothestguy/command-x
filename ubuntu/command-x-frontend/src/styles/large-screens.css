@@ -1,14 +1,15 @@
-/* Styles for MacBook Pro screens (1280px to 1439px) */
-@media screen and (min-width: 1280px) and (max-width: 1439px) {
-  /* Ensure text is visible and properly formatted on MacBook Pro screens */
+/* Styles for large desktop screens (1280px and above) */
+@media screen and (min-width: 1280px) {
+  /* Ensure text is visible and properly formatted on large screens */
   .table-cell-content {
     max-width: none;
     white-space: normal;
     overflow: visible;
     text-overflow: clip;
+    color: #27272a; /* zinc-800 */
   }
 
-  /* Project description text handling for MacBook Pro screens */
+  /* Project description text handling for large screens */
   .project-description {
     white-space: normal;
     overflow-wrap: break-word;
@@ -25,6 +26,26 @@
   :root:not(.dark) td,
   :root:not(.dark) .project-description {
     color: #27272a; /* zinc-800 */
+  }
+
+  /* Accounting page specific styles for large screens */
+  .accounting-table th,
+  .accounting-table td {
+    padding: 12px;
+    font-size: 14px;
+    color: #27272a !important;
+  }
+
+  /* Improve table layout for accounting page */
+  .accounting-table {
+    width: 100%;
+    table-layout: auto;
+  }
+
+  /* Ensure percentage cells are properly visible */
+  .percentage-cell {
+    min-width: 80px;
+    text-align: center;
   }
 
   /* Dark mode text colors */

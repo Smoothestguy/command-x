@@ -18,6 +18,7 @@ import {
   Clock,
   DollarSign,
 } from "lucide-react";
+import ReportIssueDialog from "./ReportIssueDialog";
 
 interface ExpandableProjectRowProps {
   project: ProjectData;
@@ -33,6 +34,7 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
   columns,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isReportIssueDialogOpen, setIsReportIssueDialogOpen] = useState(false);
 
   // Format date for display
   const formatDate = (dateString?: string | null) => {
@@ -451,7 +453,14 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
                       </p>
 
                       <div className="mt-4">
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsReportIssueDialogOpen(true);
+                          }}
+                        >
                           <AlertTriangle className="h-4 w-4 mr-2" />
                           Report Issue
                         </Button>
@@ -464,6 +473,12 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
           </TableCell>
         </TableRow>
       )}
+      {/* Report Issue Dialog */}
+      <ReportIssueDialog
+        open={isReportIssueDialogOpen}
+        onOpenChange={setIsReportIssueDialogOpen}
+        project={project}
+      />
     </>
   );
 };

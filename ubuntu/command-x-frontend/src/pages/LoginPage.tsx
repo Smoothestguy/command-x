@@ -1,5 +1,5 @@
-import React from 'react';
-import LoginForm from '../components/auth/LoginForm';
+import React from "react";
+import LoginForm from "../components/auth/LoginForm";
 
 const LoginPage: React.FC = () => {
   return (
@@ -10,4 +10,3 @@ const LoginPage: React.FC = () => {
 };
 
 export default LoginPage;
-

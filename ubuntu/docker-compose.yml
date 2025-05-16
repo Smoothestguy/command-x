@@ -17,97 +17,23 @@ services:
     networks:
       - commandx_network
 
-  user-service:
+  backend:
     build:
-      context: ./command-x-backend/user-management-service
+      context: ./command-x-backend
       dockerfile: Dockerfile
-    container_name: user_service
+    container_name: backend_service
     depends_on:
       - db
     environment:
       DATABASE_URL: postgresql://command_x_user:securepassword@db:5432/command_x_db
       JWT_SECRET: aVerySecureSecretKeyPleaseChangeMe
-      PORT: 3001
-    ports:
-      - "3001:3001"
-    networks:
-      - commandx_network
-
-  project-service:
-    build:
-      context: ./command-x-backend/project-management-service
-      dockerfile: Dockerfile
-    container_name: project_service
-    depends_on:
-      - db
-    environment:
-      DATABASE_URL: postgresql://command_x_user:securepassword@db:5432/command_x_db
-      PORT: 3002
-    ports:
-      - "3002:3002"
-    networks:
-      - commandx_network
-
-  work-order-service:
-    build:
-      context: ./command-x-backend/work-order-service
-      dockerfile: Dockerfile
-    container_name: work_order_service
-    depends_on:
-      - db
-    environment:
-      DATABASE_URL: postgresql://command_x_user:securepassword@db:5432/command_x_db
-      PORT: 3003
-    ports:
-      - "3003:3003"
-    networks:
-      - commandx_network
-
-  financial-service:
-    build:
-      context: ./command-x-backend/financial-service
-      dockerfile: Dockerfile
-    container_name: financial_service
-    depends_on:
-      - db
-    environment:
-      DATABASE_URL: postgresql://command_x_user:securepassword@db:5432/command_x_db
-      PORT: 3004
-    ports:
-      - "3004:3004"
-    networks:
-      - commandx_network
-
-  document-service:
-    build:
-      context: ./command-x-backend/document-service
-      dockerfile: Dockerfile
-    container_name: document_service
-    depends_on:
-      - db
-    environment:
-      DATABASE_URL: postgresql://command_x_user:securepassword@db:5432/command_x_db
-      PORT: 3005
+      PORT: 8081
+      NODE_ENV: production
       UPLOAD_DIR: /uploads # Internal path within the container
     volumes:
       - ./command_x_uploads:/uploads # Mount local dir to container dir
     ports:
-      - "3005:3005"
-    networks:
-      - commandx_network
-
-  qc-service:
-    build:
-      context: ./command-x-backend/quality-control-service
-      dockerfile: Dockerfile
-    container_name: qc_service
-    depends_on:
-      - db
-    environment:
-      DATABASE_URL: postgresql://command_x_user:securepassword@db:5432/command_x_db
-      PORT: 3006
-    ports:
-      - "3006:3006"
+      - "8081:8081"
     networks:
       - commandx_network
 
@@ -119,12 +45,7 @@ services:
     ports:
       - "8082:80" # Map container port 80 to host port 8082
     depends_on:
-      - user-service
-      - project-service
-      - work-order-service
-      - financial-service
-      - document-service
-      - qc-service
+      - backend
     networks:
       - commandx_network
 

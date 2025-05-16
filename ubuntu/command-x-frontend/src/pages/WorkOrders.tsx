@@ -2735,7 +2735,7 @@ const WorkOrders: React.FC = () => {
                 : "Enter the details for the new work order."}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={formik.handleSubmit}>
+          <form onSubmit={(e) => e.preventDefault()}>
             <div className="grid gap-4 py-4">
               {/* Form Fields */}
               <div className="grid grid-cols-4 items-center gap-4">
@@ -2867,8 +2867,9 @@ const WorkOrders: React.FC = () => {
                 Cancel
               </Button>
               <Button
-                type="submit"
+                type="button"
                 disabled={createMutation.isPending || updateMutation.isPending}
+                onClick={() => formik.handleSubmit()}
               >
                 {createMutation.isPending || updateMutation.isPending
                   ? "Saving..."

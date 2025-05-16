@@ -32,7 +32,7 @@ export function ThemeProvider({
 
   useEffect(() => {
     const root = window.document.documentElement;
-    
+
     // Remove the old theme class
     root.classList.remove("light", "dark");
 

@@ -580,7 +580,7 @@ const Projects: React.FC = () => {
                 : "Enter the details for the new project."}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={formik.handleSubmit}>
+          <form onSubmit={(e) => e.preventDefault()}>
             <div className="grid gap-4 py-4">
               {/* Form Fields */}
               <div className="grid grid-cols-4 items-center gap-4">
@@ -702,14 +702,14 @@ const Projects: React.FC = () => {
                 Cancel
               </Button>
               <Button
-                type="submit"
+                type="button" // Changed from "submit" to "button" to prevent double submission
                 disabled={createMutation.isPending || updateMutation.isPending}
                 onClick={() => {
                   // Manually trigger form validation before submission
                   formik.validateForm().then((errors) => {
                     if (Object.keys(errors).length === 0) {
                       // No validation errors, proceed with submission
-                      formik.submitForm();
+                      formik.handleSubmit(); // Using handleSubmit instead of submitForm
                     } else {
                       // Show validation errors
                       formik.setTouched(

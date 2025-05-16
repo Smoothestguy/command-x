@@ -659,7 +659,7 @@ const UserManagement: React.FC = () => {
                 : "Enter the details for the new user."}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={formik.handleSubmit}>
+          <form onSubmit={(e) => e.preventDefault()}>
             <div className="grid gap-6 py-4">
               <div className="grid grid-cols-1 gap-2">
                 <Label htmlFor="username">
@@ -876,7 +876,8 @@ const UserManagement: React.FC = () => {
                 Cancel
               </Button>
               <Button
-                type="submit"
+                type="button"
+                onClick={() => formik.handleSubmit()}
                 disabled={
                   formik.isSubmitting ||
                   createMutation.isPending ||

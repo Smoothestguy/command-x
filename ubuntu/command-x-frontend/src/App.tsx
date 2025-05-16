@@ -21,6 +21,7 @@ import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage"; // Import LoginPage
 import { useEffect } from "react";
 import { setUser } from "./features/auth/authSlice";
+import { ThemeProvider } from "./components/theme/ThemeProvider";
 
 // Protected Route Component
 const ProtectedRoute = () => {
@@ -59,29 +60,31 @@ function App() {
   }, [dispatch]);
 
   return (
-    <Router>
-      <Routes>
-        {/* Public Login Route */}
-        <Route path="/login" element={<LoginPage />} />
+    <ThemeProvider defaultTheme="light">
+      <Router>
+        <Routes>
+          {/* Public Login Route */}
+          <Route path="/login" element={<LoginPage />} />
 
-        {/* Protected Routes */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/projects" element={<Projects />} />
-          <Route path="/work-orders" element={<WorkOrders />} />
-          <Route path="/subcontractors" element={<Subcontractors />} />
-          <Route path="/documents" element={<DocumentsPage />} />
-          <Route path="/accounting" element={<Accounting />} />
-          <Route path="/reports" element={<ReportsPage />} />
-          <Route path="/user-management" element={<UserManagement />} />
-          <Route path="/activity" element={<AllActivity />} />
-        </Route>
+          {/* Protected Routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/projects" element={<Projects />} />
+            <Route path="/work-orders" element={<WorkOrders />} />
+            <Route path="/subcontractors" element={<Subcontractors />} />
+            <Route path="/documents" element={<DocumentsPage />} />
+            <Route path="/accounting" element={<Accounting />} />
+            <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/user-management" element={<UserManagement />} />
+            <Route path="/activity" element={<AllActivity />} />
+          </Route>
 
-        {/* Catch-all Not Found Route */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Router>
+          {/* Catch-all Not Found Route */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Router>
+    </ThemeProvider>
   );
 }
 
