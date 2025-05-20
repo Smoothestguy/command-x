@@ -181,15 +181,25 @@ const WorkOrders: React.FC = () => {
 
   // Create Work Order
   const createMutation = useMutation({
-    mutationFn: createWorkOrder,
-    onSuccess: () => {
+    mutationFn: (workOrderData: WorkOrderData) => {
+      console.log("Creating work order with data:", workOrderData);
+      try {
+        return createWorkOrder(workOrderData);
+      } catch (error) {
+        console.error("Error in createWorkOrder function:", error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      console.log("Work order created successfully:", data);
       queryClient.invalidateQueries({ queryKey: ["workOrders"] });
       setIsCreateDialogOpen(false);
       toast.success("Work Order created successfully!");
     },
     onError: (err) => {
       console.error("Error creating work order:", err);
-      toast.error("Failed to create work order.");
+      toast.error("Failed to create work order. Please try again.");
+      // Don't close the dialog on error so the user can try again
     },
   });
 
@@ -239,23 +249,34 @@ const WorkOrders: React.FC = () => {
     },
     validationSchema: WorkOrderSchema,
     onSubmit: (values) => {
-      // Ensure project_id is a number before submitting
-      const submissionData = {
-        ...values,
-        project_id: Number(values.project_id),
-        estimated_cost: values.estimated_cost
-          ? Number(values.estimated_cost)
-          : null,
-        assigned_subcontractor_id: values.assigned_subcontractor_id
-          ? Number(values.assigned_subcontractor_id)
-          : null,
-      };
+      console.log("Form submitted with values:", values);
 
-      if (selectedWorkOrder) {
-        updateMutation.mutate(submissionData);
-      } else {
-        // Cast to WorkOrderData for create, assuming required fields are met by validation
-        createMutation.mutate(submissionData as WorkOrderData);
+      try {
+        // Ensure project_id is a number before submitting
+        const submissionData = {
+          ...values,
+          project_id: Number(values.project_id),
+          estimated_cost: values.estimated_cost
+            ? Number(values.estimated_cost)
+            : null,
+          assigned_subcontractor_id: values.assigned_subcontractor_id
+            ? Number(values.assigned_subcontractor_id)
+            : null,
+        };
+
+        console.log("Processed submission data:", submissionData);
+
+        if (selectedWorkOrder) {
+          console.log("Updating existing work order");
+          updateMutation.mutate(submissionData);
+        } else {
+          console.log("Creating new work order");
+          // Cast to WorkOrderData for create, assuming required fields are met by validation
+          createMutation.mutate(submissionData as WorkOrderData);
+        }
+      } catch (error) {
+        console.error("Error processing form submission:", error);
+        toast.error("An error occurred while processing your request");
       }
     },
     enableReinitialize: true, // Reinitialize form when selectedWorkOrder changes
@@ -294,10 +315,24 @@ const WorkOrders: React.FC = () => {
     setIsEditDialogOpen(true);
   };
 
-  const handleCreateClick = () => {
+  const handleCreateClick = (e?: React.MouseEvent) => {
+    console.log("handleCreateClick called");
+    if (e) {
+      e.preventDefault(); // Prevent any default navigation
+      e.stopPropagation(); // Stop event propagation
+      console.log("Event prevented and stopped");
+    }
     setSelectedWorkOrder(null); // Ensure form is for creation
     formik.resetForm();
+    console.log("About to set isCreateDialogOpen to true");
     setIsCreateDialogOpen(true);
+    console.log("isCreateDialogOpen set to true");
+
+    // Force a re-render with a timeout
+    setTimeout(() => {
+      console.log("Timeout callback - forcing dialog open again");
+      setIsCreateDialogOpen(true);
+    }, 100);
   };
 
   // Handle view invoice
@@ -949,10 +984,12 @@ const WorkOrders: React.FC = () => {
   };
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="p-4 md:p-8 bg-background text-foreground">
       {/* Mobile-optimized header with centered title */}
       <div className="flex flex-col mb-6">
-        <h1 className="text-3xl font-bold text-center mb-4">Work Orders</h1>
+        <h1 className="text-3xl font-bold text-center mb-4 text-foreground">
+          Work Orders
+        </h1>
         <div className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center gap-2">
           <Button
             variant="outline"
@@ -968,10 +1005,108 @@ const WorkOrders: React.FC = () => {
             Refresh
           </Button>
           <Button
+            type="button"
             onClick={() => {
-              setSelectedWorkOrder(null);
-              formik.resetForm();
-              setIsCreateDialogOpen(true);
+              console.log("Create Work Order button clicked");
+
+              // Create a modal dialog directly in the DOM
+              const modalContainer = document.createElement("div");
+              modalContainer.className =
+                "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
+              modalContainer.id = "work-order-modal";
+
+              const modalContent = document.createElement("div");
+              modalContent.className =
+                "bg-white p-6 rounded-lg shadow-lg max-w-md w-full";
+              modalContent.innerHTML = `
+                <h2 class="text-xl font-bold mb-4">Create Work Order</h2>
+                <form id="work-order-form">
+                  <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Project</label>
+                    <select id="project-select" class="w-full p-2 border rounded">
+                      <option value="">Select a project</option>
+                      ${projects
+                        ?.map(
+                          (p) =>
+                            `<option value="${p.project_id}">${p.project_name}</option>`
+                        )
+                        .join("")}
+                    </select>
+                  </div>
+                  <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Description</label>
+                    <textarea id="description-input" class="w-full p-2 border rounded" rows="3"></textarea>
+                  </div>
+                  <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Status</label>
+                    <select id="status-select" class="w-full p-2 border rounded">
+                      <option value="Pending">Pending</option>
+                      <option value="Scheduled">Scheduled</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="On Hold">On Hold</option>
+                      <option value="Completed">Completed</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                  <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Estimated Cost ($)</label>
+                    <input id="cost-input" type="number" class="w-full p-2 border rounded" />
+                  </div>
+                  <div class="flex justify-end mt-6">
+                    <button id="cancel-work-order-btn" type="button" class="px-4 py-2 bg-gray-200 rounded mr-2">Cancel</button>
+                    <button id="create-work-order-btn" type="button" class="px-4 py-2 bg-blue-500 text-white rounded">Create Work Order</button>
+                  </div>
+                </form>
+              `;
+
+              modalContainer.appendChild(modalContent);
+              document.body.appendChild(modalContainer);
+
+              // Add event listeners
+              document
+                .getElementById("cancel-work-order-btn")
+                ?.addEventListener("click", () => {
+                  document.body.removeChild(modalContainer);
+                });
+
+              document
+                .getElementById("create-work-order-btn")
+                ?.addEventListener("click", () => {
+                  const projectId = (
+                    document.getElementById(
+                      "project-select"
+                    ) as HTMLSelectElement
+                  )?.value;
+                  const description = (
+                    document.getElementById(
+                      "description-input"
+                    ) as HTMLTextAreaElement
+                  )?.value;
+                  const status = (
+                    document.getElementById(
+                      "status-select"
+                    ) as HTMLSelectElement
+                  )?.value;
+                  const cost = (
+                    document.getElementById("cost-input") as HTMLInputElement
+                  )?.value;
+
+                  if (!projectId || !description) {
+                    alert("Please fill in all required fields");
+                    return;
+                  }
+
+                  const workOrderData = {
+                    project_id: Number(projectId),
+                    description,
+                    status,
+                    estimated_cost: cost ? Number(cost) : null,
+                  };
+
+                  console.log("Creating work order with data:", workOrderData);
+                  createMutation.mutate(workOrderData as WorkOrderData);
+                  document.body.removeChild(modalContainer);
+                });
             }}
             className="flex items-center justify-center"
           >
@@ -1502,10 +1637,115 @@ const WorkOrders: React.FC = () => {
                   </p>
                   <Button
                     className="mt-4"
+                    type="button"
                     onClick={() => {
-                      setSelectedWorkOrder(null);
-                      formik.resetForm();
-                      setIsCreateDialogOpen(true);
+                      console.log(
+                        "Empty state Create Work Order button clicked"
+                      );
+
+                      // Create a modal dialog directly in the DOM
+                      const modalContainer = document.createElement("div");
+                      modalContainer.className =
+                        "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
+                      modalContainer.id = "empty-work-order-modal";
+
+                      const modalContent = document.createElement("div");
+                      modalContent.className =
+                        "bg-white p-6 rounded-lg shadow-lg max-w-md w-full";
+                      modalContent.innerHTML = `
+                        <h2 class="text-xl font-bold mb-4">Create Work Order</h2>
+                        <form id="empty-work-order-form">
+                          <div class="mb-4">
+                            <label class="block text-sm font-medium mb-1">Project</label>
+                            <select id="empty-project-select" class="w-full p-2 border rounded">
+                              <option value="">Select a project</option>
+                              ${projects
+                                ?.map(
+                                  (p) =>
+                                    `<option value="${p.project_id}">${p.project_name}</option>`
+                                )
+                                .join("")}
+                            </select>
+                          </div>
+                          <div class="mb-4">
+                            <label class="block text-sm font-medium mb-1">Description</label>
+                            <textarea id="empty-description-input" class="w-full p-2 border rounded" rows="3"></textarea>
+                          </div>
+                          <div class="mb-4">
+                            <label class="block text-sm font-medium mb-1">Status</label>
+                            <select id="empty-status-select" class="w-full p-2 border rounded">
+                              <option value="Pending">Pending</option>
+                              <option value="Scheduled">Scheduled</option>
+                              <option value="In Progress">In Progress</option>
+                              <option value="On Hold">On Hold</option>
+                              <option value="Completed">Completed</option>
+                              <option value="Cancelled">Cancelled</option>
+                            </select>
+                          </div>
+                          <div class="mb-4">
+                            <label class="block text-sm font-medium mb-1">Estimated Cost ($)</label>
+                            <input id="empty-cost-input" type="number" class="w-full p-2 border rounded" />
+                          </div>
+                          <div class="flex justify-end mt-6">
+                            <button id="empty-cancel-btn" type="button" class="px-4 py-2 bg-gray-200 rounded mr-2">Cancel</button>
+                            <button id="empty-create-btn" type="button" class="px-4 py-2 bg-blue-500 text-white rounded">Create Work Order</button>
+                          </div>
+                        </form>
+                      `;
+
+                      modalContainer.appendChild(modalContent);
+                      document.body.appendChild(modalContainer);
+
+                      // Add event listeners
+                      document
+                        .getElementById("empty-cancel-btn")
+                        ?.addEventListener("click", () => {
+                          document.body.removeChild(modalContainer);
+                        });
+
+                      document
+                        .getElementById("empty-create-btn")
+                        ?.addEventListener("click", () => {
+                          const projectId = (
+                            document.getElementById(
+                              "empty-project-select"
+                            ) as HTMLSelectElement
+                          )?.value;
+                          const description = (
+                            document.getElementById(
+                              "empty-description-input"
+                            ) as HTMLTextAreaElement
+                          )?.value;
+                          const status = (
+                            document.getElementById(
+                              "empty-status-select"
+                            ) as HTMLSelectElement
+                          )?.value;
+                          const cost = (
+                            document.getElementById(
+                              "empty-cost-input"
+                            ) as HTMLInputElement
+                          )?.value;
+
+                          if (!projectId || !description) {
+                            alert("Please fill in all required fields");
+                            return;
+                          }
+
+                          const workOrderData = {
+                            project_id: Number(projectId),
+                            description,
+                            status,
+                            estimated_cost: cost ? Number(cost) : null,
+                          };
+
+                          console.log(
+                            "Creating work order with data:",
+                            workOrderData
+                          );
+                          createMutation.mutate(workOrderData as WorkOrderData);
+                          document.body.removeChild(modalContainer);
+                        });
                     }}
                   >
                     <PlusCircle className="mr-2 h-4 w-4" /> Create Work Order
@@ -2728,25 +2968,30 @@ const WorkOrders: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Create/Edit Dialog */}
+      {/* Create Dialog */}
       <Dialog
-        open={isCreateDialogOpen || isEditDialogOpen}
-        onOpenChange={
-          selectedWorkOrder ? setIsEditDialogOpen : setIsCreateDialogOpen
-        }
+        open={isCreateDialogOpen}
+        onOpenChange={(open) => {
+          console.log("Create Dialog onOpenChange called with open =", open);
+          if (!open) {
+            console.log("Closing create dialog");
+            setIsCreateDialogOpen(false);
+          }
+        }}
       >
         <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {selectedWorkOrder ? "Edit Work Order" : "Create Work Order"}
-            </DialogTitle>
+            <DialogTitle>Create Work Order</DialogTitle>
             <DialogDescription>
-              {selectedWorkOrder
-                ? "Update the work order details below."
-                : "Enter the details for the new work order."}
+              Enter the details for the new work order.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={(e) => e.preventDefault()}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              console.log("Create form submit event triggered");
+            }}
+          >
             <div className="grid gap-4 py-4">
               {/* Form Fields */}
               <div className="grid grid-cols-4 items-center gap-4">
@@ -2901,22 +3146,246 @@ const WorkOrders: React.FC = () => {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() =>
-                  selectedWorkOrder
-                    ? setIsEditDialogOpen(false)
-                    : setIsCreateDialogOpen(false)
-                }
+                onClick={() => setIsCreateDialogOpen(false)}
               >
                 Cancel
               </Button>
               <Button
                 type="button"
-                disabled={createMutation.isPending || updateMutation.isPending}
-                onClick={() => formik.handleSubmit()}
+                disabled={createMutation.isPending}
+                onClick={() => {
+                  console.log("Create Save button clicked");
+                  formik.validateForm().then((errors) => {
+                    console.log("Form validation errors:", errors);
+                    if (Object.keys(errors).length === 0) {
+                      console.log("Form is valid, submitting...");
+                      formik.handleSubmit();
+                    } else {
+                      console.log("Form has validation errors");
+                      formik.setTouched(
+                        Object.keys(errors).reduce((acc, key) => {
+                          acc[key] = true;
+                          return acc;
+                        }, {} as any)
+                      );
+                      toast.error("Please fix the form errors before saving");
+                    }
+                  });
+                }}
               >
-                {createMutation.isPending || updateMutation.isPending
-                  ? "Saving..."
-                  : "Save Work Order"}
+                {createMutation.isPending ? "Saving..." : "Save Work Order"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          console.log("Edit Dialog onOpenChange called with open =", open);
+          if (!open) {
+            console.log("Closing edit dialog");
+            setIsEditDialogOpen(false);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Work Order</DialogTitle>
+            <DialogDescription>
+              Update the work order details below.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              console.log("Edit form submit event triggered");
+            }}
+          >
+            <div className="grid gap-4 py-4">
+              {/* Form Fields */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="project_id" className="text-right">
+                  Project
+                </Label>
+                <Select
+                  value={formik.values.project_id?.toString() || ""}
+                  onValueChange={(value) =>
+                    formik.setFieldValue(
+                      "project_id",
+                      value ? Number(value) : undefined
+                    )
+                  }
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select a project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects?.map((p) => (
+                      <SelectItem
+                        key={p.project_id}
+                        value={p.project_id!.toString()}
+                      >
+                        {p.project_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formik.touched.project_id && formik.errors.project_id ? (
+                  <div className="col-span-4 text-red-500 text-sm text-right">
+                    {formik.errors.project_id}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="description" className="text-right">
+                  Description
+                </Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  value={formik.values.description || ""}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  className="col-span-3"
+                />
+                {formik.touched.description && formik.errors.description ? (
+                  <div className="col-span-4 text-red-500 text-sm text-right">
+                    {formik.errors.description}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="status" className="text-right">
+                  Status
+                </Label>
+                <Select
+                  value={formik.values.status || ""}
+                  onValueChange={(value) =>
+                    formik.setFieldValue("status", value)
+                  }
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="Scheduled">Scheduled</SelectItem>
+                    <SelectItem value="In Progress">In Progress</SelectItem>
+                    <SelectItem value="On Hold">On Hold</SelectItem>
+                    <SelectItem value="Completed">Completed</SelectItem>
+                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label
+                  htmlFor="assigned_subcontractor_id"
+                  className="text-right"
+                >
+                  Assigned Subcontractor
+                </Label>
+                <Select
+                  value={
+                    formik.values.assigned_subcontractor_id?.toString() || ""
+                  }
+                  onValueChange={(value) =>
+                    formik.setFieldValue(
+                      "assigned_subcontractor_id",
+                      value ? Number(value) : null
+                    )
+                  }
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select a subcontractor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {subcontractors?.map((s) => (
+                      <SelectItem
+                        key={s.subcontractor_id}
+                        value={s.subcontractor_id!.toString()}
+                      >
+                        {s.company_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="scheduled_date" className="text-right">
+                  Scheduled
+                </Label>
+                <Input
+                  id="scheduled_date"
+                  name="scheduled_date"
+                  type="date"
+                  value={formik.values.scheduled_date || ""}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  className="col-span-3"
+                />
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="estimated_cost" className="text-right">
+                  Est. Cost ($)
+                </Label>
+                <Input
+                  id="estimated_cost"
+                  name="estimated_cost"
+                  type="number"
+                  value={formik.values.estimated_cost || ""}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  className="col-span-3"
+                />
+                {formik.touched.estimated_cost &&
+                formik.errors.estimated_cost ? (
+                  <div className="col-span-4 text-red-500 text-sm text-right">
+                    {formik.errors.estimated_cost}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={updateMutation.isPending}
+                onClick={() => {
+                  console.log("Edit Save button clicked");
+                  formik.validateForm().then((errors) => {
+                    console.log("Form validation errors:", errors);
+                    if (Object.keys(errors).length === 0) {
+                      console.log("Form is valid, submitting...");
+                      formik.handleSubmit();
+                    } else {
+                      console.log("Form has validation errors");
+                      formik.setTouched(
+                        Object.keys(errors).reduce((acc, key) => {
+                          acc[key] = true;
+                          return acc;
+                        }, {} as any)
+                      );
+                      toast.error("Please fix the form errors before saving");
+                    }
+                  });
+                }}
+              >
+                {updateMutation.isPending ? "Saving..." : "Save Work Order"}
               </Button>
             </DialogFooter>
           </form>

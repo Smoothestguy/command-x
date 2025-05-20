@@ -19,6 +19,7 @@ import UserManagement from "./pages/UserManagement";
 import AllActivity from "./pages/AllActivity";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage"; // Import LoginPage
+import TestDialog from "./pages/TestDialog"; // Import TestDialog
 import { useEffect } from "react";
 import { setUser } from "./features/auth/authSlice";
 import { ThemeProvider } from "./components/theme/ThemeProvider";
@@ -65,6 +66,9 @@ function App() {
         <Routes>
           {/* Public Login Route */}
           <Route path="/login" element={<LoginPage />} />
+
+          {/* Test Dialog Route - Public for testing */}
+          <Route path="/test-dialog" element={<TestDialog />} />
 
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>

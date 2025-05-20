@@ -12,14 +12,14 @@ import axios, { AxiosRequestConfig } from "axios";
 // Create base Axios instance
 const apiClient = axios.create({
   // You might set a common base URL if using an API Gateway
-  baseURL: "http://localhost:8082/api", // Set to the frontend URL for mock data
+  baseURL: "http://localhost:3000/api", // Updated to use the work-order-service endpoint
   headers: {
     "Content-Type": "application/json",
   },
 });
 
 // Add a mock adapter to simulate API responses
-const USE_MOCK_DATA = true; // Set to true to use mock data
+const USE_MOCK_DATA = true; // Set to true to use mock data since the backend is not available
 
 // Mock database for storing data when using mock mode
 const mockDB = {
@@ -1209,69 +1209,91 @@ export const createWorkOrder = async (workOrderData: WorkOrderData) => {
   if (USE_MOCK_DATA) {
     console.log("Creating work order with mock data:", workOrderData);
 
-    // Validate required fields
-    if (!workOrderData.project_id || !workOrderData.description) {
-      console.error(
-        "Missing required fields: project_id and description are required"
+    try {
+      // Validate required fields
+      if (!workOrderData.project_id || !workOrderData.description) {
+        console.error(
+          "Missing required fields: project_id and description are required"
+        );
+        return Promise.reject({
+          response: {
+            status: 400,
+            data: { message: "Project ID and description are required" },
+          },
+        });
+      }
+
+      // Validate that the project exists
+      const projectExists = mockDB.projects.some(
+        (p) => p.project_id === workOrderData.project_id
       );
+      if (!projectExists) {
+        console.error(`Project with ID ${workOrderData.project_id} not found`);
+        return Promise.reject({
+          response: {
+            status: 404,
+            data: { message: "Project not found" },
+          },
+        });
+      }
+
+      // Find the highest work_order_id to ensure uniqueness
+      const maxId = mockDB.workOrders.reduce(
+        (max, wo) => Math.max(max, wo.work_order_id || 0),
+        0
+      );
+
+      // Create a new work order with mock data
+      const newWorkOrder = {
+        ...workOrderData,
+        work_order_id: maxId + 1, // Ensure unique ID
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        // Set default values for any missing fields
+        status: workOrderData.status || "Pending",
+        actual_cost: 0,
+        amount_billed: 0,
+        amount_paid: 0,
+        payment_status: "Not Billed",
+        retainage_percentage: workOrderData.retainage_percentage || 0,
+      };
+
+      // Add the new work order to our mock database
+      mockDB.workOrders.push(newWorkOrder);
+
+      console.log("Work order created successfully:", newWorkOrder);
+      console.log(
+        "Updated mock DB work orders count:",
+        mockDB.workOrders.length
+      );
+
+      // Simulate a delay for the API call
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      return newWorkOrder;
+    } catch (error) {
+      console.error("Error in createWorkOrder:", error);
+      // Make sure we return a rejected promise with a proper error structure
       return Promise.reject({
         response: {
-          status: 400,
-          data: { message: "Project ID and description are required" },
+          status: 500,
+          data: { message: "Internal error creating work order" },
         },
       });
     }
-
-    // Validate that the project exists
-    const projectExists = mockDB.projects.some(
-      (p) => p.project_id === workOrderData.project_id
-    );
-    if (!projectExists) {
-      console.error(`Project with ID ${workOrderData.project_id} not found`);
-      return Promise.reject({
-        response: {
-          status: 404,
-          data: { message: "Project not found" },
-        },
-      });
-    }
-
-    // Find the highest work_order_id to ensure uniqueness
-    const maxId = mockDB.workOrders.reduce(
-      (max, wo) => Math.max(max, wo.work_order_id || 0),
-      0
-    );
-
-    // Create a new work order with mock data
-    const newWorkOrder = {
-      ...workOrderData,
-      work_order_id: maxId + 1, // Ensure unique ID
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      // Set default values for any missing fields
-      status: workOrderData.status || "Pending",
-      actual_cost: 0,
-      amount_billed: 0,
-      amount_paid: 0,
-      payment_status: "Not Billed",
-      retainage_percentage: workOrderData.retainage_percentage || 0,
-    };
-
-    // Add the new work order to our mock database
-    mockDB.workOrders.push(newWorkOrder);
-
-    console.log("Work order created successfully:", newWorkOrder);
-    console.log("Updated mock DB work orders count:", mockDB.workOrders.length);
-
-    // Simulate a delay for the API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    return newWorkOrder;
   }
 
   // If not using mock data, make the actual API call
-  const response = await apiClient.post("/api/workorders", workOrderData);
-  return response.data;
+  try {
+    console.log("Making API call to create work order:", workOrderData);
+    const response = await apiClient.post("/api/workorders", workOrderData);
+    console.log("API response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error in API call to create work order:", error);
+    // Make sure we return a rejected promise with a proper error structure
+    return Promise.reject(error);
+  }
 };
 
 export const updateWorkOrder = async (

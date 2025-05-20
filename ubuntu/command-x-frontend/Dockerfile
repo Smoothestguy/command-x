@@ -9,14 +9,10 @@ WORKDIR /app
 # Copy package.json and pnpm-lock.yaml
 COPY package.json pnpm-lock.yaml ./
 
-# Add jwt-decode and terser to package.json
-RUN npm pkg set dependencies.jwt-decode="^4.0.0" && \
-    npm pkg set devDependencies.terser="^5.29.2"
-
 # Install dependencies
 RUN pnpm install --no-frozen-lockfile
 
-# Copy the rest of the application code
+# Copy the rest of the application code (node_modules is excluded via .dockerignore)
 COPY . .
 
 # Build the application without TypeScript checking
