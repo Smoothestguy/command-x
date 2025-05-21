@@ -1,5 +1,7 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { ProjectData } from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +19,7 @@ import {
   AlertTriangle,
   Clock,
   DollarSign,
+  CreditCard,
 } from "lucide-react";
 import ReportIssueDialog from "./ReportIssueDialog";
 
@@ -35,6 +38,9 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isReportIssueDialogOpen, setIsReportIssueDialogOpen] = useState(false);
+
+  // Get auth context for role-based access control
+  const { hasPermission } = useAuth();
 
   // Format date for display
   const formatDate = (dateString?: string | null) => {
@@ -213,20 +219,36 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
             className="flex justify-end gap-2 table-cell-content"
             onClick={(e) => e.stopPropagation()}
           >
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => onEdit(project)}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="destructive"
-              size="icon"
-              onClick={() => project.project_id && onDelete(project.project_id)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {/* Only show edit button for admin and project managers */}
+            {hasPermission(["admin", "project_manager"]) && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => onEdit(project)}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            )}
+
+            {/* Only show delete button for admin */}
+            {hasPermission("admin") && (
+              <Button
+                variant="destructive"
+                size="icon"
+                onClick={() =>
+                  project.project_id && onDelete(project.project_id)
+                }
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+
+            {/* Show view-only indicator for subcontractors and regular users */}
+            {!hasPermission(["admin", "project_manager"]) && (
+              <Badge variant="outline" className="text-xs">
+                View Only
+              </Badge>
+            )}
           </div>
         </TableCell>
       </TableRow>
@@ -255,6 +277,18 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
                     Issues
                   </TabsTrigger>
                 </TabsList>
+
+                {/* Quick Actions */}
+                <div className="flex gap-2 mb-4">
+                  {project.project_id && (
+                    <Link to={`/projects/${project.project_id}/payment-items`}>
+                      <Button variant="outline" size="sm">
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        Payment Items
+                      </Button>
+                    </Link>
+                  )}
+                </div>
 
                 {/* Details Tab */}
                 <TabsContent value="details">
@@ -363,6 +397,7 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
                           </div>
                         </div>
 
+                        {/* Team Members */}
                         {project.team_members &&
                         project.team_members.length > 0 ? (
                           project.team_members.map((member) => (
@@ -386,6 +421,34 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
                             No team members assigned to this project.
                           </p>
                         )}
+
+                        {/* Subcontractors Section */}
+                        {project.subcontractors &&
+                          project.subcontractors.length > 0 && (
+                            <>
+                              <h3 className="font-medium mt-6 mb-2">
+                                Assigned Subcontractors
+                              </h3>
+                              {project.subcontractors.map((sub) => (
+                                <div
+                                  key={sub.subcontractor_id}
+                                  className="flex items-center gap-3 p-2 bg-yellow-50 rounded-md"
+                                >
+                                  <div className="bg-yellow-100 text-yellow-800 p-2 rounded-full">
+                                    <Users className="h-5 w-5" />
+                                  </div>
+                                  <div>
+                                    <div className="font-medium">
+                                      {sub.company_name}
+                                    </div>
+                                    <div className="text-sm text-gray-500">
+                                      {sub.role || "Subcontractor"}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </>
+                          )}
                       </div>
                     </CardContent>
                   </Card>
@@ -452,6 +515,7 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
                         No issues reported for this project.
                       </p>
 
+                      {/* Allow all authenticated users to report issues */}
                       <div className="mt-4">
                         <Button
                           variant="outline"

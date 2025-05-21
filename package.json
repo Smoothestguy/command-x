@@ -7,7 +7,8 @@
     "postinstall": "cd ubuntu/command-x-frontend && npm install jwt-decode terser --legacy-peer-deps"
   },
   "dependencies": {
-    "jwt-decode": "^4.0.0"
+    "jwt-decode": "^4.0.0",
+    "puppeteer": "^24.9.0"
   },
   "private": true
 }

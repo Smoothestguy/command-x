@@ -12,6 +12,7 @@ import {
   SubcontractorData,
   LineItemData,
 } from "../services/api";
+import PurchaseOrderSection from "../components/purchase-orders/PurchaseOrderSection";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -2457,7 +2458,7 @@ const WorkOrders: React.FC = () => {
 
       {/* View Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="sm:max-w-[700px]">
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Work Order Details</DialogTitle>
             <DialogDescription>
@@ -2605,6 +2606,17 @@ const WorkOrders: React.FC = () => {
                     </span>
                   </div>
                 </div>
+              </div>
+
+              <div className="mt-6 border-t pt-6">
+                <h3 className="text-lg font-bold mb-4 text-blue-700 bg-blue-100 p-2 rounded">
+                  PURCHASE ORDERS SECTION
+                </h3>
+                {selectedWorkOrder.work_order_id && (
+                  <PurchaseOrderSection
+                    workOrderId={selectedWorkOrder.work_order_id}
+                  />
+                )}
               </div>
             </div>
           )}

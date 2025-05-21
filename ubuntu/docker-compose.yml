@@ -138,6 +138,26 @@ services:
     networks:
       - commandx_network
 
+  # Purchase order service
+  purchase-order-service:
+    build:
+      context: ./command-x-backend/purchase-order-service
+      dockerfile: Dockerfile
+    container_name: purchase_order_service
+    depends_on:
+      - db
+    environment:
+      DB_USER: command_x_user
+      DB_PASSWORD: securepassword
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: command_x_db
+      PORT: 3007
+    ports:
+      - "3007:3007"
+    networks:
+      - commandx_network
+
   # Frontend service
   frontend:
     build:
@@ -154,6 +174,7 @@ services:
       - financial-service
       - document-service
       - qc-service
+      - purchase-order-service
     networks:
       - commandx_network
 

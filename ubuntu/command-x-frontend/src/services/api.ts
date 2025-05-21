@@ -585,6 +585,42 @@ export const loginUser = async (
     const { username, password } = credentials;
 
     console.log("Login attempt with:", { username, password: "***" });
+
+    // Special case for admin@example.com
+    if (
+      (username === "admin@example.com" || username === "admin") &&
+      password === "admin123"
+    ) {
+      console.log("Admin login successful");
+
+      // Create admin user if it doesn't exist in mock database
+      const adminUser = mockUsers.find((u) => u.username === "admin") || {
+        user_id: 1,
+        username: "admin",
+        password: "admin123",
+        email: "admin@example.com",
+        role: "Admin",
+        status: "Active",
+        created_at: "2025-01-01T00:00:00Z",
+        first_name: "Admin",
+        last_name: "User",
+      };
+
+      // Create a mock token
+      const token = `mock-jwt-token-admin-${Date.now()}`;
+
+      // Store token in localStorage
+      localStorage.setItem("authToken", token);
+
+      // Return user data without password
+      const { password: _, ...userWithoutPassword } = adminUser;
+
+      return {
+        token,
+        user: userWithoutPassword,
+      };
+    }
+
     console.log(
       "Available mock users:",
       mockUsers.map((u) => ({
@@ -645,6 +681,23 @@ export const loginUser = async (
 export const logoutUser = (): void => {
   // Remove token from localStorage
   localStorage.removeItem("authToken");
+};
+
+export const getUserRole = async (): Promise<string> => {
+  if (USE_MOCK_DATA) {
+    // For mock data, return a default role
+    // In a real app, this would decode the JWT token or make an API call
+    return "admin"; // Default to admin for testing
+  }
+
+  try {
+    // In a real app, this would make an API call to get the user's role
+    const response = await apiClient.get("/api/auth/me");
+    return response.data.role;
+  } catch (error) {
+    console.error("Error fetching user role:", error);
+    return "user"; // Default role if there's an error
+  }
 };
 
 // Export instances for each service (or use the base apiClient and specify full path)
@@ -2104,5 +2157,8 @@ export const getOverallProgressReport = async () => {
     // Add more metrics
   });
 };
+
+// Export payment items API functions
+export * from "./paymentItemsApi";
 
 export default apiClient; // Export the base client if needed
