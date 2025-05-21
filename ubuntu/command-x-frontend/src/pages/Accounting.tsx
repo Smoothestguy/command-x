@@ -42,7 +42,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import WorkOrderStatusTable from "@/components/accounting/WorkOrderStatusTable";
 import PaymentStatusTable from "@/components/accounting/PaymentStatusTable";
-import { workOrderData } from "@/components/accounting/WorkOrderStatusTable";
 import MobileTable from "@/components/ui/mobile-table";
 
 import {
@@ -1535,7 +1534,13 @@ const Accounting: React.FC = () => {
                         <h3 className="text-lg font-medium mb-4">
                           Work Order Status Details
                         </h3>
-                        <WorkOrderStatusTable />
+                        <WorkOrderStatusTable
+                          projectId={
+                            projectFilter !== "all"
+                              ? parseInt(projectFilter)
+                              : undefined
+                          }
+                        />
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
@@ -1633,7 +1638,7 @@ const Accounting: React.FC = () => {
                                       try {
                                         // Generate the report directly
                                         const reportWindow =
-                                          generateDirectReport(workOrderData);
+                                          generateDirectReport();
 
                                         if (reportWindow) {
                                           toast({
@@ -1693,7 +1698,7 @@ const Accounting: React.FC = () => {
 
                                       try {
                                         // Download the report
-                                        downloadReport(workOrderData);
+                                        downloadReport();
 
                                         toast({
                                           title: "Report Downloaded",
@@ -1915,7 +1920,13 @@ const Accounting: React.FC = () => {
                   <h3 className="text-lg font-medium mb-4">
                     Work Order Status Overview
                   </h3>
-                  <WorkOrderStatusTable />
+                  <WorkOrderStatusTable
+                    projectId={
+                      projectFilter !== "all"
+                        ? parseInt(projectFilter)
+                        : undefined
+                    }
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">

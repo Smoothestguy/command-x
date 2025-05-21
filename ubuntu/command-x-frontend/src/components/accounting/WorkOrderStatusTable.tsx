@@ -9,34 +9,18 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
+import {
+  WorkOrderFinancialData,
+  getWorkOrderFinancialData,
+  getWorkOrderFinancialSummary,
+} from "@/services/accountingApi";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Define the type for work order data
-interface WorkOrderData {
-  id: string;
-  completed: number;
-  notStarted: number;
-  swoTotal: number;
-  subMaterialAmount: number;
-  woAmount: number;
-  unbillableAmount: number;
-  unbillableHeld: number;
-  retainageHeld: number;
-  retainageAmount: number;
-  woDueAmount: number;
-  pendingCOs: number;
-  changeOrderNotes: string;
-  percentComplete: number;
-  percentOfPass: number;
-  percentAssigned: number;
-  percentCompleted: number;
-  percentPending: number;
-  percentStarted: number;
-  dueDate: string;
-  crewName: string;
-}
+// Use the WorkOrderFinancialData type from accountingApi.ts
 
-// Sample data for the work order status table
-export const workOrderData: WorkOrderData[] = [
+// Sample data for the work order status table (used as fallback)
+const fallbackWorkOrderData: WorkOrderFinancialData[] = [
   {
     id: "1",
     completed: 0,
@@ -177,7 +161,9 @@ const formatCurrency = (value: number) => {
 };
 
 // Mobile card view for work order status
-const MobileWorkOrderCard: React.FC<{ data: WorkOrderData }> = ({ data }) => {
+const MobileWorkOrderCard: React.FC<{ data: WorkOrderFinancialData }> = ({
+  data,
+}) => {
   return (
     <Card className="mb-4">
       <CardHeader className="pb-2">
@@ -280,22 +266,7 @@ const MobileWorkOrderCard: React.FC<{ data: WorkOrderData }> = ({ data }) => {
 };
 
 // Financial Summary Card for mobile view
-const MobileFinancialSummary: React.FC = () => {
-  // Calculate totals from workOrderData
-  const totalSWO = workOrderData.reduce((sum, item) => sum + item.swoTotal, 0);
-  const totalRetainage = workOrderData.reduce(
-    (sum, item) => sum + item.retainageAmount,
-    0
-  );
-  const totalWOAmount = workOrderData.reduce(
-    (sum, item) => sum + item.woAmount,
-    0
-  );
-  const totalDue = workOrderData.reduce(
-    (sum, item) => sum + item.woDueAmount,
-    0
-  );
-
+const MobileFinancialSummary: React.FC<{ summary: any }> = ({ summary }) => {
   return (
     <Card className="mb-4">
       <CardHeader className="pb-2">
@@ -304,24 +275,26 @@ const MobileFinancialSummary: React.FC = () => {
       <CardContent className="space-y-2">
         <div className="flex justify-between">
           <span className="text-muted-foreground">Total SWO Amount:</span>
-          <span className="font-semibold">${totalSWO.toFixed(2)}</span>
+          <span className="font-semibold">${summary.totalSWO.toFixed(2)}</span>
         </div>
 
         <div className="flex justify-between">
           <span className="text-muted-foreground">Total Paid:</span>
           <span className="font-semibold">
-            ${(totalWOAmount - totalDue).toFixed(2)}
+            ${(summary.totalWOAmount - summary.totalDue).toFixed(2)}
           </span>
         </div>
 
         <div className="flex justify-between">
           <span className="text-muted-foreground">Outstanding Balance:</span>
-          <span className="font-semibold">${totalDue.toFixed(2)}</span>
+          <span className="font-semibold">${summary.totalDue.toFixed(2)}</span>
         </div>
 
         <div className="flex justify-between">
           <span className="text-muted-foreground">Total Retainage:</span>
-          <span className="font-semibold">${totalRetainage.toFixed(2)}</span>
+          <span className="font-semibold">
+            ${summary.totalRetainage.toFixed(2)}
+          </span>
         </div>
       </CardContent>
     </Card>
@@ -329,21 +302,7 @@ const MobileFinancialSummary: React.FC = () => {
 };
 
 // Status Breakdown Card for mobile view
-const MobileStatusBreakdown: React.FC = () => {
-  // Calculate status counts
-  const approved = workOrderData.filter(
-    (item) => item.percentCompleted === 100
-  ).length;
-  const pending = workOrderData.filter(
-    (item) => item.percentPending > 0
-  ).length;
-  const inProgress = workOrderData.filter(
-    (item) => item.percentStarted > 0 && item.percentCompleted < 100
-  ).length;
-  const notStarted = workOrderData.filter(
-    (item) => item.percentStarted === 0 && item.percentPending === 0
-  ).length;
-
+const MobileStatusBreakdown: React.FC<{ summary: any }> = ({ summary }) => {
   return (
     <Card className="mb-4">
       <CardHeader className="pb-2">
@@ -352,23 +311,23 @@ const MobileStatusBreakdown: React.FC = () => {
       <CardContent>
         <div className="space-y-2">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Approved:</span>
-            <span className="font-semibold">{approved}</span>
-          </div>
-
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Pending:</span>
-            <span className="font-semibold">{pending}</span>
+            <span className="text-muted-foreground">Completed:</span>
+            <span className="font-semibold">{summary.completed}</span>
           </div>
 
           <div className="flex justify-between">
             <span className="text-muted-foreground">In Progress:</span>
-            <span className="font-semibold">{inProgress}</span>
+            <span className="font-semibold">{summary.inProgress}</span>
           </div>
 
           <div className="flex justify-between">
             <span className="text-muted-foreground">Not Started:</span>
-            <span className="font-semibold">{notStarted}</span>
+            <span className="font-semibold">{summary.notStarted}</span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Total:</span>
+            <span className="font-semibold">{summary.totalCount}</span>
           </div>
         </div>
       </CardContent>
@@ -376,8 +335,34 @@ const MobileStatusBreakdown: React.FC = () => {
   );
 };
 
-const WorkOrderStatusTable: React.FC = () => {
+interface WorkOrderStatusTableProps {
+  projectId?: number;
+}
+
+const WorkOrderStatusTable: React.FC<WorkOrderStatusTableProps> = ({
+  projectId,
+}) => {
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
+
+  // Fetch work order financial data
+  const {
+    data: workOrderData,
+    isLoading: isLoadingData,
+    error: dataError,
+  } = useQuery({
+    queryKey: ["workOrderFinancialData", projectId],
+    queryFn: () => getWorkOrderFinancialData(projectId),
+  });
+
+  // Fetch financial summary
+  const {
+    data: financialSummary,
+    isLoading: isLoadingSummary,
+    error: summaryError,
+  } = useQuery({
+    queryKey: ["workOrderFinancialSummary", projectId],
+    queryFn: () => getWorkOrderFinancialSummary(projectId),
+  });
 
   // Add resize listener
   useEffect(() => {
@@ -389,11 +374,30 @@ const WorkOrderStatusTable: React.FC = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Loading state
+  if (isLoadingData || isLoadingSummary) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-[200px] w-full" />
+        <Skeleton className="h-[400px] w-full" />
+      </div>
+    );
+  }
+
+  // Error state
+  if (dataError || summaryError || !workOrderData || !financialSummary) {
+    return (
+      <div className="p-4 border border-red-300 bg-red-50 text-red-800 rounded-md">
+        Error loading work order financial data. Please try again later.
+      </div>
+    );
+  }
+
   if (isMobileView) {
     return (
       <div className="space-y-4">
-        <MobileFinancialSummary />
-        <MobileStatusBreakdown />
+        <MobileFinancialSummary summary={financialSummary} />
+        <MobileStatusBreakdown summary={financialSummary} />
         <h3 className="text-lg font-medium mt-6 mb-2">
           Work Order Status Overview
         </h3>
@@ -446,13 +450,7 @@ const WorkOrderStatusTable: React.FC = () => {
               Pending COs
             </TableHead>
             <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
-              Change Order Notes
-            </TableHead>
-            <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
               Due Date
-            </TableHead>
-            <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
-              % Failures
             </TableHead>
             <TableHead className="text-center font-semibold whitespace-nowrap px-2 py-2">
               % of Pass
@@ -475,79 +473,79 @@ const WorkOrderStatusTable: React.FC = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {workOrderData.map((row) => (
-            <TableRow key={row.id} className="hover:bg-muted/50">
-              <PercentageCell
-                value={row.percentComplete}
-                className="whitespace-nowrap px-2 py-2"
-              />
-              <TableCell className="text-center whitespace-nowrap px-2 py-2">
-                ${row.notStarted.toFixed(2)}
-              </TableCell>
-              <TableCell className="text-center whitespace-nowrap px-2 py-2">
-                {formatCurrency(row.swoTotal)}
-              </TableCell>
-              <TableCell className="text-center whitespace-nowrap px-2 py-2">
-                {formatCurrency(row.subMaterialAmount)}
-              </TableCell>
-              <TableCell className="text-center whitespace-nowrap px-2 py-2">
-                {formatCurrency(row.woAmount)}
-              </TableCell>
-              <TableCell className="text-center whitespace-nowrap px-2 py-2">
-                {formatCurrency(row.unbillableAmount)}
-              </TableCell>
-              <TableCell className="text-center whitespace-nowrap px-2 py-2">
-                {formatCurrency(row.unbillableHeld)}
-              </TableCell>
-              <TableCell className="text-center whitespace-nowrap px-2 py-2">
-                {formatCurrency(row.retainageHeld)}
-              </TableCell>
-              <TableCell className="text-center whitespace-nowrap px-2 py-2">
-                {formatCurrency(row.retainageAmount)}
-              </TableCell>
-              <TableCell className="text-center whitespace-nowrap px-2 py-2">
-                {formatCurrency(row.woDueAmount)}
-              </TableCell>
-              <TableCell className="text-center whitespace-nowrap px-2 py-2">
-                {row.pendingCOs}
-              </TableCell>
-              <TableCell className="text-center whitespace-nowrap px-2 py-2">
-                {row.changeOrderNotes}
-              </TableCell>
-              <TableCell className="text-center whitespace-nowrap px-2 py-2">
-                {row.dueDate}
-              </TableCell>
-              <PercentageCell
-                value={0}
-                color="bg-green-500"
-                className="whitespace-nowrap px-2 py-2"
-              />
-              <PercentageCell
-                value={row.percentOfPass}
-                className="whitespace-nowrap px-2 py-2"
-              />
-              <PercentageCell
-                value={row.percentAssigned}
-                className="whitespace-nowrap px-2 py-2"
-              />
-              <PercentageCell
-                value={row.percentCompleted}
-                className="whitespace-nowrap px-2 py-2"
-              />
-              <PercentageCell
-                value={row.percentPending}
-                className="whitespace-nowrap px-2 py-2"
-              />
-              <PercentageCell
-                value={row.percentStarted}
-                color="bg-red-500"
-                className="whitespace-nowrap px-2 py-2"
-              />
-              <TableCell className="whitespace-nowrap px-2 py-2">
-                {row.crewName}
+          {workOrderData.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={18} className="text-center py-8">
+                No work order data available
               </TableCell>
             </TableRow>
-          ))}
+          ) : (
+            workOrderData.map((row) => (
+              <TableRow key={row.id} className="hover:bg-muted/50">
+                <PercentageCell
+                  value={row.percentComplete}
+                  className="whitespace-nowrap px-2 py-2"
+                />
+                <TableCell className="text-center whitespace-nowrap px-2 py-2">
+                  ${row.notStarted.toFixed(2)}
+                </TableCell>
+                <TableCell className="text-center whitespace-nowrap px-2 py-2">
+                  {formatCurrency(row.swoTotal)}
+                </TableCell>
+                <TableCell className="text-center whitespace-nowrap px-2 py-2">
+                  {formatCurrency(row.subMaterialAmount)}
+                </TableCell>
+                <TableCell className="text-center whitespace-nowrap px-2 py-2">
+                  {formatCurrency(row.woAmount)}
+                </TableCell>
+                <TableCell className="text-center whitespace-nowrap px-2 py-2">
+                  {formatCurrency(row.unbillableAmount)}
+                </TableCell>
+                <TableCell className="text-center whitespace-nowrap px-2 py-2">
+                  {formatCurrency(row.unbillableHeld)}
+                </TableCell>
+                <TableCell className="text-center whitespace-nowrap px-2 py-2">
+                  {formatCurrency(row.retainageHeld)}
+                </TableCell>
+                <TableCell className="text-center whitespace-nowrap px-2 py-2">
+                  {formatCurrency(row.retainageAmount)}
+                </TableCell>
+                <TableCell className="text-center whitespace-nowrap px-2 py-2">
+                  {formatCurrency(row.woDueAmount)}
+                </TableCell>
+                <TableCell className="text-center whitespace-nowrap px-2 py-2">
+                  {row.pendingCOs}
+                </TableCell>
+                <TableCell className="text-center whitespace-nowrap px-2 py-2">
+                  {row.dueDate}
+                </TableCell>
+                <PercentageCell
+                  value={row.percentOfPass}
+                  className="whitespace-nowrap px-2 py-2"
+                />
+                <PercentageCell
+                  value={row.percentAssigned}
+                  className="whitespace-nowrap px-2 py-2"
+                />
+                <PercentageCell
+                  value={row.percentCompleted}
+                  className="whitespace-nowrap px-2 py-2"
+                />
+                <PercentageCell
+                  value={row.percentPending}
+                  className="whitespace-nowrap px-2 py-2"
+                />
+                <PercentageCell
+                  value={row.percentStarted}
+                  color="bg-red-500"
+                  className="whitespace-nowrap px-2 py-2"
+                />
+                <TableCell className="whitespace-nowrap px-2 py-2">
+                  {row.crewName}
+                </TableCell>
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
     </div>
