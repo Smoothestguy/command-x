@@ -60,59 +60,115 @@ import {
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Create a custom API client for vendor operations
+// Mock data for vendors
+let mockVendors: VendorData[] = [
+  {
+    vendor_id: 1,
+    name: "ABC Supplies",
+    contact_name: "John Smith",
+    email: "john@abcsupplies.com",
+    phone: "555-123-4567",
+    address: "123 Main St",
+    city: "Anytown",
+    state: "CA",
+    zip: "12345",
+    notes: "Reliable supplier for construction materials",
+  },
+  {
+    vendor_id: 2,
+    name: "XYZ Materials",
+    contact_name: "Jane Doe",
+    email: "jane@xyzmaterials.com",
+    phone: "555-987-6543",
+    address: "456 Oak Ave",
+    city: "Somewhere",
+    state: "NY",
+    zip: "67890",
+    notes: "Specializes in high-end finishes",
+  },
+  {
+    vendor_id: 3,
+    name: "123 Hardware",
+    contact_name: "Bob Johnson",
+    email: "bob@123hardware.com",
+    phone: "555-456-7890",
+    address: "789 Pine Rd",
+    city: "Nowhere",
+    state: "TX",
+    zip: "54321",
+    notes: "Best prices on tools and hardware",
+  },
+];
+
+// Create a custom API client for vendor operations using mock data
 const vendorApiClient = {
   getVendors: async (): Promise<VendorData[]> => {
-    const response = await fetch('/api/vendors');
-    if (!response.ok) {
-      throw new Error('Failed to fetch vendors');
-    }
-    return response.json();
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    return [...mockVendors];
   },
-  
+
   getVendorById: async (id: number): Promise<VendorData> => {
-    const response = await fetch(`/api/vendors/${id}`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch vendor with ID ${id}`);
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const vendor = mockVendors.find((v) => v.vendor_id === id);
+    if (!vendor) {
+      throw new Error(`Vendor with ID ${id} not found`);
     }
-    return response.json();
+
+    return { ...vendor };
   },
-  
+
   createVendor: async (vendor: Partial<VendorData>): Promise<VendorData> => {
-    const response = await fetch('/api/vendors', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(vendor),
-    });
-    if (!response.ok) {
-      throw new Error('Failed to create vendor');
-    }
-    return response.json();
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const newVendor: VendorData = {
+      ...vendor,
+      vendor_id: Math.max(0, ...mockVendors.map((v) => v.vendor_id || 0)) + 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as VendorData;
+
+    mockVendors.push(newVendor);
+
+    return { ...newVendor };
   },
-  
-  updateVendor: async (id: number, vendor: Partial<VendorData>): Promise<VendorData> => {
-    const response = await fetch(`/api/vendors/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(vendor),
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to update vendor with ID ${id}`);
+
+  updateVendor: async (
+    id: number,
+    vendor: Partial<VendorData>
+  ): Promise<VendorData> => {
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const index = mockVendors.findIndex((v) => v.vendor_id === id);
+    if (index === -1) {
+      throw new Error(`Vendor with ID ${id} not found`);
     }
-    return response.json();
+
+    const updatedVendor: VendorData = {
+      ...mockVendors[index],
+      ...vendor,
+      updated_at: new Date().toISOString(),
+    };
+
+    mockVendors[index] = updatedVendor;
+
+    return { ...updatedVendor };
   },
-  
+
   deleteVendor: async (id: number): Promise<void> => {
-    const response = await fetch(`/api/vendors/${id}`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to delete vendor with ID ${id}`);
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const index = mockVendors.findIndex((v) => v.vendor_id === id);
+    if (index === -1) {
+      throw new Error(`Vendor with ID ${id} not found`);
     }
+
+    mockVendors.splice(index, 1);
   },
 };
 
@@ -195,7 +251,9 @@ const Vendors: React.FC = () => {
       (vendor) =>
         vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (vendor.contact_name &&
-          vendor.contact_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          vendor.contact_name
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase())) ||
         (vendor.email &&
           vendor.email.toLowerCase().includes(searchTerm.toLowerCase()))
     );
@@ -282,12 +340,16 @@ const Vendors: React.FC = () => {
     <div className="p-4 md:p-8">
       {/* Mobile-optimized header with centered title */}
       <div className="flex flex-col mb-6">
-        <h1 className="text-3xl font-bold text-center mb-4">Vendor Management</h1>
+        <h1 className="text-3xl font-bold text-center mb-4">
+          Vendor Management
+        </h1>
         <div className="flex flex-wrap justify-center gap-2">
           <Button
             variant="outline"
             size="icon"
-            onClick={() => queryClient.invalidateQueries({ queryKey: ["vendors"] })}
+            onClick={() =>
+              queryClient.invalidateQueries({ queryKey: ["vendors"] })
+            }
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
