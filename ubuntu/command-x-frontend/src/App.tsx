@@ -13,6 +13,7 @@ import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
 import WorkOrders from "./pages/WorkOrders";
 import PurchaseOrders from "./pages/PurchaseOrders";
+import Vendors from "./pages/Vendors";
 import Subcontractors from "./pages/Subcontractors";
 import DocumentsPage from "./pages/DocumentsPage";
 import Accounting from "./pages/Accounting";
@@ -149,6 +150,7 @@ function App() {
               />
               <Route path="/work-orders" element={<WorkOrders />} />
               <Route path="/purchase-orders" element={<PurchaseOrders />} />
+              <Route path="/vendors" element={<Vendors />} />
               <Route path="/subcontractors" element={<Subcontractors />} />
               <Route path="/documents" element={<DocumentsPage />} />
               <Route path="/accounting" element={<Accounting />} />

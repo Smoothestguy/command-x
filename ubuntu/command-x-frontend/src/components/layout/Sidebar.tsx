@@ -11,6 +11,7 @@ import {
   DollarSign,
   X,
   ShoppingCart,
+  Building,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -113,6 +114,20 @@ const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
             >
               <ShoppingCart className="mr-3 h-5 w-5 flex-shrink-0" />
               <span className="truncate">Purchase Orders</span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/vendors"
+              onClick={onCloseMobile}
+              className={`flex items-center p-2 text-gray-700 hover:bg-gray-200 rounded min-h-[44px] ${
+                location.pathname === "/vendors"
+                  ? "bg-gray-200 font-medium"
+                  : ""
+              }`}
+            >
+              <Building className="mr-3 h-5 w-5 flex-shrink-0" />
+              <span className="truncate">Vendors</span>
             </Link>
           </li>
           <li>
