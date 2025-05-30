@@ -5,6 +5,7 @@
 
 [build.environment]
   NODE_VERSION = "18"
+  # Updated to force new deployment with latest fixes
 
 # Handle SPA routing
 [[redirects]]
