@@ -1,0 +1,3782 @@
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  getWorkOrders,
+  createWorkOrder,
+  updateWorkOrder,
+  deleteWorkOrder,
+  WorkOrderData,
+  getProjects,
+  ProjectData,
+  getSubcontractors,
+  SubcontractorData,
+  LineItemData,
+} from "../services/api";
+import PurchaseOrderSection from "../components/purchase-orders/PurchaseOrderSection";
+import ProjectBudgetSummary from "../components/projects/ProjectBudgetSummary";
+import EnhancedWorkOrderDialog from "../components/work-orders/EnhancedWorkOrderDialog";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import {
+  Pencil,
+  Trash2,
+  PlusCircle,
+  Search,
+  Filter,
+  ArrowUpDown,
+  Eye,
+  Calendar,
+  DollarSign,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  FileText,
+  Download,
+  Upload,
+  MoreHorizontal,
+  ChevronDown,
+  ChevronUp,
+  ChevronRight,
+  RefreshCw,
+  Loader2,
+  LayoutGrid,
+  Users,
+} from "lucide-react";
+import { toast } from "sonner";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+const WorkOrderSchema = Yup.object().shape({
+  project_id: Yup.number().required("Project is required"),
+  description: Yup.string().required("Description is required"),
+  assigned_subcontractor_id: Yup.number().nullable(),
+  status: Yup.string(),
+  scheduled_date: Yup.date().nullable(),
+  completion_date: Yup.date().nullable(),
+  estimated_cost: Yup.number()
+    .nullable()
+    .positive("Estimated cost must be positive"),
+  // Add other validations as needed
+});
+
+const WorkOrders: React.FC = () => {
+  const queryClient = useQueryClient();
+
+  // Dialog states
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [selectedWorkOrder, setSelectedWorkOrder] =
+    useState<WorkOrderData | null>(null);
+
+  // Filtering and sorting states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [projectFilter, setProjectFilter] = useState("all");
+  const [sortField, setSortField] =
+    useState<keyof WorkOrderData>("scheduled_date");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [dateRange, setDateRange] = useState<{
+    from: string | null;
+    to: string | null;
+  }>({ from: null, to: null });
+
+  // UI states
+  const [expandedRows, setExpandedRows] = useState<number[]>([]);
+  const [selectedRows, setSelectedRows] = useState<number[]>([]);
+  const [activeTab, setActiveTab] = useState("all");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+
+  // Enhanced work order dialog states
+  const [isEnhancedCreateDialogOpen, setIsEnhancedCreateDialogOpen] =
+    useState(false);
+  const [selectedProjectForWorkOrder, setSelectedProjectForWorkOrder] =
+    useState<number | undefined>(undefined);
+
+  // Project selection for budget summary
+  const [selectedProjectId, setSelectedProjectId] = useState<
+    number | undefined
+  >(undefined);
+
+  // Fetch Projects for dropdown
+  const { data: projects } = useQuery<ProjectData[], Error>({
+    queryKey: ["projects"],
+    queryFn: getProjects,
+  });
+
+  // Fetch Subcontractors for dropdown
+  const { data: subcontractors } = useQuery<SubcontractorData[], Error>({
+    queryKey: ["subcontractors"],
+    queryFn: getSubcontractors,
+  });
+
+  // Fetch Work Orders
+  const {
+    data: workOrders,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery<WorkOrderData[], Error>({
+    queryKey: ["workOrders"],
+    queryFn: () => getWorkOrders(), // Fetch all for now
+  });
+
+  // Handle manual refresh
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setIsRefreshing(false);
+    toast.success("Work orders refreshed");
+  };
+
+  // --- Mutations ---
+
+  // Create Work Order
+  const createMutation = useMutation({
+    mutationFn: (workOrderData: WorkOrderData) => {
+      console.log("Creating work order with data:", workOrderData);
+      try {
+        return createWorkOrder(workOrderData);
+      } catch (error) {
+        console.error("Error in createWorkOrder function:", error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      console.log("Work order created successfully:", data);
+      queryClient.invalidateQueries({ queryKey: ["workOrders"] });
+      setIsCreateDialogOpen(false);
+      toast.success("Work Order created successfully!");
+    },
+    onError: (err) => {
+      console.error("Error creating work order:", err);
+      toast.error("Failed to create work order. Please try again.");
+      // Don't close the dialog on error so the user can try again
+    },
+  });
+
+  // Update Work Order
+  const updateMutation = useMutation({
+    mutationFn: (workOrderData: Partial<WorkOrderData>) => {
+      if (!selectedWorkOrder?.work_order_id)
+        throw new Error("No work order selected for update");
+      return updateWorkOrder(selectedWorkOrder.work_order_id, workOrderData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workOrders"] });
+      setIsEditDialogOpen(false);
+      setSelectedWorkOrder(null);
+      toast.success("Work Order updated successfully!");
+    },
+    onError: (err) => {
+      console.error("Error updating work order:", err);
+      toast.error("Failed to update work order.");
+    },
+  });
+
+  // Delete Work Order
+  const deleteMutation = useMutation({
+    mutationFn: deleteWorkOrder,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workOrders"] });
+      toast.success("Work Order deleted successfully!");
+    },
+    onError: (err) => {
+      console.error("Error deleting work order:", err);
+      toast.error("Failed to delete work order.");
+    },
+  });
+
+  // --- Form Handling (using Formik) ---
+
+  const formik = useFormik<Partial<WorkOrderData>>({
+    initialValues: {
+      project_id: undefined,
+      description: "",
+      assigned_subcontractor_id: null,
+      status: "Pending",
+      scheduled_date: null,
+      completion_date: null,
+      estimated_cost: null,
+    },
+    validationSchema: WorkOrderSchema,
+    onSubmit: (values) => {
+      console.log("Form submitted with values:", values);
+
+      try {
+        // Ensure project_id is a number before submitting
+        const submissionData = {
+          ...values,
+          project_id: Number(values.project_id),
+          estimated_cost: values.estimated_cost
+            ? Number(values.estimated_cost)
+            : null,
+          assigned_subcontractor_id: values.assigned_subcontractor_id
+            ? Number(values.assigned_subcontractor_id)
+            : null,
+        };
+
+        console.log("Processed submission data:", submissionData);
+
+        if (selectedWorkOrder) {
+          console.log("Updating existing work order");
+          updateMutation.mutate(submissionData);
+        } else {
+          console.log("Creating new work order");
+          // Cast to WorkOrderData for create, assuming required fields are met by validation
+          createMutation.mutate(submissionData as WorkOrderData);
+        }
+      } catch (error) {
+        console.error("Error processing form submission:", error);
+        toast.error("An error occurred while processing your request");
+      }
+    },
+    enableReinitialize: true, // Reinitialize form when selectedWorkOrder changes
+  });
+
+  // Effect to set form values when editing
+  useEffect(() => {
+    if (selectedWorkOrder) {
+      formik.setValues({
+        project_id: selectedWorkOrder.project_id,
+        description: selectedWorkOrder.description || "",
+        assigned_subcontractor_id:
+          selectedWorkOrder.assigned_subcontractor_id || null,
+        status: selectedWorkOrder.status || "Pending",
+        scheduled_date: selectedWorkOrder.scheduled_date
+          ? new Date(selectedWorkOrder.scheduled_date)
+              .toISOString()
+              .split("T")[0]
+          : null,
+        completion_date: selectedWorkOrder.completion_date
+          ? new Date(selectedWorkOrder.completion_date)
+              .toISOString()
+              .split("T")[0]
+          : null,
+        estimated_cost: selectedWorkOrder.estimated_cost || null,
+        // Set other fields as needed
+      });
+    } else {
+      formik.resetForm();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedWorkOrder]);
+
+  const handleEditClick = (workOrder: WorkOrderData) => {
+    setSelectedWorkOrder(workOrder);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleCreateClick = (e?: React.MouseEvent) => {
+    console.log("handleCreateClick called");
+    if (e) {
+      e.preventDefault(); // Prevent any default navigation
+      e.stopPropagation(); // Stop event propagation
+      console.log("Event prevented and stopped");
+    }
+    setSelectedWorkOrder(null); // Ensure form is for creation
+    formik.resetForm();
+    console.log("About to set isCreateDialogOpen to true");
+    setIsCreateDialogOpen(true);
+    console.log("isCreateDialogOpen set to true");
+
+    // Force a re-render with a timeout
+    setTimeout(() => {
+      console.log("Timeout callback - forcing dialog open again");
+      setIsCreateDialogOpen(true);
+    }, 100);
+  };
+
+  // Enhanced work order creation handler
+  const handleEnhancedCreateClick = (projectId?: number) => {
+    setSelectedProjectForWorkOrder(projectId);
+    setIsEnhancedCreateDialogOpen(true);
+  };
+
+  // Handle view invoice
+  const handleViewInvoice = (workOrder: WorkOrderData) => {
+    setSelectedWorkOrder(workOrder);
+    setIsInvoiceDialogOpen(true);
+  };
+
+  // Handle export
+  const handleExport = (
+    workOrder: WorkOrderData,
+    format: "pdf" | "csv" | "excel"
+  ) => {
+    // In a real app, you would call an API to generate the export
+    // For now, we'll simulate a download with a toast notification
+
+    toast.promise(
+      new Promise((resolve) => {
+        // Simulate API call delay
+        setTimeout(() => {
+          resolve(true);
+        }, 1500);
+      }),
+      {
+        loading: `Preparing ${format.toUpperCase()} export...`,
+        success: () => {
+          // Create a fake download by creating a temporary anchor element
+          const element = document.createElement("a");
+
+          // Different file name based on format
+          const fileName = `work_order_${workOrder.work_order_id}_${
+            format === "excel" ? "xlsx" : format
+          }`;
+
+          // Set the attributes for download
+          element.setAttribute("href", "#");
+          element.setAttribute("download", fileName);
+          element.style.display = "none";
+
+          // Append to the body, click it, and remove it
+          document.body.appendChild(element);
+          element.click();
+          document.body.removeChild(element);
+
+          return `Work Order exported as ${format.toUpperCase()}`;
+        },
+        error: `Failed to export as ${format.toUpperCase()}`,
+      }
+    );
+  };
+
+  // Helper to get project name
+  const getProjectName = useCallback(
+    (projectId: number | undefined) => {
+      if (!projectId) return "N/A";
+      return (
+        projects?.find((p) => p.project_id === projectId)?.project_name ||
+        `Project ID: ${projectId}`
+      );
+    },
+    [projects]
+  );
+
+  // Helper to get subcontractor name
+  const getSubcontractorName = useCallback(
+    (subcontractorId: number | undefined | null) => {
+      if (!subcontractorId) return "N/A";
+      return (
+        subcontractors?.find((s) => s.subcontractor_id === subcontractorId)
+          ?.company_name || `Subcontractor ID: ${subcontractorId}`
+      );
+    },
+    [subcontractors]
+  );
+
+  // Toggle row expansion
+  const toggleRowExpansion = (workOrderId: number) => {
+    setExpandedRows((prev) =>
+      prev.includes(workOrderId)
+        ? prev.filter((id) => id !== workOrderId)
+        : [...prev, workOrderId]
+    );
+  };
+
+  // Toggle row selection
+  const toggleRowSelection = (workOrderId: number) => {
+    setSelectedRows((prev) =>
+      prev.includes(workOrderId)
+        ? prev.filter((id) => id !== workOrderId)
+        : [...prev, workOrderId]
+    );
+  };
+
+  // Select all rows
+  const toggleSelectAll = () => {
+    if (selectedRows.length === (filteredWorkOrders?.length || 0)) {
+      setSelectedRows([]);
+    } else {
+      setSelectedRows(filteredWorkOrders?.map((wo) => wo.work_order_id!) || []);
+    }
+  };
+
+  // Handle batch delete
+  const handleBatchDelete = () => {
+    if (
+      window.confirm(
+        `Are you sure you want to delete ${selectedRows.length} work orders?`
+      )
+    ) {
+      // In a real app, you might want to use a batch delete API endpoint
+      // For now, we'll delete them one by one
+      selectedRows.forEach((id) => {
+        deleteMutation.mutate(id);
+      });
+      setSelectedRows([]);
+    }
+  };
+
+  // Handle batch status dialog open
+  const handleBatchStatusDialogOpen = () => {
+    if (selectedRows.length === 0) {
+      toast.error("No work orders selected");
+      return;
+    }
+    // Sync the selected rows with selectedWorkOrderIds when opening the dialog
+    setSelectedWorkOrderIds(selectedRows);
+    setIsBatchStatusDialogOpen(true);
+  };
+
+  // Handle sort
+  const handleSort = (field: keyof WorkOrderData) => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  // Filter and sort work orders
+  const filteredWorkOrders = useMemo(() => {
+    if (!workOrders) return [];
+
+    // First, filter by active tab
+    let filtered = [...workOrders];
+    if (activeTab === "inProgress") {
+      filtered = filtered.filter((wo) => wo.status === "In Progress");
+    } else if (activeTab === "completed") {
+      filtered = filtered.filter((wo) => wo.status === "Completed");
+    } else if (activeTab === "pending") {
+      filtered = filtered.filter(
+        (wo) => wo.status === "Pending" || wo.status === "Scheduled"
+      );
+    }
+
+    // Then apply other filters
+    filtered = filtered.filter((wo) => {
+      // Search term filter
+      const searchMatch =
+        wo.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        getProjectName(wo.project_id)
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        wo.status?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        getSubcontractorName(wo.assigned_subcontractor_id)
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase());
+
+      // Status filter
+      const statusMatch = statusFilter === "all" || wo.status === statusFilter;
+
+      // Project filter
+      const projectMatch =
+        projectFilter === "all" || wo.project_id.toString() === projectFilter;
+
+      // Date range filter
+      let dateMatch = true;
+      if (dateRange.from && wo.scheduled_date) {
+        dateMatch = new Date(wo.scheduled_date) >= new Date(dateRange.from);
+      }
+      if (dateMatch && dateRange.to && wo.scheduled_date) {
+        dateMatch = new Date(wo.scheduled_date) <= new Date(dateRange.to);
+      }
+
+      return searchMatch && statusMatch && projectMatch && dateMatch;
+    });
+
+    // Finally, sort
+    filtered.sort((a, b) => {
+      const fieldA = a[sortField];
+      const fieldB = b[sortField];
+
+      // Handle different field types
+      if (typeof fieldA === "string" && typeof fieldB === "string") {
+        return sortDirection === "asc"
+          ? fieldA.localeCompare(fieldB)
+          : fieldB.localeCompare(fieldA);
+      } else if (fieldA instanceof Date && fieldB instanceof Date) {
+        return sortDirection === "asc"
+          ? fieldA.getTime() - fieldB.getTime()
+          : fieldB.getTime() - fieldA.getTime();
+      } else if (typeof fieldA === "number" && typeof fieldB === "number") {
+        return sortDirection === "asc" ? fieldA - fieldB : fieldB - fieldA;
+      }
+
+      // Default case: convert to string and compare
+      const strA = String(fieldA || "");
+      const strB = String(fieldB || "");
+      return sortDirection === "asc"
+        ? strA.localeCompare(strB)
+        : strB.localeCompare(strA);
+    });
+
+    return filtered;
+  }, [
+    workOrders,
+    searchTerm,
+    statusFilter,
+    projectFilter,
+    dateRange,
+    sortField,
+    sortDirection,
+    activeTab,
+    getProjectName,
+    getSubcontractorName,
+  ]);
+
+  const calculateTotals = useMemo(() => {
+    if (!filteredWorkOrders)
+      return {
+        estimatedTotal: 0,
+        actualTotal: 0,
+        billedTotal: 0,
+        paidTotal: 0,
+      };
+
+    return filteredWorkOrders.reduce(
+      (acc, wo) => {
+        return {
+          estimatedTotal: acc.estimatedTotal + (wo.estimated_cost || 0),
+          actualTotal: acc.actualTotal + (wo.actual_cost || 0),
+          billedTotal: acc.billedTotal + (wo.amount_billed || 0),
+          paidTotal: acc.paidTotal + (wo.amount_paid || 0),
+        };
+      },
+      {
+        estimatedTotal: 0,
+        actualTotal: 0,
+        billedTotal: 0,
+        paidTotal: 0,
+      }
+    );
+  }, [filteredWorkOrders]);
+
+  const [isLineItemDialogOpen, setIsLineItemDialogOpen] = useState(false);
+  const [lineItems, setLineItems] = useState<LineItemData[]>([]);
+
+  const handleManageLineItems = async (workOrder: WorkOrderData) => {
+    setSelectedWorkOrder(workOrder);
+    // Fetch line items for this work order
+    try {
+      // In a real implementation, you would fetch from API
+      // For now, we'll use mock data
+      const items = workOrder.line_items || [];
+      setLineItems(items);
+      setIsLineItemDialogOpen(true);
+    } catch (error) {
+      console.error("Error fetching line items:", error);
+      toast.error("Failed to load line items");
+    }
+  };
+
+  const [newLineItem, setNewLineItem] = useState({
+    description: "",
+    quantity: 1,
+    unit_cost: 0,
+    status: "Not Started",
+  });
+
+  // Work Order Status Management
+  const [showStatusManagement, setShowStatusManagement] = useState(false);
+
+  // Format currency for display
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+    }).format(value);
+  };
+
+  // Calculate totals for status management
+  const statusTotals = useMemo(() => {
+    if (!filteredWorkOrders)
+      return {
+        totalSWO: 0,
+        totalSubMaterial: 0,
+        totalWOAmount: 0,
+        totalUnbillable: 0,
+        totalUnbillableHeld: 0,
+        totalRetainageHeld: 0,
+        totalRetainageAmount: 0,
+        totalWODue: 0,
+        totalPendingCOs: 0,
+      };
+
+    return filteredWorkOrders.reduce(
+      (acc, wo) => {
+        const estimatedCost = wo.estimated_cost || 0;
+        const actualCost = wo.actual_cost || 0;
+        const amountBilled = wo.amount_billed || 0;
+        const amountPaid = wo.amount_paid || 0;
+        const retainagePercentage = wo.retainage_percentage || 0;
+        const retainageAmount = (amountBilled * retainagePercentage) / 100;
+
+        // Assuming subcontractor material is 60% of estimated cost for this example
+        const subMaterial = estimatedCost * 0.6;
+
+        return {
+          totalSWO: acc.totalSWO + estimatedCost,
+          totalSubMaterial: acc.totalSubMaterial + subMaterial,
+          totalWOAmount: acc.totalWOAmount + actualCost,
+          totalUnbillable: acc.totalUnbillable + 0, // Placeholder
+          totalUnbillableHeld: acc.totalUnbillableHeld + 0, // Placeholder
+          totalRetainageHeld: acc.totalRetainageHeld + 0, // Placeholder
+          totalRetainageAmount: acc.totalRetainageAmount + retainageAmount,
+          totalWODue: acc.totalWODue + (amountBilled - amountPaid),
+          totalPendingCOs: acc.totalPendingCOs + 0, // Placeholder
+        };
+      },
+      {
+        totalSWO: 0,
+        totalSubMaterial: 0,
+        totalWOAmount: 0,
+        totalUnbillable: 0,
+        totalUnbillableHeld: 0,
+        totalRetainageHeld: 0,
+        totalRetainageAmount: 0,
+        totalWODue: 0,
+        totalPendingCOs: 0,
+      }
+    );
+  }, [filteredWorkOrders]);
+
+  // Status Summary component
+  const StatusSummary = () => {
+    const totalWorkOrders = filteredWorkOrders?.length || 0;
+    const completedWorkOrders =
+      filteredWorkOrders?.filter((wo) => wo.status === "Completed").length || 0;
+
+    return (
+      <div className="space-y-2">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Total Work Orders:</span>
+          <span className="font-semibold">{totalWorkOrders}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Completed:</span>
+          <span className="font-semibold">{completedWorkOrders}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Total SWO Amount:</span>
+          <span className="font-semibold">
+            {formatCurrency(statusTotals.totalSWO)}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
+  // Retainage Summary component
+  const RetainageSummary = () => {
+    return (
+      <div className="space-y-2">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Total Retainage:</span>
+          <span className="font-semibold">
+            {formatCurrency(statusTotals.totalRetainageAmount)}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Retainage Held:</span>
+          <span className="font-semibold">
+            {formatCurrency(statusTotals.totalRetainageHeld)}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Pending COs:</span>
+          <span className="font-semibold">{statusTotals.totalPendingCOs}</span>
+        </div>
+      </div>
+    );
+  };
+
+  // State for batch status update dialog
+  const [isBatchStatusDialogOpen, setIsBatchStatusDialogOpen] = useState(false);
+  const [batchStatusValue, setBatchStatusValue] = useState("In Progress");
+  const [selectedWorkOrderIds, setSelectedWorkOrderIds] = useState<number[]>(
+    []
+  );
+
+  // State for report generation dialog
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [reportType, setReportType] = useState("status");
+  const [reportFormat, setReportFormat] = useState("pdf");
+
+  // State for crew management dialog
+  const [isCrewDialogOpen, setIsCrewDialogOpen] = useState(false);
+  const [selectedCrew, setSelectedCrew] = useState("");
+
+  // State for filter dialog
+  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
+  const [statusFilterValue, setStatusFilterValue] = useState("all");
+  const [dateRangeFilter, setDateRangeFilter] = useState({ from: "", to: "" });
+
+  // Handle apply filters
+  const handleApplyFilters = () => {
+    setStatusFilter(statusFilterValue);
+    setDateRange({ from: dateRangeFilter.from, to: dateRangeFilter.to });
+    setIsFilterDialogOpen(false);
+    toast.success("Filters applied");
+  };
+
+  // Handle batch status update
+  const handleBatchStatusUpdate = () => {
+    if (selectedWorkOrderIds.length === 0) {
+      toast.error("No work orders selected");
+      return;
+    }
+
+    // In a real implementation, you would call an API to update the status
+    // Actually update the work orders with the selected status
+    selectedWorkOrderIds.forEach((id) => {
+      const workOrder = workOrders?.find((wo) => wo.work_order_id === id);
+      if (workOrder) {
+        updateWorkOrder(id, { ...workOrder, status: batchStatusValue });
+      }
+    });
+
+    // Refresh the work orders list
+    queryClient.invalidateQueries({ queryKey: ["workOrders"] });
+
+    // Show success message and close dialog
+    toast.success(
+      `Updated ${selectedWorkOrderIds.length} work order${
+        selectedWorkOrderIds.length === 1 ? "" : "s"
+      } to ${batchStatusValue}`
+    );
+
+    setIsBatchStatusDialogOpen(false);
+    setSelectedWorkOrderIds([]);
+    setSelectedRows([]);
+  };
+
+  // Handle report generation
+  const handleGenerateReport = () => {
+    // In a real implementation, you would call an API to generate the report
+    // For now, we'll simulate the generation with a toast notification
+    toast.promise(
+      new Promise((resolve) => {
+        // Simulate API call delay
+        setTimeout(() => {
+          resolve(true);
+        }, 2000);
+      }),
+      {
+        loading: `Generating ${reportType} report...`,
+        success: () => {
+          // Create a fake download by creating a temporary anchor element
+          const element = document.createElement("a");
+          const fileName = `work_order_${reportType}_report.${reportFormat}`;
+
+          // Set the attributes for download
+          element.setAttribute("href", "#");
+          element.setAttribute("download", fileName);
+          element.style.display = "none";
+
+          // Append to the body, click it, and remove it
+          document.body.appendChild(element);
+          element.click();
+          document.body.removeChild(element);
+
+          setIsReportDialogOpen(false);
+          return `${
+            reportType.charAt(0).toUpperCase() + reportType.slice(1)
+          } report generated successfully`;
+        },
+        error: "Failed to generate report",
+      }
+    );
+  };
+
+  // Handle crew assignment
+  const handleCrewAssignment = () => {
+    if (!selectedCrew) {
+      toast.error("No crew selected");
+      return;
+    }
+
+    if (selectedWorkOrderIds.length === 0) {
+      toast.error("No work orders selected");
+      return;
+    }
+
+    // In a real implementation, you would call an API to assign the crew
+    // For now, we'll simulate the assignment with a toast notification
+    toast.promise(
+      new Promise((resolve) => {
+        // Simulate API call delay
+        setTimeout(() => {
+          resolve(true);
+        }, 1500);
+      }),
+      {
+        loading: `Assigning crew to ${selectedWorkOrderIds.length} work orders...`,
+        success: () => {
+          setIsCrewDialogOpen(false);
+          setSelectedCrew("");
+          setSelectedWorkOrderIds([]);
+          return `Assigned ${selectedCrew} to ${selectedWorkOrderIds.length} work orders`;
+        },
+        error: "Failed to assign crew",
+      }
+    );
+  };
+
+  // Handle export
+  const handleExportStatusData = (format: "csv" | "excel" | "pdf") => {
+    // In a real implementation, you would call an API to generate the export
+    // For now, we'll simulate the export with a toast notification
+    toast.promise(
+      new Promise((resolve) => {
+        // Simulate API call delay
+        setTimeout(() => {
+          resolve(true);
+        }, 1500);
+      }),
+      {
+        loading: `Preparing ${format.toUpperCase()} export...`,
+        success: () => {
+          // Create a fake download by creating a temporary anchor element
+          const element = document.createElement("a");
+          const fileName = `work_order_status_${
+            format === "excel" ? "xlsx" : format
+          }`;
+
+          // Set the attributes for download
+          element.setAttribute("href", "#");
+          element.setAttribute("download", fileName);
+          element.style.display = "none";
+
+          // Append to the body, click it, and remove it
+          document.body.appendChild(element);
+          element.click();
+          document.body.removeChild(element);
+
+          return `Work Order Status data exported as ${format.toUpperCase()}`;
+        },
+        error: `Failed to export as ${format.toUpperCase()}`,
+      }
+    );
+  };
+
+  // Quick Actions component
+  const QuickActions = () => {
+    return (
+      <div className="space-y-2">
+        <Button
+          className="w-full"
+          variant="default"
+          onClick={handleBatchStatusDialogOpen}
+        >
+          <CheckCircle2 className="mr-2 h-4 w-4" />
+          Update Status
+        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="w-full"
+                variant="outline"
+                onClick={() => setIsReportDialogOpen(true)}
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                Generate Report
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Create reports for work order status and progress</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="w-full"
+                variant="outline"
+                onClick={() => {
+                  // Open the dialog without pre-selecting all work orders
+                  setIsCrewDialogOpen(true);
+                }}
+              >
+                <Users className="mr-2 h-4 w-4" />
+                Manage Crew
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Assign crews to selected work orders</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    );
+  };
+
+  // Percentage Cell component for the status table
+  const PercentageCell = ({ value }: { value: number }) => {
+    return (
+      <TableCell className="text-center">
+        <Badge variant={value > 0 ? "default" : "outline"} className="w-16">
+          {value}%
+        </Badge>
+      </TableCell>
+    );
+  };
+
+  // Handle save changes
+  const handleSaveChanges = () => {
+    // In a real implementation, you would call an API to save the changes
+    // For now, we'll simulate the save with a toast notification
+    toast.promise(
+      new Promise((resolve) => {
+        // Simulate API call delay
+        setTimeout(() => {
+          resolve(true);
+        }, 1500);
+      }),
+      {
+        loading: "Saving changes...",
+        success: "Changes saved successfully",
+        error: "Failed to save changes",
+      }
+    );
+  };
+
+  return (
+    <div className="p-4 md:p-8 bg-background text-foreground">
+      {/* Mobile-optimized header with centered title */}
+      <div className="flex flex-col mb-6">
+        <h1 className="text-3xl font-bold text-center mb-4 text-foreground">
+          Work Orders
+        </h1>
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="flex items-center justify-center"
+          >
+            {isRefreshing ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            Refresh
+          </Button>
+          <Button
+            type="button"
+            onClick={() => handleEnhancedCreateClick()}
+            className="flex items-center justify-center"
+          >
+            <PlusCircle className="mr-2 h-4 w-4" /> Create Work Order
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              console.log("Create Work Order button clicked");
+
+              // Create a modal dialog directly in the DOM
+              const modalContainer = document.createElement("div");
+              modalContainer.className =
+                "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
+              modalContainer.id = "work-order-modal";
+
+              const modalContent = document.createElement("div");
+              modalContent.className =
+                "bg-white p-6 rounded-lg shadow-lg max-w-md w-full";
+              modalContent.innerHTML = `
+                <h2 class="text-xl font-bold mb-4">Create Simple Work Order</h2>
+                <form id="work-order-form">
+                  <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Project</label>
+                    <select id="project-select" class="w-full p-2 border rounded">
+                      <option value="">Select a project</option>
+                      ${projects
+                        ?.map(
+                          (p) =>
+                            `<option value="${p.project_id}">${p.project_name}</option>`
+                        )
+                        .join("")}
+                    </select>
+                  </div>
+                  <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Description</label>
+                    <textarea id="description-input" class="w-full p-2 border rounded" rows="3"></textarea>
+                  </div>
+                  <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Status</label>
+                    <select id="status-select" class="w-full p-2 border rounded">
+                      <option value="Pending">Pending</option>
+                      <option value="Scheduled">Scheduled</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="On Hold">On Hold</option>
+                      <option value="Completed">Completed</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                  <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Estimated Cost ($)</label>
+                    <input id="cost-input" type="number" class="w-full p-2 border rounded" />
+                  </div>
+                  <div class="flex justify-end mt-6">
+                    <button id="cancel-work-order-btn" type="button" class="px-4 py-2 bg-gray-200 rounded mr-2">Cancel</button>
+                    <button id="create-work-order-btn" type="button" class="px-4 py-2 bg-blue-500 text-white rounded">Create Work Order</button>
+                  </div>
+                </form>
+              `;
+
+              modalContainer.appendChild(modalContent);
+              document.body.appendChild(modalContainer);
+
+              // Add event listeners
+              document
+                .getElementById("cancel-work-order-btn")
+                ?.addEventListener("click", () => {
+                  document.body.removeChild(modalContainer);
+                });
+
+              document
+                .getElementById("create-work-order-btn")
+                ?.addEventListener("click", () => {
+                  const projectId = (
+                    document.getElementById(
+                      "project-select"
+                    ) as HTMLSelectElement
+                  )?.value;
+                  const description = (
+                    document.getElementById(
+                      "description-input"
+                    ) as HTMLTextAreaElement
+                  )?.value;
+                  const status = (
+                    document.getElementById(
+                      "status-select"
+                    ) as HTMLSelectElement
+                  )?.value;
+                  const cost = (
+                    document.getElementById("cost-input") as HTMLInputElement
+                  )?.value;
+
+                  if (!projectId || !description) {
+                    alert("Please fill in all required fields");
+                    return;
+                  }
+
+                  const workOrderData = {
+                    project_id: Number(projectId),
+                    description,
+                    status,
+                    estimated_cost: cost ? Number(cost) : null,
+                  };
+
+                  console.log("Creating work order with data:", workOrderData);
+                  createMutation.mutate(workOrderData as WorkOrderData);
+                  document.body.removeChild(modalContainer);
+                });
+            }}
+            className="flex items-center justify-center"
+          >
+            <PlusCircle className="mr-2 h-4 w-4" /> Simple Work Order
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowStatusManagement(!showStatusManagement)}
+            className="col-span-2 mt-2 sm:mt-0 flex items-center justify-center"
+          >
+            {showStatusManagement
+              ? "Hide Status Management"
+              : "Show Status Management"}
+          </Button>
+        </div>
+      </div>
+
+      {/* Work Order Status Management Section */}
+      {showStatusManagement && (
+        <div className="mb-8">
+          <Card className="mb-6">
+            <CardHeader className="pb-3">
+              <div className="flex flex-col justify-between items-center">
+                <div className="w-full text-center mb-4">
+                  <CardTitle className="text-2xl font-bold">
+                    Work Order Status Management
+                  </CardTitle>
+                  <CardDescription className="text-base mt-1">
+                    Track and manage work order status and completion
+                  </CardDescription>
+                </div>
+
+                {/* iPhone 16 Pro Max optimized button layout */}
+                <div className="w-full flex flex-wrap justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRefresh}
+                    className="flex-1 min-w-[80px] flex items-center justify-center px-2"
+                  >
+                    <RefreshCw className="mr-1 h-4 w-4" />
+                    Refresh
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsFilterDialogOpen(true)}
+                    className="flex-1 min-w-[80px] flex items-center justify-center px-2"
+                  >
+                    <Filter className="mr-1 h-4 w-4" />
+                    Filter
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 min-w-[80px] flex items-center justify-center px-2"
+                      >
+                        <Download className="mr-1 h-4 w-4" />
+                        Export
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem
+                        onClick={() => handleExportStatusData("pdf")}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        PDF Document
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleExportStatusData("csv")}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        CSV Spreadsheet
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleExportStatusData("excel")}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        Excel Spreadsheet
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Button
+                    size="sm"
+                    onClick={handleSaveChanges}
+                    className="flex-1 min-w-[120px] flex items-center justify-center px-2"
+                  >
+                    Save Changes
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-6">
+                <h3 className="text-xl font-medium mb-4 text-center">
+                  Work Order Status Details
+                </h3>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-center">
+                          % Completed
+                        </TableHead>
+                        <TableHead className="text-center">
+                          % Work Not Started
+                        </TableHead>
+                        <TableHead className="text-center">SWO Total</TableHead>
+                        <TableHead className="text-center">
+                          Sub W.O. Material
+                        </TableHead>
+                        <TableHead className="text-center">
+                          W.O. Amount
+                        </TableHead>
+                        <TableHead className="text-center">
+                          Unbillable Amount
+                        </TableHead>
+                        <TableHead className="text-center">
+                          Unbillable Held
+                        </TableHead>
+                        <TableHead className="text-center">
+                          Retainage Held
+                        </TableHead>
+                        <TableHead className="text-center">
+                          Retainage Amount
+                        </TableHead>
+                        <TableHead className="text-center">
+                          W.O. Amount Due
+                        </TableHead>
+                        <TableHead className="text-center">
+                          Pending COs
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredWorkOrders?.map((wo) => {
+                        const percentComplete =
+                          wo.status === "Completed"
+                            ? 100
+                            : wo.status === "In Progress"
+                            ? 65
+                            : 0;
+                        const percentNotStarted =
+                          wo.status === "Pending" ? 100 : 0;
+                        const estimatedCost = wo.estimated_cost || 0;
+                        const actualCost = wo.actual_cost || 0;
+                        const amountBilled = wo.amount_billed || 0;
+                        const amountPaid = wo.amount_paid || 0;
+                        const retainagePercentage =
+                          wo.retainage_percentage || 0;
+                        const retainageAmount =
+                          (amountBilled * retainagePercentage) / 100;
+
+                        // Assuming subcontractor material is 60% of estimated cost for this example
+                        const subMaterial = estimatedCost * 0.6;
+
+                        return (
+                          <TableRow key={wo.work_order_id}>
+                            <PercentageCell value={percentComplete} />
+                            <PercentageCell value={percentNotStarted} />
+                            <TableCell className="text-center">
+                              {formatCurrency(estimatedCost)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {formatCurrency(subMaterial)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {formatCurrency(actualCost)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {formatCurrency(0)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {formatCurrency(0)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {formatCurrency(0)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {formatCurrency(retainageAmount)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {formatCurrency(amountBilled - amountPaid)}
+                            </TableCell>
+                            <TableCell className="text-center">0</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* iPhone 16 Pro Max Optimized Card View */}
+                <div className="md:hidden space-y-3">
+                  {filteredWorkOrders?.map((wo) => {
+                    const percentComplete =
+                      wo.status === "Completed"
+                        ? 100
+                        : wo.status === "In Progress"
+                        ? 65
+                        : 0;
+                    const estimatedCost = wo.estimated_cost || 0;
+                    const actualCost = wo.actual_cost || 0;
+                    const amountBilled = wo.amount_billed || 0;
+                    const amountPaid = wo.amount_paid || 0;
+                    const retainagePercentage = wo.retainage_percentage || 0;
+                    const retainageAmount =
+                      (amountBilled * retainagePercentage) / 100;
+
+                    return (
+                      <Card
+                        key={wo.work_order_id}
+                        className="overflow-hidden border-2 shadow-sm"
+                      >
+                        <CardHeader className="p-3 pb-2 border-b">
+                          <div className="flex justify-between items-center">
+                            <CardTitle className="text-base font-bold">
+                              Work Order #{wo.work_order_id}
+                            </CardTitle>
+                            <Badge
+                              variant={
+                                percentComplete === 100 ? "default" : "outline"
+                              }
+                              className="ml-2 px-3 py-1 text-xs font-semibold"
+                            >
+                              {percentComplete}% Complete
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-3">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-muted/30 p-3 rounded-md">
+                              <div className="text-xs uppercase font-semibold text-muted-foreground">
+                                SWO Total
+                              </div>
+                              <div className="text-base font-bold mt-1">
+                                {formatCurrency(estimatedCost)}
+                              </div>
+                            </div>
+                            <div className="bg-muted/30 p-3 rounded-md">
+                              <div className="text-xs uppercase font-semibold text-muted-foreground">
+                                W.O. Amount
+                              </div>
+                              <div className="text-base font-bold mt-1">
+                                {formatCurrency(actualCost)}
+                              </div>
+                            </div>
+                            <div className="bg-muted/30 p-3 rounded-md">
+                              <div className="text-xs uppercase font-semibold text-muted-foreground">
+                                Retainage Amount
+                              </div>
+                              <div className="text-base font-bold mt-1">
+                                {formatCurrency(retainageAmount)}
+                              </div>
+                            </div>
+                            <div className="bg-muted/30 p-3 rounded-md">
+                              <div className="text-xs uppercase font-semibold text-muted-foreground">
+                                Amount Due
+                              </div>
+                              <div className="text-base font-bold mt-1">
+                                {formatCurrency(amountBilled - amountPaid)}
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Summary Cards - iPhone 16 Pro Max Optimized */}
+              <div className="grid grid-cols-1 gap-5 mt-2">
+                <Card className="border-2 shadow-sm">
+                  <CardHeader className="pb-2 border-b">
+                    <CardTitle className="text-lg text-center font-bold">
+                      Status Summary
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    <StatusSummary />
+                  </CardContent>
+                </Card>
+
+                <Card className="border-2 shadow-sm">
+                  <CardHeader className="pb-2 border-b">
+                    <CardTitle className="text-lg text-center font-bold">
+                      Retainage Summary
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    <RetainageSummary />
+                  </CardContent>
+                </Card>
+
+                <Card className="border-2 shadow-sm">
+                  <CardHeader className="pb-2 border-b">
+                    <CardTitle className="text-lg text-center font-bold">
+                      Quick Actions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    <QuickActions />
+                  </CardContent>
+                </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Mobile-optimized Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+        <TabsList className="grid w-full grid-cols-4 overflow-x-auto">
+          <TabsTrigger
+            value="all"
+            className="text-xs sm:text-sm whitespace-nowrap"
+          >
+            All Work Orders
+          </TabsTrigger>
+          <TabsTrigger
+            value="pending"
+            className="text-xs sm:text-sm whitespace-nowrap"
+          >
+            Pending
+          </TabsTrigger>
+          <TabsTrigger
+            value="inProgress"
+            className="text-xs sm:text-sm whitespace-nowrap"
+          >
+            In Progress
+          </TabsTrigger>
+          <TabsTrigger
+            value="completed"
+            className="text-xs sm:text-sm whitespace-nowrap"
+          >
+            Completed
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* Mobile-optimized Filters */}
+      <Card className="mb-6">
+        <CardContent className="pt-6">
+          {/* Search input - full width on mobile */}
+          <div className="flex flex-col gap-4 mb-4">
+            <div className="relative w-full">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search work orders..."
+                className="pl-8 w-full"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            {/* Filter controls - stacked on mobile, row on desktop */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-row gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Scheduled">Scheduled</SelectItem>
+                  <SelectItem value="In Progress">In Progress</SelectItem>
+                  <SelectItem value="On Hold">On Hold</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={projectFilter} onValueChange={setProjectFilter}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder="All Projects" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Projects</SelectItem>
+                  {projects?.map((project) => (
+                    <SelectItem
+                      key={project.project_id}
+                      value={project.project_id!.toString()}
+                    >
+                      {project.project_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full md:w-[180px]">
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Date Range
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-4" align="end">
+                  <div className="grid gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="from">From</Label>
+                      <Input
+                        id="from"
+                        type="date"
+                        value={dateRange.from || ""}
+                        onChange={(e) =>
+                          setDateRange((prev) => ({
+                            ...prev,
+                            from: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="to">To</Label>
+                      <Input
+                        id="to"
+                        type="date"
+                        value={dateRange.to || ""}
+                        onChange={(e) =>
+                          setDateRange((prev) => ({
+                            ...prev,
+                            to: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => setDateRange({ from: null, to: null })}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+
+          {/* View mode and batch actions - stacked on mobile */}
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
+            <div className="flex gap-2 w-full sm:w-auto justify-center sm:justify-start">
+              <Button
+                variant={viewMode === "table" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("table")}
+                className="flex-1 sm:flex-none"
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                Table
+              </Button>
+              <Button
+                variant={viewMode === "cards" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("cards")}
+                className="flex-1 sm:flex-none"
+              >
+                <LayoutGrid className="mr-2 h-4 w-4" />
+                Cards
+              </Button>
+            </div>
+
+            {selectedRows.length > 0 && (
+              <div className="flex gap-2 items-center w-full sm:w-auto justify-center sm:justify-start">
+                <span className="text-sm text-muted-foreground">
+                  {selectedRows.length} selected
+                </span>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full sm:w-auto"
+                    >
+                      Batch Actions <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuLabel>Update Status</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={handleBatchStatusDialogOpen}>
+                      Update Status
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-red-500"
+                      onClick={handleBatchDelete}
+                    >
+                      Delete Selected
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {isLoading && (
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2">Loading work orders...</span>
+        </div>
+      )}
+
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center text-red-500">
+              <AlertCircle className="h-5 w-5 mr-2" />
+              <p>Error loading work orders: {error.message}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isLoading && !error && filteredWorkOrders && (
+        <>
+          {filteredWorkOrders.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="py-8">
+                <div className="flex flex-col items-center justify-center text-center">
+                  <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium">No work orders found</h3>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Try adjusting your filters or create a new work order.
+                  </p>
+                  <Button
+                    className="mt-4"
+                    type="button"
+                    onClick={() => {
+                      console.log(
+                        "Empty state Create Work Order button clicked"
+                      );
+
+                      // Create a modal dialog directly in the DOM
+                      const modalContainer = document.createElement("div");
+                      modalContainer.className =
+                        "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
+                      modalContainer.id = "empty-work-order-modal";
+
+                      const modalContent = document.createElement("div");
+                      modalContent.className =
+                        "bg-white p-6 rounded-lg shadow-lg max-w-md w-full";
+                      modalContent.innerHTML = `
+                        <h2 class="text-xl font-bold mb-4">Create Work Order</h2>
+                        <form id="empty-work-order-form">
+                          <div class="mb-4">
+                            <label class="block text-sm font-medium mb-1">Project</label>
+                            <select id="empty-project-select" class="w-full p-2 border rounded">
+                              <option value="">Select a project</option>
+                              ${projects
+                                ?.map(
+                                  (p) =>
+                                    `<option value="${p.project_id}">${p.project_name}</option>`
+                                )
+                                .join("")}
+                            </select>
+                          </div>
+                          <div class="mb-4">
+                            <label class="block text-sm font-medium mb-1">Description</label>
+                            <textarea id="empty-description-input" class="w-full p-2 border rounded" rows="3"></textarea>
+                          </div>
+                          <div class="mb-4">
+                            <label class="block text-sm font-medium mb-1">Status</label>
+                            <select id="empty-status-select" class="w-full p-2 border rounded">
+                              <option value="Pending">Pending</option>
+                              <option value="Scheduled">Scheduled</option>
+                              <option value="In Progress">In Progress</option>
+                              <option value="On Hold">On Hold</option>
+                              <option value="Completed">Completed</option>
+                              <option value="Cancelled">Cancelled</option>
+                            </select>
+                          </div>
+                          <div class="mb-4">
+                            <label class="block text-sm font-medium mb-1">Estimated Cost ($)</label>
+                            <input id="empty-cost-input" type="number" class="w-full p-2 border rounded" />
+                          </div>
+                          <div class="flex justify-end mt-6">
+                            <button id="empty-cancel-btn" type="button" class="px-4 py-2 bg-gray-200 rounded mr-2">Cancel</button>
+                            <button id="empty-create-btn" type="button" class="px-4 py-2 bg-blue-500 text-white rounded">Create Work Order</button>
+                          </div>
+                        </form>
+                      `;
+
+                      modalContainer.appendChild(modalContent);
+                      document.body.appendChild(modalContainer);
+
+                      // Add event listeners
+                      document
+                        .getElementById("empty-cancel-btn")
+                        ?.addEventListener("click", () => {
+                          document.body.removeChild(modalContainer);
+                        });
+
+                      document
+                        .getElementById("empty-create-btn")
+                        ?.addEventListener("click", () => {
+                          const projectId = (
+                            document.getElementById(
+                              "empty-project-select"
+                            ) as HTMLSelectElement
+                          )?.value;
+                          const description = (
+                            document.getElementById(
+                              "empty-description-input"
+                            ) as HTMLTextAreaElement
+                          )?.value;
+                          const status = (
+                            document.getElementById(
+                              "empty-status-select"
+                            ) as HTMLSelectElement
+                          )?.value;
+                          const cost = (
+                            document.getElementById(
+                              "empty-cost-input"
+                            ) as HTMLInputElement
+                          )?.value;
+
+                          if (!projectId || !description) {
+                            alert("Please fill in all required fields");
+                            return;
+                          }
+
+                          const workOrderData = {
+                            project_id: Number(projectId),
+                            description,
+                            status,
+                            estimated_cost: cost ? Number(cost) : null,
+                          };
+
+                          console.log(
+                            "Creating work order with data:",
+                            workOrderData
+                          );
+                          createMutation.mutate(workOrderData as WorkOrderData);
+                          document.body.removeChild(modalContainer);
+                        });
+                    }}
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4" /> Create Work Order
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : viewMode === "cards" ? (
+            // Card view
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredWorkOrders.map((wo) => (
+                <Card key={wo.work_order_id} className="overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-lg">
+                          {wo.description}
+                        </CardTitle>
+                        <CardDescription>
+                          {getProjectName(wo.project_id)}
+                        </CardDescription>
+                      </div>
+                      <Checkbox
+                        checked={selectedRows.includes(wo.work_order_id!)}
+                        onCheckedChange={() =>
+                          toggleRowSelection(wo.work_order_id!)
+                        }
+                        className="mt-1"
+                      />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pb-2">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">
+                          Status:
+                        </span>
+                        <Badge
+                          variant={
+                            wo.status === "Completed"
+                              ? "default"
+                              : wo.status === "In Progress"
+                              ? "secondary"
+                              : wo.status === "On Hold"
+                              ? "destructive"
+                              : "outline"
+                          }
+                        >
+                          {wo.status}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">
+                          Scheduled:
+                        </span>
+                        <span className="text-sm">
+                          {wo.scheduled_date
+                            ? new Date(wo.scheduled_date).toLocaleDateString()
+                            : "-"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">
+                          Estimated Cost:
+                        </span>
+                        <span className="text-sm font-medium">
+                          {wo.estimated_cost
+                            ? `$${wo.estimated_cost.toLocaleString()}`
+                            : "-"}
+                        </span>
+                      </div>
+                      {wo.actual_cost && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">
+                            Actual Cost:
+                          </span>
+                          <span className="text-sm font-medium">
+                            ${wo.actual_cost.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">
+                          Subcontractor:
+                        </span>
+                        <span className="text-sm">
+                          {getSubcontractorName(wo.assigned_subcontractor_id)}
+                        </span>
+                      </div>
+                      {wo.status === "In Progress" && (
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span>Progress</span>
+                            <span>65%</span>
+                          </div>
+                          <Progress value={65} className="h-2" />
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex justify-between pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedWorkOrder(wo);
+                        setIsViewDialogOpen(true);
+                      }}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      View
+                    </Button>
+                    <div className="space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditClick(wo)}
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedWorkOrder(wo);
+                          setIsDeleteDialogOpen(true);
+                        }}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </Button>
+                    </div>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <>
+              {/* Desktop Table View - Hidden on mobile */}
+              <div className="rounded-md border hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[50px]">
+                        <Checkbox
+                          checked={
+                            selectedRows.length === filteredWorkOrders.length &&
+                            filteredWorkOrders.length > 0
+                          }
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
+                      <TableHead>
+                        <div
+                          className="flex items-center cursor-pointer"
+                          onClick={() => handleSort("description")}
+                        >
+                          Description
+                          {sortField === "description" &&
+                            (sortDirection === "asc" ? (
+                              <ChevronUp className="ml-1 h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="ml-1 h-4 w-4" />
+                            ))}
+                        </div>
+                      </TableHead>
+                      <TableHead>
+                        <div
+                          className="flex items-center cursor-pointer"
+                          onClick={() => handleSort("project_id")}
+                        >
+                          Project
+                          {sortField === "project_id" &&
+                            (sortDirection === "asc" ? (
+                              <ChevronUp className="ml-1 h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="ml-1 h-4 w-4" />
+                            ))}
+                        </div>
+                      </TableHead>
+                      <TableHead>
+                        <div
+                          className="flex items-center cursor-pointer"
+                          onClick={() => handleSort("status")}
+                        >
+                          Status
+                          {sortField === "status" &&
+                            (sortDirection === "asc" ? (
+                              <ChevronUp className="ml-1 h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="ml-1 h-4 w-4" />
+                            ))}
+                        </div>
+                      </TableHead>
+                      <TableHead>
+                        <div
+                          className="flex items-center cursor-pointer"
+                          onClick={() => handleSort("scheduled_date")}
+                        >
+                          Scheduled Date
+                          {sortField === "scheduled_date" &&
+                            (sortDirection === "asc" ? (
+                              <ChevronUp className="ml-1 h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="ml-1 h-4 w-4" />
+                            ))}
+                        </div>
+                      </TableHead>
+                      <TableHead>
+                        <div
+                          className="flex items-center cursor-pointer"
+                          onClick={() => handleSort("estimated_cost")}
+                        >
+                          Estimated Cost
+                          {sortField === "estimated_cost" &&
+                            (sortDirection === "asc" ? (
+                              <ChevronUp className="ml-1 h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="ml-1 h-4 w-4" />
+                            ))}
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredWorkOrders.map((wo) => (
+                      <React.Fragment key={wo.work_order_id}>
+                        <TableRow
+                          className={
+                            expandedRows.includes(wo.work_order_id!)
+                              ? "border-b-0"
+                              : ""
+                          }
+                          onClick={() => toggleRowExpansion(wo.work_order_id!)}
+                        >
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={selectedRows.includes(wo.work_order_id!)}
+                              onCheckedChange={() =>
+                                toggleRowSelection(wo.work_order_id!)
+                              }
+                            />
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center">
+                              {expandedRows.includes(wo.work_order_id!) ? (
+                                <ChevronDown className="mr-2 h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="mr-2 h-4 w-4" />
+                              )}
+                              {wo.description}
+                            </div>
+                          </TableCell>
+                          <TableCell>{getProjectName(wo.project_id)}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                wo.status === "Completed"
+                                  ? "default"
+                                  : wo.status === "In Progress"
+                                  ? "secondary"
+                                  : wo.status === "On Hold"
+                                  ? "destructive"
+                                  : "outline"
+                              }
+                            >
+                              {wo.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {wo.scheduled_date
+                              ? new Date(wo.scheduled_date).toLocaleDateString()
+                              : "-"}
+                          </TableCell>
+                          <TableCell>
+                            {wo.estimated_cost
+                              ? `$${wo.estimated_cost.toLocaleString()}`
+                              : "-"}
+                          </TableCell>
+                          <TableCell
+                            className="text-right"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="flex justify-end gap-2">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedWorkOrder(wo);
+                                        setIsViewDialogOpen(true);
+                                      }}
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>View Details</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditClick(wo);
+                                      }}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Edit</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="destructive"
+                                      size="icon"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedWorkOrder(wo);
+                                        setIsDeleteDialogOpen(true);
+                                      }}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Delete</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+
+                        {/* Expanded row details */}
+                        {expandedRows.includes(wo.work_order_id!) && (
+                          <TableRow className="bg-muted/50">
+                            <TableCell colSpan={7} className="p-4">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                  <h4 className="font-medium mb-2">
+                                    Work Order Details
+                                  </h4>
+                                  <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">
+                                        Subcontractor:
+                                      </span>
+                                      <span>
+                                        {getSubcontractorName(
+                                          wo.assigned_subcontractor_id
+                                        )}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">
+                                        Completion Date:
+                                      </span>
+                                      <span>
+                                        {wo.completion_date
+                                          ? new Date(
+                                              wo.completion_date
+                                            ).toLocaleDateString()
+                                          : "Not completed"}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">
+                                        Actual Cost:
+                                      </span>
+                                      <span>
+                                        {wo.actual_cost
+                                          ? `$${wo.actual_cost.toLocaleString()}`
+                                          : "Not available"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h4 className="font-medium mb-2">
+                                    Financial Information
+                                  </h4>
+                                  <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">
+                                        Amount Billed:
+                                      </span>
+                                      <span>
+                                        {wo.amount_billed
+                                          ? `$${wo.amount_billed.toLocaleString()}`
+                                          : "$0"}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">
+                                        Amount Paid:
+                                      </span>
+                                      <span>
+                                        {wo.amount_paid
+                                          ? `$${wo.amount_paid.toLocaleString()}`
+                                          : "$0"}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">
+                                        Retainage:
+                                      </span>
+                                      <span>
+                                        {wo.retainage_percentage
+                                          ? `${wo.retainage_percentage}%`
+                                          : "0%"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h4 className="font-medium mb-2">
+                                    Quick Actions
+                                  </h4>
+                                  <div className="flex flex-col gap-2">
+                                    <Select
+                                      value={wo.status}
+                                      onValueChange={(value) => {
+                                        if (wo.work_order_id) {
+                                          updateWorkOrder(wo.work_order_id, {
+                                            ...wo,
+                                            status: value,
+                                          });
+                                          queryClient.invalidateQueries({
+                                            queryKey: ["workOrders"],
+                                          });
+                                          toast.success(
+                                            `Status updated to ${value}`
+                                          );
+                                        }
+                                      }}
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Update Status" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="Pending">
+                                          Pending
+                                        </SelectItem>
+                                        <SelectItem value="Scheduled">
+                                          Scheduled
+                                        </SelectItem>
+                                        <SelectItem value="In Progress">
+                                          In Progress
+                                        </SelectItem>
+                                        <SelectItem value="On Hold">
+                                          On Hold
+                                        </SelectItem>
+                                        <SelectItem value="Completed">
+                                          Completed
+                                        </SelectItem>
+                                        <SelectItem value="Cancelled">
+                                          Cancelled
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
+
+                                    <div className="flex gap-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-1"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleViewInvoice(wo);
+                                        }}
+                                      >
+                                        <FileText className="mr-2 h-4 w-4" />
+                                        View Invoice
+                                      </Button>
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1"
+                                          >
+                                            <Download className="mr-2 h-4 w-4" />
+                                            Export
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                          <DropdownMenuLabel>
+                                            Export Format
+                                          </DropdownMenuLabel>
+                                          <DropdownMenuItem
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleExport(wo, "pdf");
+                                            }}
+                                          >
+                                            <FileText className="mr-2 h-4 w-4" />
+                                            PDF Document
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleExport(wo, "csv");
+                                            }}
+                                          >
+                                            <FileText className="mr-2 h-4 w-4" />
+                                            CSV Spreadsheet
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleExport(wo, "excel");
+                                            }}
+                                          >
+                                            <FileText className="mr-2 h-4 w-4" />
+                                            Excel Spreadsheet
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile-optimized Table View - Only visible on mobile */}
+              <div className="md:hidden space-y-4">
+                {/* Mobile selection controls */}
+                <div className="flex justify-between items-center mb-2">
+                  <div className="text-sm text-muted-foreground">
+                    {selectedRows.length > 0 ? (
+                      <span>
+                        {selectedRows.length} work order
+                        {selectedRows.length === 1 ? "" : "s"} selected
+                      </span>
+                    ) : (
+                      <span>Select work orders to update</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={toggleSelectAll}
+                    >
+                      {selectedRows.length === filteredWorkOrders.length
+                        ? "Deselect All"
+                        : "Select All"}
+                    </Button>
+                    {selectedRows.length > 0 && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={handleBatchStatusDialogOpen}
+                      >
+                        Update Status
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                {filteredWorkOrders.map((wo) => (
+                  <Card
+                    key={wo.work_order_id}
+                    className={`overflow-hidden relative cursor-pointer hover:border-primary ${
+                      selectedRows.includes(wo.work_order_id!)
+                        ? "border-primary bg-primary/5"
+                        : ""
+                    }`}
+                    onClick={() => toggleRowSelection(wo.work_order_id!)}
+                  >
+                    <CardHeader className="p-4 pb-2">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-start gap-2">
+                          {/* Add checkbox for mobile selection */}
+                          <Checkbox
+                            className="mt-1"
+                            checked={selectedRows.includes(wo.work_order_id!)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                            }}
+                            onCheckedChange={() => {
+                              toggleRowSelection(wo.work_order_id!);
+                            }}
+                          />
+                          <div className="flex-1 pr-2">
+                            <CardTitle className="text-base font-medium line-clamp-2">
+                              {wo.description}
+                            </CardTitle>
+                            <CardDescription className="text-sm mt-1">
+                              {getProjectName(wo.project_id)}
+                            </CardDescription>
+                          </div>
+                        </div>
+                        <Badge
+                          variant={
+                            wo.status === "Completed"
+                              ? "default"
+                              : wo.status === "In Progress"
+                              ? "secondary"
+                              : wo.status === "On Hold"
+                              ? "destructive"
+                              : "outline"
+                          }
+                          className="ml-2 whitespace-nowrap"
+                        >
+                          {wo.status}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-2 pb-2">
+                      <div className="grid grid-cols-2 gap-y-2 text-sm">
+                        <div className="text-muted-foreground">Scheduled:</div>
+                        <div className="text-right font-medium">
+                          {wo.scheduled_date
+                            ? new Date(wo.scheduled_date).toLocaleDateString()
+                            : "-"}
+                        </div>
+
+                        <div className="text-muted-foreground">Est. Cost:</div>
+                        <div className="text-right font-medium">
+                          {wo.estimated_cost
+                            ? `$${wo.estimated_cost.toLocaleString()}`
+                            : "-"}
+                        </div>
+
+                        <div className="text-muted-foreground">
+                          Subcontractor:
+                        </div>
+                        <div className="text-right font-medium truncate">
+                          {getSubcontractorName(wo.assigned_subcontractor_id)}
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="p-4 pt-2 flex justify-between">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-24"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedWorkOrder(wo);
+                          setIsViewDialogOpen(true);
+                        }}
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        View
+                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-24"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditClick(wo);
+                          }}
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="w-24"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedWorkOrder(wo);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </Button>
+                      </div>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {/* View Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Work Order Details</DialogTitle>
+            <DialogDescription>
+              Detailed information about this work order.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedWorkOrder && (
+            <div className="py-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-4">
+                    General Information
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-3 gap-2">
+                      <span className="text-muted-foreground">
+                        Description:
+                      </span>
+                      <span className="col-span-2 font-medium">
+                        {selectedWorkOrder.description}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <span className="text-muted-foreground">Project:</span>
+                      <span className="col-span-2">
+                        {getProjectName(selectedWorkOrder.project_id)}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <span className="text-muted-foreground">Status:</span>
+                      <span className="col-span-2">
+                        <Badge
+                          variant={
+                            selectedWorkOrder.status === "Completed"
+                              ? "default"
+                              : selectedWorkOrder.status === "In Progress"
+                              ? "secondary"
+                              : selectedWorkOrder.status === "On Hold"
+                              ? "destructive"
+                              : "outline"
+                          }
+                        >
+                          {selectedWorkOrder.status}
+                        </Badge>
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <span className="text-muted-foreground">
+                        Subcontractor:
+                      </span>
+                      <span className="col-span-2">
+                        {getSubcontractorName(
+                          selectedWorkOrder.assigned_subcontractor_id
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-medium mb-4">
+                    Financial Details
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-3 gap-2">
+                      <span className="text-muted-foreground">
+                        Estimated Cost:
+                      </span>
+                      <span className="col-span-2 font-medium">
+                        {selectedWorkOrder.estimated_cost
+                          ? `$${selectedWorkOrder.estimated_cost.toLocaleString()}`
+                          : "-"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <span className="text-muted-foreground">
+                        Actual Cost:
+                      </span>
+                      <span className="col-span-2">
+                        {selectedWorkOrder.actual_cost
+                          ? `$${selectedWorkOrder.actual_cost.toLocaleString()}`
+                          : "Not available"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <span className="text-muted-foreground">
+                        Amount Billed:
+                      </span>
+                      <span className="col-span-2">
+                        {selectedWorkOrder.amount_billed
+                          ? `$${selectedWorkOrder.amount_billed.toLocaleString()}`
+                          : "$0"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <span className="text-muted-foreground">
+                        Amount Paid:
+                      </span>
+                      <span className="col-span-2">
+                        {selectedWorkOrder.amount_paid
+                          ? `$${selectedWorkOrder.amount_paid.toLocaleString()}`
+                          : "$0"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <span className="text-muted-foreground">Retainage:</span>
+                      <span className="col-span-2">
+                        {selectedWorkOrder.retainage_percentage
+                          ? `${selectedWorkOrder.retainage_percentage}%`
+                          : "0%"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <h3 className="text-lg font-medium mb-4">
+                  Schedule Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-3 gap-2">
+                    <span className="text-muted-foreground">
+                      Scheduled Date:
+                    </span>
+                    <span className="col-span-2">
+                      {selectedWorkOrder.scheduled_date
+                        ? new Date(
+                            selectedWorkOrder.scheduled_date
+                          ).toLocaleDateString()
+                        : "Not scheduled"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <span className="text-muted-foreground">
+                      Completion Date:
+                    </span>
+                    <span className="col-span-2">
+                      {selectedWorkOrder.completion_date
+                        ? new Date(
+                            selectedWorkOrder.completion_date
+                          ).toLocaleDateString()
+                        : "Not completed"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 border-t pt-6">
+                <h3 className="text-lg font-bold mb-4 text-blue-700 bg-blue-100 p-2 rounded">
+                  PURCHASE ORDERS SECTION
+                </h3>
+                {selectedWorkOrder.work_order_id && (
+                  <PurchaseOrderSection
+                    workOrderId={selectedWorkOrder.work_order_id}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsViewDialogOpen(false)}
+            >
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                setIsViewDialogOpen(false);
+                handleEditClick(selectedWorkOrder!);
+              }}
+            >
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invoice Dialog */}
+      <Dialog open={isInvoiceDialogOpen} onOpenChange={setIsInvoiceDialogOpen}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>Invoice</DialogTitle>
+            <DialogDescription>Work order invoice details</DialogDescription>
+          </DialogHeader>
+
+          {selectedWorkOrder && (
+            <div className="py-4">
+              <div className="border rounded-md overflow-hidden">
+                <div className="bg-primary text-primary-foreground p-6">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h2 className="text-2xl font-bold">INVOICE</h2>
+                      <p className="text-primary-foreground/80 mt-1">
+                        #
+                        {selectedWorkOrder.invoice_number ||
+                          `INV-${selectedWorkOrder.work_order_id}`}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <h3 className="text-lg font-semibold">
+                        Command X Construction
+                      </h3>
+                      <p className="text-primary-foreground/80">
+                        123 Builder Street
+                      </p>
+                      <p className="text-primary-foreground/80">
+                        Construction City, CC 12345
+                      </p>
+                      <p className="text-primary-foreground/80">
+                        info@commandx.com
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 border-b">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="font-medium text-muted-foreground mb-2">
+                        Bill To:
+                      </h4>
+                      <p className="font-medium">
+                        {getProjectName(selectedWorkOrder.project_id)}
+                      </p>
+                      <p>Client Company Name</p>
+                      <p>123 Client Street</p>
+                      <p>Client City, CL 54321</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="space-y-1">
+                        <div className="flex justify-between">
+                          <span className="font-medium text-muted-foreground">
+                            Invoice Date:
+                          </span>
+                          <span>
+                            {selectedWorkOrder.invoice_date
+                              ? new Date(
+                                  selectedWorkOrder.invoice_date
+                                ).toLocaleDateString()
+                              : new Date().toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium text-muted-foreground">
+                            Due Date:
+                          </span>
+                          <span>
+                            {selectedWorkOrder.invoice_date
+                              ? new Date(
+                                  new Date(
+                                    selectedWorkOrder.invoice_date
+                                  ).setDate(
+                                    new Date(
+                                      selectedWorkOrder.invoice_date
+                                    ).getDate() + 30
+                                  )
+                                ).toLocaleDateString()
+                              : new Date(
+                                  new Date().setDate(new Date().getDate() + 30)
+                                ).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium text-muted-foreground">
+                            Work Order ID:
+                          </span>
+                          <span>#{selectedWorkOrder.work_order_id}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6">
+                  <h4 className="font-medium mb-4">Work Order Details</h4>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[50%]">Description</TableHead>
+                        <TableHead>Quantity</TableHead>
+                        <TableHead>Unit Price</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell className="font-medium">
+                          {selectedWorkOrder.description}
+                        </TableCell>
+                        <TableCell>1</TableCell>
+                        <TableCell>
+                          $
+                          {selectedWorkOrder.amount_billed?.toLocaleString() ||
+                            selectedWorkOrder.estimated_cost?.toLocaleString() ||
+                            "0"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          $
+                          {selectedWorkOrder.amount_billed?.toLocaleString() ||
+                            selectedWorkOrder.estimated_cost?.toLocaleString() ||
+                            "0"}
+                        </TableCell>
+                      </TableRow>
+
+                      {/* If there were line items, we would map through them here */}
+                      {/* For now, let's add a few sample line items */}
+                      <TableRow>
+                        <TableCell className="font-medium">Materials</TableCell>
+                        <TableCell>1</TableCell>
+                        <TableCell>
+                          $
+                          {Math.round(
+                            (selectedWorkOrder.estimated_cost || 0) * 0.4
+                          ).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          $
+                          {Math.round(
+                            (selectedWorkOrder.estimated_cost || 0) * 0.4
+                          ).toLocaleString()}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell className="font-medium">Labor</TableCell>
+                        <TableCell>1</TableCell>
+                        <TableCell>
+                          $
+                          {Math.round(
+                            (selectedWorkOrder.estimated_cost || 0) * 0.6
+                          ).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          $
+                          {Math.round(
+                            (selectedWorkOrder.estimated_cost || 0) * 0.6
+                          ).toLocaleString()}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+
+                  <div className="mt-6 border-t pt-4">
+                    <div className="flex justify-end">
+                      <div className="w-1/2 space-y-2">
+                        <div className="flex justify-between">
+                          <span className="font-medium">Subtotal:</span>
+                          <span>
+                            $
+                            {selectedWorkOrder.amount_billed?.toLocaleString() ||
+                              selectedWorkOrder.estimated_cost?.toLocaleString() ||
+                              "0"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium">Tax (8%):</span>
+                          <span>
+                            $
+                            {Math.round(
+                              (selectedWorkOrder.amount_billed ||
+                                selectedWorkOrder.estimated_cost ||
+                                0) * 0.08
+                            ).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium">
+                            Retainage (
+                            {selectedWorkOrder.retainage_percentage || 0}%):
+                          </span>
+                          <span>
+                            $
+                            {Math.round(
+                              ((selectedWorkOrder.amount_billed ||
+                                selectedWorkOrder.estimated_cost ||
+                                0) *
+                                (selectedWorkOrder.retainage_percentage || 0)) /
+                                100
+                            ).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-t pt-2 text-lg font-bold">
+                          <span>Total Due:</span>
+                          <span>
+                            $
+                            {Math.round(
+                              (selectedWorkOrder.amount_billed ||
+                                selectedWorkOrder.estimated_cost ||
+                                0) *
+                                1.08 -
+                                ((selectedWorkOrder.amount_billed ||
+                                  selectedWorkOrder.estimated_cost ||
+                                  0) *
+                                  (selectedWorkOrder.retainage_percentage ||
+                                    0)) /
+                                  100
+                            ).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 border-t pt-6">
+                    <h4 className="font-medium mb-2">Payment Information</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Please make payment to: Command X Construction
+                      <br />
+                      Bank: Construction Bank
+                      <br />
+                      Account: 123456789
+                      <br />
+                      Routing: 987654321
+                    </p>
+
+                    <p className="mt-4 text-sm text-muted-foreground">
+                      Payment Terms: Net 30 days. Please include the invoice
+                      number with your payment.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsInvoiceDialogOpen(false)}
+              >
+                Close
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setIsInvoiceDialogOpen(false);
+                      if (selectedWorkOrder) {
+                        handleExport(selectedWorkOrder, "pdf");
+                      }
+                    }}
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    PDF Document
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this work order? This action
+              cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedWorkOrder && (
+            <div className="py-4">
+              <div className="p-4 border rounded-md bg-muted/50">
+                <p className="font-medium">{selectedWorkOrder.description}</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Project: {getProjectName(selectedWorkOrder.project_id)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Status: {selectedWorkOrder.status}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (selectedWorkOrder?.work_order_id) {
+                  deleteMutation.mutate(selectedWorkOrder.work_order_id);
+                  setIsDeleteDialogOpen(false);
+                }
+              }}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Dialog */}
+      <Dialog
+        open={isCreateDialogOpen}
+        onOpenChange={(open) => {
+          console.log("Create Dialog onOpenChange called with open =", open);
+          if (!open) {
+            console.log("Closing create dialog");
+            setIsCreateDialogOpen(false);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Work Order</DialogTitle>
+            <DialogDescription>
+              Enter the details for the new work order.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              console.log("Create form submit event triggered");
+            }}
+          >
+            <div className="grid gap-4 py-4">
+              {/* Form Fields */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="project_id" className="text-right">
+                  Project
+                </Label>
+                <Select
+                  value={formik.values.project_id?.toString() || ""}
+                  onValueChange={(value) =>
+                    formik.setFieldValue(
+                      "project_id",
+                      value ? Number(value) : undefined
+                    )
+                  }
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select a project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects?.map((p) => (
+                      <SelectItem
+                        key={p.project_id}
+                        value={p.project_id!.toString()}
+                      >
+                        {p.project_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formik.touched.project_id && formik.errors.project_id ? (
+                  <div className="col-span-4 text-red-500 text-sm text-right">
+                    {formik.errors.project_id}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="description" className="text-right">
+                  Description
+                </Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  value={formik.values.description || ""}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  className="col-span-3"
+                />
+                {formik.touched.description && formik.errors.description ? (
+                  <div className="col-span-4 text-red-500 text-sm text-right">
+                    {formik.errors.description}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="status" className="text-right">
+                  Status
+                </Label>
+                <Select
+                  value={formik.values.status || ""}
+                  onValueChange={(value) =>
+                    formik.setFieldValue("status", value)
+                  }
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="Scheduled">Scheduled</SelectItem>
+                    <SelectItem value="In Progress">In Progress</SelectItem>
+                    <SelectItem value="On Hold">On Hold</SelectItem>
+                    <SelectItem value="Completed">Completed</SelectItem>
+                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label
+                  htmlFor="assigned_subcontractor_id"
+                  className="text-right"
+                >
+                  Assigned Subcontractor
+                </Label>
+                <Select
+                  value={
+                    formik.values.assigned_subcontractor_id?.toString() || ""
+                  }
+                  onValueChange={(value) =>
+                    formik.setFieldValue(
+                      "assigned_subcontractor_id",
+                      value ? Number(value) : null
+                    )
+                  }
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select a subcontractor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {subcontractors?.map((s) => (
+                      <SelectItem
+                        key={s.subcontractor_id}
+                        value={s.subcontractor_id!.toString()}
+                      >
+                        {s.company_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="scheduled_date" className="text-right">
+                  Scheduled
+                </Label>
+                <Input
+                  id="scheduled_date"
+                  name="scheduled_date"
+                  type="date"
+                  value={formik.values.scheduled_date || ""}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  className="col-span-3"
+                />
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="estimated_cost" className="text-right">
+                  Est. Cost ($)
+                </Label>
+                <Input
+                  id="estimated_cost"
+                  name="estimated_cost"
+                  type="number"
+                  value={formik.values.estimated_cost || ""}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  className="col-span-3"
+                />
+                {formik.touched.estimated_cost &&
+                formik.errors.estimated_cost ? (
+                  <div className="col-span-4 text-red-500 text-sm text-right">
+                    {formik.errors.estimated_cost}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsCreateDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={createMutation.isPending}
+                onClick={() => {
+                  console.log("Create Save button clicked");
+                  formik.validateForm().then((errors) => {
+                    console.log("Form validation errors:", errors);
+                    if (Object.keys(errors).length === 0) {
+                      console.log("Form is valid, submitting...");
+                      formik.handleSubmit();
+                    } else {
+                      console.log("Form has validation errors");
+                      formik.setTouched(
+                        Object.keys(errors).reduce((acc, key) => {
+                          acc[key] = true;
+                          return acc;
+                        }, {} as any)
+                      );
+                      toast.error("Please fix the form errors before saving");
+                    }
+                  });
+                }}
+              >
+                {createMutation.isPending ? "Saving..." : "Save Work Order"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          console.log("Edit Dialog onOpenChange called with open =", open);
+          if (!open) {
+            console.log("Closing edit dialog");
+            setIsEditDialogOpen(false);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Work Order</DialogTitle>
+            <DialogDescription>
+              Update the work order details below.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              console.log("Edit form submit event triggered");
+            }}
+          >
+            <div className="grid gap-4 py-4">
+              {/* Form Fields */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="project_id" className="text-right">
+                  Project
+                </Label>
+                <Select
+                  value={formik.values.project_id?.toString() || ""}
+                  onValueChange={(value) =>
+                    formik.setFieldValue(
+                      "project_id",
+                      value ? Number(value) : undefined
+                    )
+                  }
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select a project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects?.map((p) => (
+                      <SelectItem
+                        key={p.project_id}
+                        value={p.project_id!.toString()}
+                      >
+                        {p.project_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formik.touched.project_id && formik.errors.project_id ? (
+                  <div className="col-span-4 text-red-500 text-sm text-right">
+                    {formik.errors.project_id}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="description" className="text-right">
+                  Description
+                </Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  value={formik.values.description || ""}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  className="col-span-3"
+                />
+                {formik.touched.description && formik.errors.description ? (
+                  <div className="col-span-4 text-red-500 text-sm text-right">
+                    {formik.errors.description}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="status" className="text-right">
+                  Status
+                </Label>
+                <Select
+                  value={formik.values.status || ""}
+                  onValueChange={(value) =>
+                    formik.setFieldValue("status", value)
+                  }
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="Scheduled">Scheduled</SelectItem>
+                    <SelectItem value="In Progress">In Progress</SelectItem>
+                    <SelectItem value="On Hold">On Hold</SelectItem>
+                    <SelectItem value="Completed">Completed</SelectItem>
+                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label
+                  htmlFor="assigned_subcontractor_id"
+                  className="text-right"
+                >
+                  Assigned Subcontractor
+                </Label>
+                <Select
+                  value={
+                    formik.values.assigned_subcontractor_id?.toString() || ""
+                  }
+                  onValueChange={(value) =>
+                    formik.setFieldValue(
+                      "assigned_subcontractor_id",
+                      value ? Number(value) : null
+                    )
+                  }
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select a subcontractor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {subcontractors?.map((s) => (
+                      <SelectItem
+                        key={s.subcontractor_id}
+                        value={s.subcontractor_id!.toString()}
+                      >
+                        {s.company_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="scheduled_date" className="text-right">
+                  Scheduled
+                </Label>
+                <Input
+                  id="scheduled_date"
+                  name="scheduled_date"
+                  type="date"
+                  value={formik.values.scheduled_date || ""}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  className="col-span-3"
+                />
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="estimated_cost" className="text-right">
+                  Est. Cost ($)
+                </Label>
+                <Input
+                  id="estimated_cost"
+                  name="estimated_cost"
+                  type="number"
+                  value={formik.values.estimated_cost || ""}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  className="col-span-3"
+                />
+                {formik.touched.estimated_cost &&
+                formik.errors.estimated_cost ? (
+                  <div className="col-span-4 text-red-500 text-sm text-right">
+                    {formik.errors.estimated_cost}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={updateMutation.isPending}
+                onClick={() => {
+                  console.log("Edit Save button clicked");
+                  formik.validateForm().then((errors) => {
+                    console.log("Form validation errors:", errors);
+                    if (Object.keys(errors).length === 0) {
+                      console.log("Form is valid, submitting...");
+                      formik.handleSubmit();
+                    } else {
+                      console.log("Form has validation errors");
+                      formik.setTouched(
+                        Object.keys(errors).reduce((acc, key) => {
+                          acc[key] = true;
+                          return acc;
+                        }, {} as any)
+                      );
+                      toast.error("Please fix the form errors before saving");
+                    }
+                  });
+                }}
+              >
+                {updateMutation.isPending ? "Saving..." : "Save Work Order"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Batch Status Update Dialog */}
+      <Dialog
+        open={isBatchStatusDialogOpen}
+        onOpenChange={setIsBatchStatusDialogOpen}
+      >
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-center">
+              Update Work Order Status
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              Change the status for the selected work orders.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="status">New Status</Label>
+                <Select
+                  value={batchStatusValue}
+                  onValueChange={setBatchStatusValue}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="Scheduled">Scheduled</SelectItem>
+                    <SelectItem value="In Progress">In Progress</SelectItem>
+                    <SelectItem value="On Hold">On Hold</SelectItem>
+                    <SelectItem value="Completed">Completed</SelectItem>
+                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                  <Label className="text-lg">Selected Work Orders</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        // Select all filtered work orders
+                        const ids =
+                          filteredWorkOrders
+                            ?.map((wo) => wo.work_order_id!)
+                            .filter(Boolean) || [];
+                        setSelectedWorkOrderIds(ids);
+                      }}
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedWorkOrderIds([])}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+
+                {selectedWorkOrderIds.length === 0 ? (
+                  <div className="text-sm text-muted-foreground p-4 border rounded-md text-center">
+                    No work orders selected. Please select at least one work
+                    order.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="text-sm text-muted-foreground">
+                      {selectedWorkOrderIds.length} work order
+                      {selectedWorkOrderIds.length === 1 ? "" : "s"} selected
+                    </div>
+                    <ScrollArea className="h-[200px] border rounded-md p-2">
+                      {selectedWorkOrderIds.map((id) => {
+                        const workOrder = filteredWorkOrders?.find(
+                          (wo) => wo.work_order_id === id
+                        );
+                        return workOrder ? (
+                          <div
+                            key={id}
+                            className="flex justify-between items-center py-2 px-1 border-b last:border-0"
+                          >
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <Checkbox
+                                checked={true}
+                                onCheckedChange={(checked) => {
+                                  if (!checked) {
+                                    setSelectedWorkOrderIds((prev) =>
+                                      prev.filter((woId) => woId !== id)
+                                    );
+                                  }
+                                }}
+                              />
+                              <span className="text-sm font-medium truncate">
+                                {workOrder.description}
+                              </span>
+                            </div>
+                            <Badge
+                              variant={
+                                workOrder.status === "Completed"
+                                  ? "default"
+                                  : workOrder.status === "In Progress"
+                                  ? "secondary"
+                                  : workOrder.status === "On Hold"
+                                  ? "destructive"
+                                  : "outline"
+                              }
+                              className="ml-2 whitespace-nowrap"
+                            >
+                              {workOrder.status}
+                            </Badge>
+                          </div>
+                        ) : null;
+                      })}
+                    </ScrollArea>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => setIsBatchStatusDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="w-full sm:w-auto"
+              onClick={handleBatchStatusUpdate}
+              disabled={selectedWorkOrderIds.length === 0}
+            >
+              Update Status
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Report Generation Dialog */}
+      <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-center">Generate Report</DialogTitle>
+            <DialogDescription className="text-center">
+              Create a report for work order status and progress.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="reportType">Report Type</Label>
+                <Select value={reportType} onValueChange={setReportType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select report type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="status">Status Report</SelectItem>
+                    <SelectItem value="financial">Financial Report</SelectItem>
+                    <SelectItem value="progress">Progress Report</SelectItem>
+                    <SelectItem value="retainage">Retainage Report</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="reportFormat">Format</Label>
+                <Select value={reportFormat} onValueChange={setReportFormat}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pdf">PDF Document</SelectItem>
+                    <SelectItem value="csv">CSV Spreadsheet</SelectItem>
+                    <SelectItem value="excel">Excel Spreadsheet</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => setIsReportDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button className="w-full sm:w-auto" onClick={handleGenerateReport}>
+              Generate Report
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Crew Management Dialog */}
+      <Dialog open={isCrewDialogOpen} onOpenChange={setIsCrewDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-center">
+              Manage Crew Assignment
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              Assign a crew to the selected work orders.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="crew">Select Crew</Label>
+                <Select value={selectedCrew} onValueChange={setSelectedCrew}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select crew" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Crew A">Crew A</SelectItem>
+                    <SelectItem value="Crew B">Crew B</SelectItem>
+                    <SelectItem value="Crew C">Crew C</SelectItem>
+                    <SelectItem value="Crew D">Crew D</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="bg-muted/50 p-3 rounded-md">
+                <p className="text-sm text-muted-foreground text-center">
+                  This will assign the selected crew to{" "}
+                  <span className="font-medium">
+                    {selectedWorkOrderIds.length}
+                  </span>{" "}
+                  work order(s).
+                </p>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => setIsCrewDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button className="w-full sm:w-auto" onClick={handleCrewAssignment}>
+              Assign Crew
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Filter Dialog */}
+      <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-center">
+              Filter Work Orders
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              Apply filters to the work order status view.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="statusFilter">Status</Label>
+                <Select
+                  value={statusFilterValue}
+                  onValueChange={setStatusFilterValue}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="Scheduled">Scheduled</SelectItem>
+                    <SelectItem value="In Progress">In Progress</SelectItem>
+                    <SelectItem value="On Hold">On Hold</SelectItem>
+                    <SelectItem value="Completed">Completed</SelectItem>
+                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dateFrom">From Date</Label>
+                <Input
+                  id="dateFrom"
+                  type="date"
+                  value={dateRangeFilter.from}
+                  onChange={(e) =>
+                    setDateRangeFilter((prev) => ({
+                      ...prev,
+                      from: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dateTo">To Date</Label>
+                <Input
+                  id="dateTo"
+                  type="date"
+                  value={dateRangeFilter.to}
+                  onChange={(e) =>
+                    setDateRangeFilter((prev) => ({
+                      ...prev,
+                      to: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => {
+                setDateRangeFilter({ from: "", to: "" });
+                setStatusFilterValue("all");
+                setIsFilterDialogOpen(false);
+              }}
+            >
+              Reset
+            </Button>
+            <Button className="w-full sm:w-auto" onClick={handleApplyFilters}>
+              Apply Filters
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Enhanced Work Order Dialog */}
+      <EnhancedWorkOrderDialog
+        projectId={selectedProjectForWorkOrder}
+        isOpen={isEnhancedCreateDialogOpen}
+        onClose={() => {
+          setIsEnhancedCreateDialogOpen(false);
+          setSelectedProjectForWorkOrder(undefined);
+        }}
+      />
+
+      {/* Project Budget Summary - Show when a specific project is selected */}
+      {selectedProjectId && (
+        <div className="mt-6">
+          <ProjectBudgetSummary projectId={selectedProjectId} />
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default WorkOrders;

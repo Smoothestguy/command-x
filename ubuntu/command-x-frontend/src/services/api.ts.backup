@@ -19,7 +19,7 @@ const apiClient = axios.create({
 });
 
 // Add a mock adapter to simulate API responses
-const USE_MOCK_DATA = false; // Set to false to use real backend data
+const USE_MOCK_DATA = true; // Set to true to use mock data for UI testing (auth not set up yet)
 
 // Mock database for storing data when using mock mode
 const mockDB = {
