@@ -12,6 +12,7 @@ import {
   SubcontractorData,
   LineItemData,
 } from "../services/api";
+import PurchaseOrderSection from "../components/purchase-orders/PurchaseOrderSection";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -181,15 +182,25 @@ const WorkOrders: React.FC = () => {
 
   // Create Work Order
   const createMutation = useMutation({
-    mutationFn: createWorkOrder,
-    onSuccess: () => {
+    mutationFn: (workOrderData: WorkOrderData) => {
+      console.log("Creating work order with data:", workOrderData);
+      try {
+        return createWorkOrder(workOrderData);
+      } catch (error) {
+        console.error("Error in createWorkOrder function:", error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      console.log("Work order created successfully:", data);
       queryClient.invalidateQueries({ queryKey: ["workOrders"] });
       setIsCreateDialogOpen(false);
       toast.success("Work Order created successfully!");
     },
     onError: (err) => {
       console.error("Error creating work order:", err);
-      toast.error("Failed to create work order.");
+      toast.error("Failed to create work order. Please try again.");
+      // Don't close the dialog on error so the user can try again
     },
   });
 
@@ -239,23 +250,34 @@ const WorkOrders: React.FC = () => {
     },
     validationSchema: WorkOrderSchema,
     onSubmit: (values) => {
-      // Ensure project_id is a number before submitting
-      const submissionData = {
-        ...values,
-        project_id: Number(values.project_id),
-        estimated_cost: values.estimated_cost
-          ? Number(values.estimated_cost)
-          : null,
-        assigned_subcontractor_id: values.assigned_subcontractor_id
-          ? Number(values.assigned_subcontractor_id)
-          : null,
-      };
+      console.log("Form submitted with values:", values);
 
-      if (selectedWorkOrder) {
-        updateMutation.mutate(submissionData);
-      } else {
-        // Cast to WorkOrderData for create, assuming required fields are met by validation
-        createMutation.mutate(submissionData as WorkOrderData);
+      try {
+        // Ensure project_id is a number before submitting
+        const submissionData = {
+          ...values,
+          project_id: Number(values.project_id),
+          estimated_cost: values.estimated_cost
+            ? Number(values.estimated_cost)
+            : null,
+          assigned_subcontractor_id: values.assigned_subcontractor_id
+            ? Number(values.assigned_subcontractor_id)
+            : null,
+        };
+
+        console.log("Processed submission data:", submissionData);
+
+        if (selectedWorkOrder) {
+          console.log("Updating existing work order");
+          updateMutation.mutate(submissionData);
+        } else {
+          console.log("Creating new work order");
+          // Cast to WorkOrderData for create, assuming required fields are met by validation
+          createMutation.mutate(submissionData as WorkOrderData);
+        }
+      } catch (error) {
+        console.error("Error processing form submission:", error);
+        toast.error("An error occurred while processing your request");
       }
     },
     enableReinitialize: true, // Reinitialize form when selectedWorkOrder changes
@@ -294,10 +316,24 @@ const WorkOrders: React.FC = () => {
     setIsEditDialogOpen(true);
   };
 
-  const handleCreateClick = () => {
+  const handleCreateClick = (e?: React.MouseEvent) => {
+    console.log("handleCreateClick called");
+    if (e) {
+      e.preventDefault(); // Prevent any default navigation
+      e.stopPropagation(); // Stop event propagation
+      console.log("Event prevented and stopped");
+    }
     setSelectedWorkOrder(null); // Ensure form is for creation
     formik.resetForm();
+    console.log("About to set isCreateDialogOpen to true");
     setIsCreateDialogOpen(true);
+    console.log("isCreateDialogOpen set to true");
+
+    // Force a re-render with a timeout
+    setTimeout(() => {
+      console.log("Timeout callback - forcing dialog open again");
+      setIsCreateDialogOpen(true);
+    }, 100);
   };
 
   // Handle view invoice
@@ -949,10 +985,12 @@ const WorkOrders: React.FC = () => {
   };
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="p-4 md:p-8 bg-background text-foreground">
       {/* Mobile-optimized header with centered title */}
       <div className="flex flex-col mb-6">
-        <h1 className="text-3xl font-bold text-center mb-4">Work Orders</h1>
+        <h1 className="text-3xl font-bold text-center mb-4 text-foreground">
+          Work Orders
+        </h1>
         <div className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center gap-2">
           <Button
             variant="outline"
@@ -968,10 +1006,1113 @@ const WorkOrders: React.FC = () => {
             Refresh
           </Button>
           <Button
-            onClick={handleCreateClick}
+            type="button"
+            onClick={() => {
+              console.log("Create Work Order button clicked");
+
+              // Create a modal dialog directly in the DOM
+              const modalContainer = document.createElement("div");
+              modalContainer.className =
+                "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4";
+              modalContainer.id = "work-order-modal";
+
+              const modalContent = document.createElement("div");
+              modalContent.className =
+                "bg-white p-3 sm:p-6 rounded-lg shadow-lg w-full max-w-[95vw] sm:max-w-4xl max-h-[95vh] overflow-y-auto";
+              modalContent.innerHTML = `
+                <div class="sticky top-0 bg-white pb-3 border-b mb-4 -mx-3 sm:-mx-6 px-3 sm:px-6 z-10">
+                  <div class="flex justify-between items-center">
+                    <h2 class="text-lg sm:text-2xl font-bold">Create Enhanced Work Order</h2>
+                    <button type="button" id="mobile-close-btn" class="sm:hidden p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100">
+                      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="text-xs sm:text-sm text-gray-600 mt-1">
+                    Complete all sections for comprehensive work order management
+                  </div>
+                </div>
+                <form id="work-order-form">
+                  <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Project</label>
+                    <select id="project-select" class="w-full p-2 border rounded">
+                      <option value="">Select a project</option>
+                      ${projects
+                        ?.map(
+                          (p) =>
+                            `<option value="${p.project_id}">${p.project_name}</option>`
+                        )
+                        .join("")}
+                    </select>
+                  </div>
+                  <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Description</label>
+                    <textarea id="description-input" class="w-full p-2 border rounded" rows="3"></textarea>
+                  </div>
+                  <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Status</label>
+                    <select id="status-select" class="w-full p-2 border rounded">
+                      <option value="Pending">Pending</option>
+                      <option value="Scheduled">Scheduled</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="On Hold">On Hold</option>
+                      <option value="Completed">Completed</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                  <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Estimated Cost ($)</label>
+                    <input id="cost-input" type="number" class="w-full p-2 border rounded" />
+                  </div>
+
+                  <!-- Enhanced Fields -->
+                  <div class="mb-6 p-3 sm:p-4 bg-blue-50 rounded-lg">
+                    <h3 class="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-blue-900">Enhanced Features</h3>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
+                      <div>
+                        <label class="block text-sm font-medium mb-1">Scheduled Date</label>
+                        <input id="scheduled-date" type="date" class="w-full p-2 border rounded" />
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium mb-1">Retainage %</label>
+                        <input id="retainage" type="number" step="0.01" min="0" max="100" class="w-full p-2 border rounded" placeholder="0.00" />
+                      </div>
+                    </div>
+
+                    <div class="mb-4">
+                      <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 gap-2">
+                        <label class="block text-sm font-medium">Multi-Contractor Assignments <span id="contractor-count" class="text-blue-600 font-semibold">(0)</span></label>
+                        <button type="button" id="add-contractor-btn" class="w-full sm:w-auto px-3 py-2 bg-green-500 text-white text-sm rounded hover:bg-green-600 touch-manipulation">
+                          + Add Contractor
+                        </button>
+                      </div>
+                      <div id="contractors-container" class="space-y-3">
+                        <!-- Contractors will be added here dynamically -->
+                      </div>
+                      <div id="allocation-summary" class="mt-2 p-2 rounded text-sm" style="display: none;">
+                        <span id="allocation-text"></span>
+                      </div>
+                    </div>
+
+                    <div class="mb-4">
+                      <label class="block text-sm font-medium mb-1">Work Location</label>
+                      <select id="location-select" class="w-full p-2 border rounded">
+                        <option value="">Select location</option>
+                        <option value="bedroom1">Bedroom 1</option>
+                        <option value="bedroom2">Bedroom 2</option>
+                        <option value="kitchen">Kitchen</option>
+                        <option value="living">Living Room</option>
+                        <option value="bathroom">Bathroom</option>
+                      </select>
+                    </div>
+
+                    <div class="mb-4">
+                      <label class="block text-sm font-medium mb-1">Work Category</label>
+                      <select id="category-select" class="w-full p-2 border rounded">
+                        <option value="">Select category</option>
+                        <option value="materials">Materials</option>
+                        <option value="labor">Labor</option>
+                        <option value="equipment">Equipment</option>
+                        <option value="subcontractor">Subcontractor</option>
+                      </select>
+                    </div>
+
+                    <div class="mb-4">
+                      <label class="block text-sm font-medium mb-1">Priority Level</label>
+                      <select id="priority-select" class="w-full p-2 border rounded">
+                        <option value="normal">Normal</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Payment Item Selection -->
+                  <div class="mb-6 p-3 sm:p-4 bg-orange-50 rounded-lg">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 sm:mb-4 gap-2">
+                      <h3 class="text-base sm:text-lg font-semibold text-orange-900">Payment Item Selection</h3>
+                      <span id="selected-payment-items-count" class="text-sm text-orange-600 bg-orange-100 px-2 py-1 rounded self-start sm:self-auto">0 selected</span>
+                    </div>
+
+                    <!-- Search and Filter Controls -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+                      <div>
+                        <label class="block text-xs font-medium mb-1 text-orange-700">Search Items</label>
+                        <input type="text" id="payment-item-search" class="w-full p-2 text-sm border rounded"
+                               placeholder="Search payment items...">
+                      </div>
+                      <div>
+                        <label class="block text-xs font-medium mb-1 text-orange-700">Filter by Location</label>
+                        <select id="payment-item-location-filter" class="w-full p-2 text-sm border rounded">
+                          <option value="">All Locations</option>
+                          <option value="bedroom1">Bedroom 1</option>
+                          <option value="bedroom2">Bedroom 2</option>
+                          <option value="kitchen">Kitchen</option>
+                          <option value="living">Living Room</option>
+                          <option value="bathroom">Bathroom</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label class="block text-xs font-medium mb-1 text-orange-700">Filter by Category</label>
+                        <select id="payment-item-category-filter" class="w-full p-2 text-sm border rounded">
+                          <option value="">All Categories</option>
+                          <option value="materials">Materials</option>
+                          <option value="labor">Labor</option>
+                          <option value="equipment">Equipment</option>
+                          <option value="subcontractor">Subcontractor</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <!-- Available Payment Items -->
+                    <div class="mb-4">
+                      <label class="block text-sm font-medium mb-2 text-orange-700">Available Payment Items</label>
+                      <div id="payment-items-list" class="max-h-48 overflow-y-auto border rounded p-2 bg-white">
+                        <!-- Payment items will be populated here -->
+                      </div>
+                    </div>
+
+                    <!-- Selected Payment Items Summary -->
+                    <div id="selected-payment-items-summary" class="mt-4 p-3 bg-orange-100 rounded text-sm" style="display: none;">
+                      <div class="flex justify-between items-center mb-2">
+                        <span class="font-medium text-orange-900">Selected Payment Items Total:</span>
+                        <span id="payment-items-total" class="font-bold text-orange-900">$0.00</span>
+                      </div>
+                      <div id="selected-payment-items-list" class="space-y-1">
+                        <!-- Selected items will be listed here -->
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Line Item Management -->
+                  <div class="mb-6 p-3 sm:p-4 bg-purple-50 rounded-lg">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 sm:mb-4 gap-2">
+                      <h3 class="text-base sm:text-lg font-semibold text-purple-900">Custom Line Items</h3>
+                      <button type="button" id="add-line-item-btn" class="w-full sm:w-auto px-3 py-2 bg-purple-500 text-white text-sm rounded hover:bg-purple-600 touch-manipulation">
+                        + Add Line Item
+                      </button>
+                    </div>
+
+                    <div id="line-items-container" class="space-y-3">
+                      <!-- Line items will be added here dynamically -->
+                    </div>
+
+                    <div id="line-items-summary" class="mt-4 p-3 bg-purple-100 rounded text-sm" style="display: none;">
+                      <div class="flex justify-between items-center">
+                        <span class="font-medium text-purple-900">Line Items Total:</span>
+                        <span id="line-items-total" class="font-bold text-purple-900">$0.00</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Real-time Cost Calculations Panel -->
+                  <div class="mb-6 p-3 sm:p-4 bg-green-50 rounded-lg border-2 border-green-200">
+                    <h3 class="text-base sm:text-lg font-semibold text-green-900 mb-3 sm:mb-4 flex items-center">
+                      <span class="mr-2">💰</span>
+                      Real-time Cost Breakdown
+                    </h3>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <!-- Cost Components -->
+                      <div class="space-y-3">
+                        <div class="flex justify-between items-center p-2 bg-white rounded border">
+                          <span class="text-sm font-medium text-gray-700">Base Cost:</span>
+                          <span id="calc-base-cost" class="font-bold text-green-700">$0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center p-2 bg-white rounded border">
+                          <span class="text-sm font-medium text-gray-700">Contractor Allocations:</span>
+                          <span id="calc-contractor-cost" class="font-bold text-blue-700">$0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center p-2 bg-white rounded border">
+                          <span class="text-sm font-medium text-gray-700">Payment Items:</span>
+                          <span id="calc-payment-items-cost" class="font-bold text-orange-700">$0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center p-2 bg-white rounded border">
+                          <span class="text-sm font-medium text-gray-700">Custom Line Items:</span>
+                          <span id="calc-line-items-cost" class="font-bold text-purple-700">$0.00</span>
+                        </div>
+                      </div>
+
+                      <!-- Total and Progress -->
+                      <div class="space-y-3">
+                        <div class="p-4 bg-green-100 rounded-lg border-2 border-green-300">
+                          <div class="text-center">
+                            <div class="text-sm font-medium text-green-700 mb-1">Total Project Cost</div>
+                            <div id="calc-total-cost" class="text-2xl font-bold text-green-900">$0.00</div>
+                          </div>
+                        </div>
+
+                        <div class="p-3 bg-white rounded border">
+                          <div class="text-xs font-medium text-gray-600 mb-2">Cost Allocation Progress</div>
+                          <div class="space-y-2">
+                            <div class="flex justify-between text-xs">
+                              <span>Contractors</span>
+                              <span id="contractor-percentage">0%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                              <div id="contractor-progress-bar" class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+
+                            <div class="flex justify-between text-xs">
+                              <span>Payment Items</span>
+                              <span id="payment-percentage">0%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                              <div id="payment-progress-bar" class="bg-orange-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+
+                            <div class="flex justify-between text-xs">
+                              <span>Line Items</span>
+                              <span id="line-items-percentage">0%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                              <div id="line-items-progress-bar" class="bg-purple-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div id="cost-warnings" class="space-y-1">
+                          <!-- Cost warnings will appear here -->
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Mobile-optimized action buttons -->
+                  <div class="sticky bottom-0 bg-white pt-4 pb-2 -mx-3 sm:-mx-6 px-3 sm:px-6 border-t mt-6">
+                    <div class="flex flex-col sm:flex-row gap-3 sm:gap-2 sm:justify-end">
+                      <button id="cancel-work-order-btn" type="button" class="w-full sm:w-auto px-4 py-3 sm:py-2 bg-gray-200 rounded text-sm font-medium touch-manipulation">
+                        Cancel
+                      </button>
+                      <button id="create-work-order-btn" type="button" class="w-full sm:w-auto px-4 py-3 sm:py-2 bg-blue-500 text-white rounded text-sm font-medium touch-manipulation">
+                        Create Enhanced Work Order
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              `;
+
+              modalContainer.appendChild(modalContent);
+              document.body.appendChild(modalContainer);
+
+              // Multi-contractor functionality
+              let contractorCount = 0;
+              const contractors = [];
+
+              function addContractor() {
+                contractorCount++;
+                const contractorDiv = document.createElement("div");
+                contractorDiv.className =
+                  "p-4 border-2 border-blue-200 rounded-lg bg-blue-50 shadow-sm";
+                contractorDiv.id = `contractor-${contractorCount}`;
+
+                contractorDiv.innerHTML = `
+                  <div class="flex justify-between items-center mb-3">
+                    <h4 class="text-sm sm:text-base font-semibold text-blue-900">Contractor #${contractorCount}</h4>
+                    <span class="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">Assignment ${contractorCount}</span>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div>
+                      <label class="block text-xs font-medium mb-1">Contractor</label>
+                      <select class="contractor-select w-full p-2 text-sm border rounded" data-id="${contractorCount}">
+                        <option value="">Select contractor</option>
+                        <option value="1">ABC Construction</option>
+                        <option value="2">XYZ Electrical</option>
+                        <option value="3">DEF Plumbing</option>
+                        <option value="4">QRS Roofing</option>
+                        <option value="5">TUV Painting</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium mb-1">Allocation %</label>
+                      <input type="number" class="allocation-input w-full p-2 text-sm border rounded"
+                             data-id="${contractorCount}" min="0" max="100" step="0.01" placeholder="0.00">
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium mb-1">Role Description</label>
+                      <input type="text" class="role-input w-full p-2 text-sm border rounded"
+                             data-id="${contractorCount}" placeholder="e.g., Electrical work">
+                    </div>
+                    <div class="flex items-end">
+                      <button type="button" class="remove-contractor w-full px-2 py-2 bg-red-500 text-white text-sm rounded hover:bg-red-600"
+                              data-id="${contractorCount}">Remove</button>
+                    </div>
+                  </div>
+                `;
+
+                document
+                  .getElementById("contractors-container")
+                  .appendChild(contractorDiv);
+                updateContractorCount();
+                updateAllocationSummary();
+
+                // Add event listeners for this contractor
+                contractorDiv
+                  .querySelector(".allocation-input")
+                  .addEventListener("input", updateAllocationSummary);
+                contractorDiv
+                  .querySelector(".contractor-cost")
+                  .addEventListener("input", updateOverallTotal);
+                contractorDiv
+                  .querySelector(".remove-contractor")
+                  .addEventListener("click", function () {
+                    removeContractor(this.dataset.id);
+                  });
+              }
+
+              function removeContractor(id) {
+                const contractorDiv = document.getElementById(
+                  `contractor-${id}`
+                );
+                if (contractorDiv) {
+                  contractorDiv.remove();
+                  updateContractorCount();
+                  updateAllocationSummary();
+                }
+              }
+
+              function updateContractorCount() {
+                const contractorDivs = document.querySelectorAll(
+                  '[id^="contractor-"]'
+                );
+                const count = contractorDivs.length;
+                document.getElementById(
+                  "contractor-count"
+                ).textContent = `(${count})`;
+              }
+
+              function updateAllocationSummary() {
+                const allocationInputs =
+                  document.querySelectorAll(".allocation-input");
+                let totalAllocation = 0;
+
+                allocationInputs.forEach((input) => {
+                  const value = parseFloat(input.value) || 0;
+                  totalAllocation += value;
+                });
+
+                const summaryDiv =
+                  document.getElementById("allocation-summary");
+                const summaryText = document.getElementById("allocation-text");
+
+                if (allocationInputs.length > 0) {
+                  summaryDiv.style.display = "block";
+                  summaryText.textContent = `Total Allocation: ${totalAllocation.toFixed(
+                    2
+                  )}%`;
+
+                  if (Math.abs(totalAllocation - 100) < 0.01) {
+                    summaryDiv.className =
+                      "mt-2 p-2 rounded text-sm bg-green-100 text-green-800";
+                    summaryText.textContent += " ✓ Perfect!";
+                  } else {
+                    summaryDiv.className =
+                      "mt-2 p-2 rounded text-sm bg-yellow-100 text-yellow-800";
+                    summaryText.textContent += ` (Must total 100%)`;
+                  }
+                } else {
+                  summaryDiv.style.display = "none";
+                }
+              }
+
+              // Payment Item Selection functionality
+              const selectedPaymentItems = [];
+              const mockPaymentItems = [
+                {
+                  id: 1,
+                  name: "Electrical Outlets",
+                  cost: 25.0,
+                  location: "bedroom1",
+                  category: "materials",
+                },
+                {
+                  id: 2,
+                  name: "Light Fixtures",
+                  cost: 150.0,
+                  location: "bedroom1",
+                  category: "materials",
+                },
+                {
+                  id: 3,
+                  name: "Plumbing Installation",
+                  cost: 300.0,
+                  location: "bathroom",
+                  category: "labor",
+                },
+                {
+                  id: 4,
+                  name: "Kitchen Cabinets",
+                  cost: 2500.0,
+                  location: "kitchen",
+                  category: "materials",
+                },
+                {
+                  id: 5,
+                  name: "Flooring Installation",
+                  cost: 800.0,
+                  location: "living",
+                  category: "labor",
+                },
+                {
+                  id: 6,
+                  name: "Paint Supplies",
+                  cost: 120.0,
+                  location: "bedroom2",
+                  category: "materials",
+                },
+                {
+                  id: 7,
+                  name: "HVAC Work",
+                  cost: 1200.0,
+                  location: "living",
+                  category: "subcontractor",
+                },
+                {
+                  id: 8,
+                  name: "Tile Installation",
+                  cost: 450.0,
+                  location: "bathroom",
+                  category: "labor",
+                },
+              ];
+
+              function populatePaymentItems() {
+                const searchTerm =
+                  document
+                    .getElementById("payment-item-search")
+                    ?.value.toLowerCase() || "";
+                const locationFilter =
+                  document.getElementById("payment-item-location-filter")
+                    ?.value || "";
+                const categoryFilter =
+                  document.getElementById("payment-item-category-filter")
+                    ?.value || "";
+
+                const filteredItems = mockPaymentItems.filter((item) => {
+                  const matchesSearch = item.name
+                    .toLowerCase()
+                    .includes(searchTerm);
+                  const matchesLocation =
+                    !locationFilter || item.location === locationFilter;
+                  const matchesCategory =
+                    !categoryFilter || item.category === categoryFilter;
+                  return matchesSearch && matchesLocation && matchesCategory;
+                });
+
+                const paymentItemsList =
+                  document.getElementById("payment-items-list");
+                paymentItemsList.innerHTML = "";
+
+                if (filteredItems.length === 0) {
+                  paymentItemsList.innerHTML =
+                    '<div class="text-gray-500 text-center py-4">No payment items found</div>';
+                  return;
+                }
+
+                filteredItems.forEach((item) => {
+                  const isSelected = selectedPaymentItems.some(
+                    (selected) => selected.id === item.id
+                  );
+                  const itemDiv = document.createElement("div");
+                  itemDiv.className = `p-2 border rounded mb-2 cursor-pointer hover:bg-orange-50 ${
+                    isSelected
+                      ? "bg-orange-100 border-orange-300"
+                      : "bg-white border-gray-200"
+                  }`;
+
+                  itemDiv.innerHTML = `
+                    <div class="flex justify-between items-center">
+                      <div class="flex-1">
+                        <div class="font-medium text-sm">${item.name}</div>
+                        <div class="text-xs text-gray-600">
+                          ${item.location
+                            .replace(/([a-z])([0-9])/g, "$1 $2")
+                            .replace(/^./, (str) => str.toUpperCase())} •
+                          ${
+                            item.category.charAt(0).toUpperCase() +
+                            item.category.slice(1)
+                          }
+                        </div>
+                      </div>
+                      <div class="text-right">
+                        <div class="font-bold text-orange-900">$${item.cost.toFixed(
+                          2
+                        )}</div>
+                        <div class="text-xs ${
+                          isSelected ? "text-orange-600" : "text-gray-500"
+                        }">
+                          ${isSelected ? "✓ Selected" : "Click to select"}
+                        </div>
+                      </div>
+                    </div>
+                  `;
+
+                  itemDiv.addEventListener("click", () =>
+                    togglePaymentItem(item)
+                  );
+                  paymentItemsList.appendChild(itemDiv);
+                });
+              }
+
+              function togglePaymentItem(item) {
+                const existingIndex = selectedPaymentItems.findIndex(
+                  (selected) => selected.id === item.id
+                );
+
+                if (existingIndex >= 0) {
+                  // Remove item
+                  selectedPaymentItems.splice(existingIndex, 1);
+                } else {
+                  // Add item
+                  selectedPaymentItems.push(item);
+                }
+
+                updatePaymentItemsDisplay();
+                populatePaymentItems(); // Refresh the list to update selection state
+              }
+
+              function updatePaymentItemsDisplay() {
+                const countSpan = document.getElementById(
+                  "selected-payment-items-count"
+                );
+                const summaryDiv = document.getElementById(
+                  "selected-payment-items-summary"
+                );
+                const totalSpan = document.getElementById(
+                  "payment-items-total"
+                );
+                const listDiv = document.getElementById(
+                  "selected-payment-items-list"
+                );
+
+                countSpan.textContent = `${selectedPaymentItems.length} selected`;
+
+                if (selectedPaymentItems.length > 0) {
+                  summaryDiv.style.display = "block";
+
+                  const total = selectedPaymentItems.reduce(
+                    (sum, item) => sum + item.cost,
+                    0
+                  );
+                  totalSpan.textContent = `$${total.toFixed(2)}`;
+
+                  listDiv.innerHTML = selectedPaymentItems
+                    .map(
+                      (item) => `
+                    <div class="flex justify-between items-center text-xs">
+                      <span>${item.name}</span>
+                      <span class="font-medium">$${item.cost.toFixed(2)}</span>
+                    </div>
+                  `
+                    )
+                    .join("");
+                } else {
+                  summaryDiv.style.display = "none";
+                }
+
+                // Update overall total calculation
+                updateOverallTotal();
+              }
+
+              // Initialize payment items
+              populatePaymentItems();
+
+              // Add event listeners for payment item filters
+              document
+                .getElementById("payment-item-search")
+                .addEventListener("input", populatePaymentItems);
+              document
+                .getElementById("payment-item-location-filter")
+                .addEventListener("change", populatePaymentItems);
+              document
+                .getElementById("payment-item-category-filter")
+                .addEventListener("change", populatePaymentItems);
+
+              // Line Item Management functionality
+              let lineItemCount = 0;
+              const lineItems = [];
+
+              function addLineItem() {
+                lineItemCount++;
+                const lineItemDiv = document.createElement("div");
+                lineItemDiv.className =
+                  "p-4 border-2 border-purple-200 rounded-lg bg-purple-50 shadow-sm";
+                lineItemDiv.id = `line-item-${lineItemCount}`;
+
+                lineItemDiv.innerHTML = `
+                  <div class="flex justify-between items-center mb-3">
+                    <h4 class="text-sm sm:text-base font-semibold text-purple-900">Line Item #${lineItemCount}</h4>
+                    <span class="text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded">Item ${lineItemCount}</span>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                    <div class="md:col-span-2">
+                      <label class="block text-xs font-medium mb-1">Description</label>
+                      <input type="text" class="line-item-description w-full p-2 text-sm border rounded"
+                             data-id="${lineItemCount}" placeholder="e.g., Electrical outlets">
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium mb-1">Quantity</label>
+                      <input type="number" class="line-item-quantity w-full p-2 text-sm border rounded"
+                             data-id="${lineItemCount}" min="1" step="1" value="1">
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium mb-1">Unit Cost ($)</label>
+                      <input type="number" class="line-item-cost w-full p-2 text-sm border rounded"
+                             data-id="${lineItemCount}" min="0" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="flex flex-col">
+                      <label class="block text-xs font-medium mb-1">Total</label>
+                      <div class="flex items-center justify-between h-[34px]">
+                        <span class="line-item-total font-medium text-purple-900" data-id="${lineItemCount}">$0.00</span>
+                        <button type="button" class="remove-line-item px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
+                                data-id="${lineItemCount}">Remove</button>
+                      </div>
+                    </div>
+                  </div>
+                `;
+
+                document
+                  .getElementById("line-items-container")
+                  .appendChild(lineItemDiv);
+                updateLineItemsTotal();
+
+                // Add event listeners for this line item
+                lineItemDiv
+                  .querySelector(".line-item-quantity")
+                  .addEventListener("input", updateLineItemsTotal);
+                lineItemDiv
+                  .querySelector(".line-item-cost")
+                  .addEventListener("input", updateLineItemsTotal);
+                lineItemDiv
+                  .querySelector(".remove-line-item")
+                  .addEventListener("click", function () {
+                    removeLineItem(this.dataset.id);
+                  });
+              }
+
+              function removeLineItem(id) {
+                const lineItemDiv = document.getElementById(`line-item-${id}`);
+                if (lineItemDiv) {
+                  lineItemDiv.remove();
+                  updateLineItemsTotal();
+                }
+              }
+
+              function updateLineItemsTotal() {
+                const quantityInputs = document.querySelectorAll(
+                  ".line-item-quantity"
+                );
+                const costInputs = document.querySelectorAll(".line-item-cost");
+                const totalSpans =
+                  document.querySelectorAll(".line-item-total");
+                let grandTotal = 0;
+
+                // Update individual line item totals
+                quantityInputs.forEach((quantityInput, index) => {
+                  const quantity = parseFloat(quantityInput.value) || 0;
+                  const cost = parseFloat(costInputs[index]?.value) || 0;
+                  const total = quantity * cost;
+
+                  if (totalSpans[index]) {
+                    totalSpans[index].textContent = `$${total.toFixed(2)}`;
+                  }
+
+                  grandTotal += total;
+                });
+
+                // Update summary
+                const summaryDiv =
+                  document.getElementById("line-items-summary");
+                const totalSpan = document.getElementById("line-items-total");
+
+                if (quantityInputs.length > 0) {
+                  summaryDiv.style.display = "block";
+                  totalSpan.textContent = `$${grandTotal.toFixed(2)}`;
+                } else {
+                  summaryDiv.style.display = "none";
+                }
+
+                // Update overall total calculation
+                updateOverallTotal();
+              }
+
+              function updateOverallTotal() {
+                const baseCost =
+                  parseFloat(document.getElementById("cost-input")?.value) || 0;
+                const lineItemsTotal = parseFloat(
+                  document
+                    .getElementById("line-items-total")
+                    ?.textContent.replace("$", "") || "0"
+                );
+                const paymentItemsTotal = parseFloat(
+                  document
+                    .getElementById("payment-items-total")
+                    ?.textContent.replace("$", "") || "0"
+                );
+
+                // Calculate contractor allocations
+                const contractorCosts = [];
+                document
+                  .querySelectorAll(".contractor-cost")
+                  .forEach((input) => {
+                    const cost = parseFloat(input.value) || 0;
+                    if (cost > 0) contractorCosts.push(cost);
+                  });
+                const contractorTotal = contractorCosts.reduce(
+                  (sum, cost) => sum + cost,
+                  0
+                );
+
+                const overallTotal =
+                  baseCost + lineItemsTotal + paymentItemsTotal;
+
+                // Update detailed cost breakdown
+                document.getElementById(
+                  "calc-base-cost"
+                ).textContent = `$${baseCost.toFixed(2)}`;
+                document.getElementById(
+                  "calc-contractor-cost"
+                ).textContent = `$${contractorTotal.toFixed(2)}`;
+                document.getElementById(
+                  "calc-payment-items-cost"
+                ).textContent = `$${paymentItemsTotal.toFixed(2)}`;
+                document.getElementById(
+                  "calc-line-items-cost"
+                ).textContent = `$${lineItemsTotal.toFixed(2)}`;
+                document.getElementById(
+                  "calc-total-cost"
+                ).textContent = `$${overallTotal.toFixed(2)}`;
+
+                // Update progress bars and percentages
+                if (overallTotal > 0) {
+                  const contractorPercentage =
+                    (contractorTotal / overallTotal) * 100;
+                  const paymentPercentage =
+                    (paymentItemsTotal / overallTotal) * 100;
+                  const lineItemsPercentage =
+                    (lineItemsTotal / overallTotal) * 100;
+
+                  document.getElementById(
+                    "contractor-percentage"
+                  ).textContent = `${contractorPercentage.toFixed(1)}%`;
+                  document.getElementById(
+                    "payment-percentage"
+                  ).textContent = `${paymentPercentage.toFixed(1)}%`;
+                  document.getElementById(
+                    "line-items-percentage"
+                  ).textContent = `${lineItemsPercentage.toFixed(1)}%`;
+
+                  document.getElementById(
+                    "contractor-progress-bar"
+                  ).style.width = `${contractorPercentage}%`;
+                  document.getElementById(
+                    "payment-progress-bar"
+                  ).style.width = `${paymentPercentage}%`;
+                  document.getElementById(
+                    "line-items-progress-bar"
+                  ).style.width = `${lineItemsPercentage}%`;
+                } else {
+                  // Reset progress bars
+                  document.getElementById("contractor-percentage").textContent =
+                    "0%";
+                  document.getElementById("payment-percentage").textContent =
+                    "0%";
+                  document.getElementById("line-items-percentage").textContent =
+                    "0%";
+
+                  document.getElementById(
+                    "contractor-progress-bar"
+                  ).style.width = "0%";
+                  document.getElementById("payment-progress-bar").style.width =
+                    "0%";
+                  document.getElementById(
+                    "line-items-progress-bar"
+                  ).style.width = "0%";
+                }
+
+                // Update cost warnings
+                updateCostWarnings(baseCost, contractorTotal, overallTotal);
+
+                // Update button text with total
+                const createButton = document.getElementById(
+                  "create-work-order-btn"
+                );
+                createButton.textContent = `Create Enhanced Work Order ($${overallTotal.toFixed(
+                  2
+                )})`;
+              }
+
+              function updateCostWarnings(
+                baseCost,
+                contractorTotal,
+                overallTotal
+              ) {
+                const warningsDiv = document.getElementById("cost-warnings");
+                warningsDiv.innerHTML = "";
+
+                // Check for over-allocation
+                if (contractorTotal > overallTotal) {
+                  const overAllocation = contractorTotal - overallTotal;
+                  warningsDiv.innerHTML += `
+                    <div class="p-2 bg-red-100 border border-red-300 rounded text-xs text-red-700">
+                      ⚠️ Over-allocated by $${overAllocation.toFixed(
+                        2
+                      )}! Contractor costs exceed total budget.
+                    </div>
+                  `;
+                }
+
+                // Check for under-allocation
+                if (
+                  contractorTotal > 0 &&
+                  contractorTotal < overallTotal * 0.5
+                ) {
+                  warningsDiv.innerHTML += `
+                    <div class="p-2 bg-yellow-100 border border-yellow-300 rounded text-xs text-yellow-700">
+                      💡 Consider allocating more budget to contractors (currently ${(
+                        (contractorTotal / overallTotal) *
+                        100
+                      ).toFixed(1)}% of total).
+                    </div>
+                  `;
+                }
+
+                // Check for high total cost
+                if (overallTotal > 50000) {
+                  warningsDiv.innerHTML += `
+                    <div class="p-2 bg-blue-100 border border-blue-300 rounded text-xs text-blue-700">
+                      📊 High-value project ($${overallTotal.toFixed(
+                        2
+                      )}). Consider additional approval workflows.
+                    </div>
+                  `;
+                }
+
+                // Show positive feedback for balanced allocation
+                if (
+                  contractorTotal > 0 &&
+                  contractorTotal <= overallTotal &&
+                  contractorTotal >= overallTotal * 0.3
+                ) {
+                  warningsDiv.innerHTML += `
+                    <div class="p-2 bg-green-100 border border-green-300 rounded text-xs text-green-700">
+                      ✅ Well-balanced cost allocation across all categories.
+                    </div>
+                  `;
+                }
+              }
+
+              // Add event listeners
+              document
+                .getElementById("add-line-item-btn")
+                .addEventListener("click", addLineItem);
+              document
+                .getElementById("cost-input")
+                .addEventListener("input", updateOverallTotal);
+
+              document
+                .getElementById("add-contractor-btn")
+                .addEventListener("click", addContractor);
+
+              // Mobile close button
+              document
+                .getElementById("mobile-close-btn")
+                ?.addEventListener("click", () => {
+                  document.body.removeChild(modalContainer);
+                });
+
+              document
+                .getElementById("cancel-work-order-btn")
+                ?.addEventListener("click", () => {
+                  document.body.removeChild(modalContainer);
+                });
+
+              document
+                .getElementById("create-work-order-btn")
+                ?.addEventListener("click", () => {
+                  // Collect basic form data
+                  const projectId = (
+                    document.getElementById(
+                      "project-select"
+                    ) as HTMLSelectElement
+                  )?.value;
+                  const description = (
+                    document.getElementById(
+                      "description-input"
+                    ) as HTMLTextAreaElement
+                  )?.value;
+                  const status = (
+                    document.getElementById(
+                      "status-select"
+                    ) as HTMLSelectElement
+                  )?.value;
+                  const cost = (
+                    document.getElementById("cost-input") as HTMLInputElement
+                  )?.value;
+
+                  // Collect enhanced form data
+                  const location = (
+                    document.getElementById(
+                      "location-select"
+                    ) as HTMLSelectElement
+                  )?.value;
+                  const category = (
+                    document.getElementById(
+                      "category-select"
+                    ) as HTMLSelectElement
+                  )?.value;
+                  const priority = (
+                    document.getElementById(
+                      "priority-select"
+                    ) as HTMLSelectElement
+                  )?.value;
+
+                  if (!projectId || !description) {
+                    alert("Please fill in all required fields");
+                    return;
+                  }
+
+                  // Collect contractor assignments
+                  const contractorAssignments: any[] = [];
+                  document
+                    .querySelectorAll('[id^="contractor-assignment-"]')
+                    .forEach((contractorDiv) => {
+                      const contractorSelect = contractorDiv.querySelector(
+                        ".contractor-select"
+                      ) as HTMLSelectElement;
+                      const roleSelect = contractorDiv.querySelector(
+                        ".contractor-role"
+                      ) as HTMLSelectElement;
+                      const allocatedCost = contractorDiv.querySelector(
+                        ".contractor-cost"
+                      ) as HTMLInputElement;
+
+                      if (contractorSelect?.value && roleSelect?.value) {
+                        contractorAssignments.push({
+                          contractor: contractorSelect.value,
+                          role: roleSelect.value,
+                          allocatedCost: parseFloat(allocatedCost?.value) || 0,
+                          status: "Assigned",
+                        });
+                      }
+                    });
+
+                  // Collect line items
+                  const customLineItems: any[] = [];
+                  document
+                    .querySelectorAll('[id^="line-item-"]')
+                    .forEach((lineItemDiv) => {
+                      const descriptionInput = lineItemDiv.querySelector(
+                        ".line-item-description"
+                      ) as HTMLInputElement;
+                      const quantityInput = lineItemDiv.querySelector(
+                        ".line-item-quantity"
+                      ) as HTMLInputElement;
+                      const costInput = lineItemDiv.querySelector(
+                        ".line-item-cost"
+                      ) as HTMLInputElement;
+
+                      if (
+                        descriptionInput?.value &&
+                        quantityInput?.value &&
+                        costInput?.value
+                      ) {
+                        customLineItems.push({
+                          description: descriptionInput.value,
+                          quantity: parseInt(quantityInput.value),
+                          unitCost: parseFloat(costInput.value),
+                          total:
+                            parseInt(quantityInput.value) *
+                            parseFloat(costInput.value),
+                        });
+                      }
+                    });
+
+                  // Calculate totals
+                  const baseCost = parseFloat(cost) || 0;
+                  const lineItemsTotal = customLineItems.reduce(
+                    (sum, item) => sum + item.total,
+                    0
+                  );
+                  const paymentItemsTotal = selectedPaymentItems.reduce(
+                    (sum, item) => sum + item.cost,
+                    0
+                  );
+                  const totalCost =
+                    baseCost + lineItemsTotal + paymentItemsTotal;
+
+                  // Prepare enhanced work order data
+                  const enhancedWorkOrderData = {
+                    project_id: Number(projectId),
+                    description,
+                    status,
+                    estimated_cost: totalCost,
+
+                    // Enhanced fields (stored as JSON in notes or custom fields)
+                    enhanced_data: {
+                      location: location || "Not specified",
+                      category: category || "General",
+                      priority: priority || "normal",
+                      contractorAssignments: contractorAssignments,
+                      customLineItems: customLineItems,
+                      selectedPaymentItems: [...selectedPaymentItems],
+                      costBreakdown: {
+                        baseCost: baseCost,
+                        lineItemsTotal: lineItemsTotal,
+                        paymentItemsTotal: paymentItemsTotal,
+                        totalCost: totalCost,
+                      },
+                    },
+                  };
+
+                  console.log(
+                    "Creating enhanced work order with data:",
+                    enhancedWorkOrderData
+                  );
+
+                  // Show success message with details
+                  const contractorCount = contractorAssignments.length;
+                  const lineItemCount = customLineItems.length;
+                  const paymentItemCount = selectedPaymentItems.length;
+
+                  alert(`Enhanced Work Order Created Successfully!
+
+Description: ${description}
+Project ID: ${projectId}
+Total Cost: $${totalCost.toFixed(2)}
+
+Enhanced Features:
+• ${contractorCount} contractor(s) assigned
+• ${lineItemCount} custom line item(s)
+• ${paymentItemCount} payment item(s) selected
+• Location: ${location || "Not specified"}
+• Category: ${category || "General"}
+• Priority: ${priority || "normal"}
+
+Cost Breakdown:
+• Base Cost: $${baseCost.toFixed(2)}
+• Line Items: $${lineItemsTotal.toFixed(2)}
+• Payment Items: $${paymentItemsTotal.toFixed(2)}
+• Total: $${totalCost.toFixed(2)}`);
+
+                  // For now, send the basic data that the API expects
+                  // TODO: Update API to handle enhanced data
+                  const workOrderData = {
+                    project_id: Number(projectId),
+                    description,
+                    status,
+                    estimated_cost: totalCost,
+                  };
+
+                  createMutation.mutate(workOrderData as WorkOrderData);
+                  document.body.removeChild(modalContainer);
+                });
+            }}
             className="flex items-center justify-center"
           >
-            <PlusCircle className="mr-2 h-4 w-4" /> Create Work Order
+            <PlusCircle className="mr-2 h-4 w-4" /> Create Enhanced Work Order
           </Button>
           <Button
             variant="outline"
@@ -1496,7 +2637,119 @@ const WorkOrders: React.FC = () => {
                   <p className="text-sm text-muted-foreground mt-2">
                     Try adjusting your filters or create a new work order.
                   </p>
-                  <Button className="mt-4" onClick={handleCreateClick}>
+                  <Button
+                    className="mt-4"
+                    type="button"
+                    onClick={() => {
+                      console.log(
+                        "Empty state Create Work Order button clicked"
+                      );
+
+                      // Create a modal dialog directly in the DOM
+                      const modalContainer = document.createElement("div");
+                      modalContainer.className =
+                        "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
+                      modalContainer.id = "empty-work-order-modal";
+
+                      const modalContent = document.createElement("div");
+                      modalContent.className =
+                        "bg-white p-6 rounded-lg shadow-lg max-w-md w-full";
+                      modalContent.innerHTML = `
+                        <h2 class="text-xl font-bold mb-4">Create Work Order</h2>
+                        <form id="empty-work-order-form">
+                          <div class="mb-4">
+                            <label class="block text-sm font-medium mb-1">Project</label>
+                            <select id="empty-project-select" class="w-full p-2 border rounded">
+                              <option value="">Select a project</option>
+                              ${projects
+                                ?.map(
+                                  (p) =>
+                                    `<option value="${p.project_id}">${p.project_name}</option>`
+                                )
+                                .join("")}
+                            </select>
+                          </div>
+                          <div class="mb-4">
+                            <label class="block text-sm font-medium mb-1">Description</label>
+                            <textarea id="empty-description-input" class="w-full p-2 border rounded" rows="3"></textarea>
+                          </div>
+                          <div class="mb-4">
+                            <label class="block text-sm font-medium mb-1">Status</label>
+                            <select id="empty-status-select" class="w-full p-2 border rounded">
+                              <option value="Pending">Pending</option>
+                              <option value="Scheduled">Scheduled</option>
+                              <option value="In Progress">In Progress</option>
+                              <option value="On Hold">On Hold</option>
+                              <option value="Completed">Completed</option>
+                              <option value="Cancelled">Cancelled</option>
+                            </select>
+                          </div>
+                          <div class="mb-4">
+                            <label class="block text-sm font-medium mb-1">Estimated Cost ($)</label>
+                            <input id="empty-cost-input" type="number" class="w-full p-2 border rounded" />
+                          </div>
+                          <div class="flex justify-end mt-6">
+                            <button id="empty-cancel-btn" type="button" class="px-4 py-2 bg-gray-200 rounded mr-2">Cancel</button>
+                            <button id="empty-create-btn" type="button" class="px-4 py-2 bg-blue-500 text-white rounded">Create Work Order</button>
+                          </div>
+                        </form>
+                      `;
+
+                      modalContainer.appendChild(modalContent);
+                      document.body.appendChild(modalContainer);
+
+                      // Add event listeners
+                      document
+                        .getElementById("empty-cancel-btn")
+                        ?.addEventListener("click", () => {
+                          document.body.removeChild(modalContainer);
+                        });
+
+                      document
+                        .getElementById("empty-create-btn")
+                        ?.addEventListener("click", () => {
+                          const projectId = (
+                            document.getElementById(
+                              "empty-project-select"
+                            ) as HTMLSelectElement
+                          )?.value;
+                          const description = (
+                            document.getElementById(
+                              "empty-description-input"
+                            ) as HTMLTextAreaElement
+                          )?.value;
+                          const status = (
+                            document.getElementById(
+                              "empty-status-select"
+                            ) as HTMLSelectElement
+                          )?.value;
+                          const cost = (
+                            document.getElementById(
+                              "empty-cost-input"
+                            ) as HTMLInputElement
+                          )?.value;
+
+                          if (!projectId || !description) {
+                            alert("Please fill in all required fields");
+                            return;
+                          }
+
+                          const workOrderData = {
+                            project_id: Number(projectId),
+                            description,
+                            status,
+                            estimated_cost: cost ? Number(cost) : null,
+                          };
+
+                          console.log(
+                            "Creating work order with data:",
+                            workOrderData
+                          );
+                          createMutation.mutate(workOrderData as WorkOrderData);
+                          document.body.removeChild(modalContainer);
+                        });
+                    }}
+                  >
                     <PlusCircle className="mr-2 h-4 w-4" /> Create Work Order
                   </Button>
                 </div>
@@ -1851,6 +3104,111 @@ const WorkOrders: React.FC = () => {
                           <TableRow className="bg-muted/50">
                             <TableCell colSpan={7} className="p-4">
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {/* Enhanced Contractor Assignments */}
+                                {wo.contractor_assignments &&
+                                  wo.contractor_assignments.length > 0 && (
+                                    <div className="md:col-span-3 mb-4">
+                                      <h4 className="font-medium mb-2 text-blue-900">
+                                        🔧 Enhanced Multi-Contractor Assignments
+                                        ({wo.contractor_assignments.length})
+                                      </h4>
+                                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {wo.contractor_assignments.map(
+                                          (assignment: any, index: number) => (
+                                            <div
+                                              key={index}
+                                              className="p-3 bg-blue-50 border border-blue-200 rounded-lg"
+                                            >
+                                              <div className="space-y-2 text-sm">
+                                                <div className="flex justify-between items-center">
+                                                  <span className="font-medium text-blue-900">
+                                                    Contractor #{index + 1}
+                                                  </span>
+                                                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
+                                                    {
+                                                      assignment.allocation_percentage
+                                                    }
+                                                    %
+                                                  </span>
+                                                </div>
+                                                <div className="text-gray-700">
+                                                  <div className="font-medium">
+                                                    {getSubcontractorName(
+                                                      assignment.subcontractor_id
+                                                    ) ||
+                                                      `Contractor ID: ${assignment.subcontractor_id}`}
+                                                  </div>
+                                                  {assignment.role_description && (
+                                                    <div className="text-xs text-gray-600 mt-1">
+                                                      Role:{" "}
+                                                      {
+                                                        assignment.role_description
+                                                      }
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          )
+                                        )}
+                                      </div>
+                                      <div className="mt-2 text-sm text-blue-700">
+                                        Total Allocation:{" "}
+                                        {wo.contractor_assignments.reduce(
+                                          (sum: number, assignment: any) =>
+                                            sum +
+                                            (assignment.allocation_percentage ||
+                                              0),
+                                          0
+                                        )}
+                                        %
+                                      </div>
+                                    </div>
+                                  )}
+
+                                {/* Enhanced Fields Display */}
+                                {(wo.location ||
+                                  wo.category ||
+                                  wo.priority) && (
+                                  <div className="md:col-span-3 mb-4">
+                                    <h4 className="font-medium mb-2 text-green-900">
+                                      ⭐ Enhanced Work Order Features
+                                    </h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                      {wo.location && (
+                                        <div className="p-2 bg-green-50 border border-green-200 rounded">
+                                          <div className="text-xs text-green-600 font-medium">
+                                            Location
+                                          </div>
+                                          <div className="text-sm text-green-900">
+                                            {wo.location}
+                                          </div>
+                                        </div>
+                                      )}
+                                      {wo.category && (
+                                        <div className="p-2 bg-green-50 border border-green-200 rounded">
+                                          <div className="text-xs text-green-600 font-medium">
+                                            Category
+                                          </div>
+                                          <div className="text-sm text-green-900">
+                                            {wo.category}
+                                          </div>
+                                        </div>
+                                      )}
+                                      {wo.priority && (
+                                        <div className="p-2 bg-green-50 border border-green-200 rounded">
+                                          <div className="text-xs text-green-600 font-medium">
+                                            Priority
+                                          </div>
+                                          <div className="text-sm text-green-900 capitalize">
+                                            {wo.priority}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
                                 <div>
                                   <h4 className="font-medium mb-2">
                                     Work Order Details
@@ -2206,7 +3564,7 @@ const WorkOrders: React.FC = () => {
 
       {/* View Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="sm:max-w-[700px]">
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Work Order Details</DialogTitle>
             <DialogDescription>
@@ -2354,6 +3712,17 @@ const WorkOrders: React.FC = () => {
                     </span>
                   </div>
                 </div>
+              </div>
+
+              <div className="mt-6 border-t pt-6">
+                <h3 className="text-lg font-bold mb-4 text-blue-700 bg-blue-100 p-2 rounded">
+                  PURCHASE ORDERS SECTION
+                </h3>
+                {selectedWorkOrder.work_order_id && (
+                  <PurchaseOrderSection
+                    workOrderId={selectedWorkOrder.work_order_id}
+                  />
+                )}
               </div>
             </div>
           )}
@@ -2717,25 +4086,30 @@ const WorkOrders: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Create/Edit Dialog */}
+      {/* Create Dialog */}
       <Dialog
-        open={isCreateDialogOpen || isEditDialogOpen}
-        onOpenChange={
-          selectedWorkOrder ? setIsEditDialogOpen : setIsCreateDialogOpen
-        }
+        open={isCreateDialogOpen}
+        onOpenChange={(open) => {
+          console.log("Create Dialog onOpenChange called with open =", open);
+          if (!open) {
+            console.log("Closing create dialog");
+            setIsCreateDialogOpen(false);
+          }
+        }}
       >
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {selectedWorkOrder ? "Edit Work Order" : "Create Work Order"}
-            </DialogTitle>
+            <DialogTitle>Create Work Order</DialogTitle>
             <DialogDescription>
-              {selectedWorkOrder
-                ? "Update the work order details below."
-                : "Enter the details for the new work order."}
+              Enter the details for the new work order.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={formik.handleSubmit}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              console.log("Create form submit event triggered");
+            }}
+          >
             <div className="grid gap-4 py-4">
               {/* Form Fields */}
               <div className="grid grid-cols-4 items-center gap-4">
@@ -2791,7 +4165,6 @@ const WorkOrders: React.FC = () => {
                 ) : null}
               </div>
 
-              {/* Add other fields like Status (Select), Subcontractor (Select), Dates (Input type=date), Costs (Input type=number) */}
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="status" className="text-right">
                   Status
@@ -2812,6 +4185,41 @@ const WorkOrders: React.FC = () => {
                     <SelectItem value="On Hold">On Hold</SelectItem>
                     <SelectItem value="Completed">Completed</SelectItem>
                     <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label
+                  htmlFor="assigned_subcontractor_id"
+                  className="text-right"
+                >
+                  Assigned Subcontractor
+                </Label>
+                <Select
+                  value={
+                    formik.values.assigned_subcontractor_id?.toString() || ""
+                  }
+                  onValueChange={(value) =>
+                    formik.setFieldValue(
+                      "assigned_subcontractor_id",
+                      value ? Number(value) : null
+                    )
+                  }
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select a subcontractor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {subcontractors?.map((s) => (
+                      <SelectItem
+                        key={s.subcontractor_id}
+                        value={s.subcontractor_id!.toString()}
+                      >
+                        {s.company_name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -2851,28 +4259,251 @@ const WorkOrders: React.FC = () => {
                   </div>
                 ) : null}
               </div>
-
-              {/* TODO: Add Subcontractor Select field */}
             </div>
             <DialogFooter>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() =>
-                  selectedWorkOrder
-                    ? setIsEditDialogOpen(false)
-                    : setIsCreateDialogOpen(false)
-                }
+                onClick={() => setIsCreateDialogOpen(false)}
               >
                 Cancel
               </Button>
               <Button
-                type="submit"
-                disabled={createMutation.isPending || updateMutation.isPending}
+                type="button"
+                disabled={createMutation.isPending}
+                onClick={() => {
+                  console.log("Create Save button clicked");
+                  formik.validateForm().then((errors) => {
+                    console.log("Form validation errors:", errors);
+                    if (Object.keys(errors).length === 0) {
+                      console.log("Form is valid, submitting...");
+                      formik.handleSubmit();
+                    } else {
+                      console.log("Form has validation errors");
+                      formik.setTouched(
+                        Object.keys(errors).reduce((acc, key) => {
+                          acc[key] = true;
+                          return acc;
+                        }, {} as any)
+                      );
+                      toast.error("Please fix the form errors before saving");
+                    }
+                  });
+                }}
               >
-                {createMutation.isPending || updateMutation.isPending
-                  ? "Saving..."
-                  : "Save Work Order"}
+                {createMutation.isPending ? "Saving..." : "Save Work Order"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          console.log("Edit Dialog onOpenChange called with open =", open);
+          if (!open) {
+            console.log("Closing edit dialog");
+            setIsEditDialogOpen(false);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Work Order</DialogTitle>
+            <DialogDescription>
+              Update the work order details below.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              console.log("Edit form submit event triggered");
+            }}
+          >
+            <div className="grid gap-4 py-4">
+              {/* Form Fields */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="project_id" className="text-right">
+                  Project
+                </Label>
+                <Select
+                  value={formik.values.project_id?.toString() || ""}
+                  onValueChange={(value) =>
+                    formik.setFieldValue(
+                      "project_id",
+                      value ? Number(value) : undefined
+                    )
+                  }
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select a project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects?.map((p) => (
+                      <SelectItem
+                        key={p.project_id}
+                        value={p.project_id!.toString()}
+                      >
+                        {p.project_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formik.touched.project_id && formik.errors.project_id ? (
+                  <div className="col-span-4 text-red-500 text-sm text-right">
+                    {formik.errors.project_id}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="description" className="text-right">
+                  Description
+                </Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  value={formik.values.description || ""}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  className="col-span-3"
+                />
+                {formik.touched.description && formik.errors.description ? (
+                  <div className="col-span-4 text-red-500 text-sm text-right">
+                    {formik.errors.description}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="status" className="text-right">
+                  Status
+                </Label>
+                <Select
+                  value={formik.values.status || ""}
+                  onValueChange={(value) =>
+                    formik.setFieldValue("status", value)
+                  }
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="Scheduled">Scheduled</SelectItem>
+                    <SelectItem value="In Progress">In Progress</SelectItem>
+                    <SelectItem value="On Hold">On Hold</SelectItem>
+                    <SelectItem value="Completed">Completed</SelectItem>
+                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label
+                  htmlFor="assigned_subcontractor_id"
+                  className="text-right"
+                >
+                  Assigned Subcontractor
+                </Label>
+                <Select
+                  value={
+                    formik.values.assigned_subcontractor_id?.toString() || ""
+                  }
+                  onValueChange={(value) =>
+                    formik.setFieldValue(
+                      "assigned_subcontractor_id",
+                      value ? Number(value) : null
+                    )
+                  }
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select a subcontractor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {subcontractors?.map((s) => (
+                      <SelectItem
+                        key={s.subcontractor_id}
+                        value={s.subcontractor_id!.toString()}
+                      >
+                        {s.company_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="scheduled_date" className="text-right">
+                  Scheduled
+                </Label>
+                <Input
+                  id="scheduled_date"
+                  name="scheduled_date"
+                  type="date"
+                  value={formik.values.scheduled_date || ""}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  className="col-span-3"
+                />
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="estimated_cost" className="text-right">
+                  Est. Cost ($)
+                </Label>
+                <Input
+                  id="estimated_cost"
+                  name="estimated_cost"
+                  type="number"
+                  value={formik.values.estimated_cost || ""}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  className="col-span-3"
+                />
+                {formik.touched.estimated_cost &&
+                formik.errors.estimated_cost ? (
+                  <div className="col-span-4 text-red-500 text-sm text-right">
+                    {formik.errors.estimated_cost}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={updateMutation.isPending}
+                onClick={() => {
+                  console.log("Edit Save button clicked");
+                  formik.validateForm().then((errors) => {
+                    console.log("Form validation errors:", errors);
+                    if (Object.keys(errors).length === 0) {
+                      console.log("Form is valid, submitting...");
+                      formik.handleSubmit();
+                    } else {
+                      console.log("Form has validation errors");
+                      formik.setTouched(
+                        Object.keys(errors).reduce((acc, key) => {
+                          acc[key] = true;
+                          return acc;
+                        }, {} as any)
+                      );
+                      toast.error("Please fix the form errors before saving");
+                    }
+                  });
+                }}
+              >
+                {updateMutation.isPending ? "Saving..." : "Save Work Order"}
               </Button>
             </DialogFooter>
           </form>

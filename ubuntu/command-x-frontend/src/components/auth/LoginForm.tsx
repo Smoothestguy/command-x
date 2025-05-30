@@ -1,10 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
 import { loginUser } from "../../features/auth/authSlice";
 import { AppDispatch, RootState } from "../../store/store";
-import { Button } from "@/components/ui/button"; // Assuming shadcn/ui is set up
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -16,9 +16,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const LoginSchema = Yup.object().shape({
-  username: Yup.string().required("Username is required"),
+  email: Yup.string().email("Invalid email").required("Email is required"),
   password: Yup.string().required("Password is required"),
 });
 
@@ -26,21 +34,54 @@ const LoginForm: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { isLoading, error } = useSelector((state: RootState) => state.auth);
+  const { login } = useAuth();
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+
+  // Admin credentials for demo
+  const adminEmail = "admin@example.com";
 
   const formik = useFormik({
     initialValues: {
-      username: "",
-      password: "",
+      email: adminEmail,
+      password: "", // Admin password is admin123
     },
     validationSchema: LoginSchema,
     onSubmit: async (values) => {
-      const resultAction = await dispatch(loginUser(values));
-      if (loginUser.fulfilled.match(resultAction)) {
-        // Navigate to dashboard or intended page upon successful login
-        navigate("/dashboard"); // Adjust route as needed
+      try {
+        setIsAuthLoading(true);
+        setLoginError(null);
+
+        // Use Redux login directly since it's already set up in the app
+        const resultAction = await dispatch(
+          loginUser({
+            username: values.email === adminEmail ? "admin" : values.email,
+            password: values.password,
+          })
+        );
+
+        if (loginUser.fulfilled.match(resultAction)) {
+          // If Redux login succeeds, also update our AuthContext
+          await login(values.email, values.password);
+
+          // Navigate to dashboard
+          navigate("/dashboard");
+        } else {
+          // If we get here, the login failed but didn't throw an error
+          setLoginError(
+            "Invalid credentials. Please check your email and password."
+          );
+        }
+      } catch (err: any) {
+        setLoginError(
+          err?.message || "Login failed. Please check your credentials."
+        );
+        console.error("Login error:", err);
+      } finally {
+        setIsAuthLoading(false);
       }
-      // Error handling is implicitly done via the rejected case in the slice
     },
+    enableReinitialize: true,
   });
 
   return (
@@ -58,22 +99,30 @@ const LoginForm: React.FC = () => {
       </CardHeader>
       <form onSubmit={formik.handleSubmit}>
         <CardContent className="space-y-4">
+          <div className="p-3 bg-blue-50 rounded-md mb-2">
+            <p className="text-sm text-blue-800">
+              <strong>Admin Login:</strong>
+              <br />
+              Email: admin@example.com
+              <br />
+              Password: admin123
+            </p>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
-              id="username"
-              name="username"
-              type="text"
+              id="email"
+              name="email"
+              type="email"
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
-              value={formik.values.username}
-              placeholder="Your username"
+              value={formik.values.email}
+              placeholder="admin@example.com"
               required
             />
-            {formik.touched.username && formik.errors.username ? (
-              <div className="text-red-500 text-sm">
-                {formik.errors.username}
-              </div>
+            {formik.touched.email && formik.errors.email ? (
+              <div className="text-red-500 text-sm">{formik.errors.email}</div>
             ) : null}
           </div>
           <div className="space-y-2">
@@ -94,13 +143,19 @@ const LoginForm: React.FC = () => {
               </div>
             ) : null}
           </div>
-          {error && (
-            <div className="text-red-500 text-sm text-center">{error}</div>
+          {(error || loginError) && (
+            <div className="text-red-500 text-sm text-center">
+              {loginError || error}
+            </div>
           )}
         </CardContent>
         <CardFooter>
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Logging in..." : "Login"}
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isLoading || isAuthLoading}
+          >
+            {isLoading || isAuthLoading ? "Logging in..." : "Login"}
           </Button>
         </CardFooter>
       </form>

@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "../contexts/AuthContext";
 import {
   getProjects,
   createProject,
   updateProject,
   deleteProject,
+  getSubcontractors,
+  createSubcontractor,
   ProjectData,
+  SubcontractorData,
 } from "../services/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,8 +32,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { PlusCircle, LayoutDashboard, LayoutList } from "lucide-react";
+import {
+  PlusCircle,
+  LayoutDashboard,
+  LayoutList,
+  X,
+  Plus,
+  UserPlus,
+} from "lucide-react";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 // Import our new components
 import ProjectFilters, {
@@ -51,6 +70,13 @@ const ProjectSchema = Yup.object().shape({
   end_date: Yup.date().nullable(),
   budget: Yup.number().nullable().positive("Budget must be positive"),
   status: Yup.string(),
+  subcontractors: Yup.array().of(
+    Yup.object().shape({
+      subcontractor_id: Yup.number().required(),
+      company_name: Yup.string().required(),
+      role: Yup.string(),
+    })
+  ),
 });
 
 const Projects: React.FC = () => {
@@ -60,6 +86,9 @@ const Projects: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<ProjectData | null>(
     null
   );
+
+  // Get auth context for role-based access control
+  const { userRole, hasPermission, hasProjectAccess, user } = useAuth();
 
   // New state variables for enhanced features
   const [viewMode, setViewMode] = useState<"table" | "dashboard">("table");
@@ -80,6 +109,19 @@ const Projects: React.FC = () => {
   );
   const [savedViews, setSavedViews] = useState<ViewConfig[]>([]);
 
+  // State for new subcontractor dialog
+  const [isNewSubcontractorDialogOpen, setIsNewSubcontractorDialogOpen] =
+    useState(false);
+  const [newSubcontractorData, setNewSubcontractorData] = useState<
+    Partial<SubcontractorData>
+  >({
+    company_name: "",
+    contact_name: "",
+    email: "",
+    phone: "",
+    trade: "",
+  });
+
   // Check for mobile view
   useEffect(() => {
     const handleResize = () => {
@@ -98,6 +140,16 @@ const Projects: React.FC = () => {
   } = useQuery<ProjectData[], Error>({
     queryKey: ["projects"],
     queryFn: getProjects,
+  });
+
+  // Fetch Subcontractors
+  const {
+    data: subcontractors,
+    isLoading: isLoadingSubcontractors,
+    error: subcontractorsError,
+  } = useQuery<SubcontractorData[], Error>({
+    queryKey: ["subcontractors"],
+    queryFn: getSubcontractors,
   });
 
   // --- Mutations ---
@@ -164,6 +216,43 @@ const Projects: React.FC = () => {
     },
   });
 
+  // Create Subcontractor
+  const createSubcontractorMutation = useMutation({
+    mutationFn: createSubcontractor,
+    onSuccess: (newSubcontractor) => {
+      queryClient.invalidateQueries({ queryKey: ["subcontractors"] });
+      setIsNewSubcontractorDialogOpen(false);
+
+      // Add the newly created subcontractor to the project
+      const newSubcontractorForProject = {
+        subcontractor_id: newSubcontractor.subcontractor_id,
+        company_name: newSubcontractor.company_name,
+        role: "",
+        assigned_date: new Date().toISOString(),
+      };
+
+      formik.setFieldValue("subcontractors", [
+        ...(formik.values.subcontractors || []),
+        newSubcontractorForProject,
+      ]);
+
+      // Reset the form
+      setNewSubcontractorData({
+        company_name: "",
+        contact_name: "",
+        email: "",
+        phone: "",
+        trade: "",
+      });
+
+      toast.success("Subcontractor created and added to project!");
+    },
+    onError: (err) => {
+      console.error("Error creating subcontractor:", err);
+      toast.error("Failed to create subcontractor.");
+    },
+  });
+
   // --- Form Handling (using Formik) ---
 
   const formik = useFormik<ProjectData>({
@@ -175,6 +264,7 @@ const Projects: React.FC = () => {
       end_date: null,
       budget: null,
       status: "Planning",
+      subcontractors: [],
     },
     validationSchema: ProjectSchema,
     onSubmit: (values) => {
@@ -214,6 +304,7 @@ const Projects: React.FC = () => {
           : null,
         budget: selectedProject.budget || null,
         status: selectedProject.status || "Planning",
+        subcontractors: selectedProject.subcontractors || [],
       });
     } else {
       formik.resetForm();
@@ -238,11 +329,55 @@ const Projects: React.FC = () => {
     setIsCreateDialogOpen(true);
   };
 
-  // Filter projects based on selected filters
+  // Handler for opening the new subcontractor dialog
+  const handleNewSubcontractorClick = () => {
+    setIsNewSubcontractorDialogOpen(true);
+  };
+
+  // Handler for subcontractor form input changes
+  const handleSubcontractorInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const { name, value } = e.target;
+    setNewSubcontractorData({
+      ...newSubcontractorData,
+      [name]: value,
+    });
+  };
+
+  // Handler for creating a new subcontractor
+  const handleCreateSubcontractor = () => {
+    // Validate required fields
+    if (!newSubcontractorData.company_name) {
+      toast.error("Company name is required");
+      return;
+    }
+
+    // Submit the new subcontractor
+    createSubcontractorMutation.mutate(
+      newSubcontractorData as SubcontractorData
+    );
+  };
+
+  // Filter projects based on selected filters and user role
   const filteredProjects = useMemo(() => {
     if (!projects) return [];
 
-    return projects.filter((project) => {
+    // First, filter by user role
+    let roleFilteredProjects = projects;
+
+    // If user is a subcontractor, only show projects they're assigned to
+    if (userRole === "subcontractor" && user?.subcontractor_id) {
+      roleFilteredProjects = projects.filter((project) => {
+        // Check if this subcontractor is assigned to this project
+        return project.subcontractors?.some(
+          (sub) => sub.subcontractor_id === user.subcontractor_id
+        );
+      });
+    }
+
+    // Then apply the UI filters
+    return roleFilteredProjects.filter((project) => {
       // Search filter
       if (
         filters.search &&
@@ -329,7 +464,7 @@ const Projects: React.FC = () => {
 
       return true;
     });
-  }, [projects, filters]);
+  }, [projects, filters, userRole, user]);
 
   // Handle filter changes
   const handleFilterChange = (newFilters: ProjectFiltersType) => {
@@ -382,9 +517,12 @@ const Projects: React.FC = () => {
               Dashboard
             </Button>
           </div>
-          <Button onClick={handleCreateClick}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Create Project
-          </Button>
+          {/* Only show Create Project button for admin and project managers */}
+          {hasPermission(["admin", "project_manager"]) && (
+            <Button onClick={handleCreateClick}>
+              <PlusCircle className="mr-2 h-4 w-4" /> Create Project
+            </Button>
+          )}
         </div>
       </div>
 
@@ -580,7 +718,7 @@ const Projects: React.FC = () => {
                 : "Enter the details for the new project."}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={formik.handleSubmit}>
+          <form onSubmit={(e) => e.preventDefault()}>
             <div className="grid gap-4 py-4">
               {/* Form Fields */}
               <div className="grid grid-cols-4 items-center gap-4">
@@ -688,6 +826,176 @@ const Projects: React.FC = () => {
                   </div>
                 ) : null}
               </div>
+
+              {/* Subcontractors Section */}
+              <div className="grid grid-cols-4 items-start gap-4">
+                <Label className="text-right pt-2">Subcontractors</Label>
+                <div className="col-span-3 space-y-2">
+                  {/* Display selected subcontractors */}
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {formik.values.subcontractors &&
+                      formik.values.subcontractors.map((sub, index) => (
+                        <Badge
+                          key={sub.subcontractor_id}
+                          variant="secondary"
+                          className="flex items-center gap-1"
+                        >
+                          {sub.company_name}
+                          {sub.role && ` (${sub.role})`}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newSubcontractors = [
+                                ...(formik.values.subcontractors || []),
+                              ];
+                              newSubcontractors.splice(index, 1);
+                              formik.setFieldValue(
+                                "subcontractors",
+                                newSubcontractors
+                              );
+                            }}
+                            className="ml-1 rounded-full hover:bg-gray-200 p-0.5"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                  </div>
+
+                  {/* Add subcontractor dropdown */}
+                  <div className="flex gap-2">
+                    <Select
+                      onValueChange={(value) => {
+                        if (!value) return;
+
+                        // Check if the "create_new" option was selected
+                        if (value === "create_new") {
+                          handleNewSubcontractorClick();
+                          return;
+                        }
+
+                        const selectedSubcontractor = subcontractors?.find(
+                          (sub) => sub.subcontractor_id === parseInt(value)
+                        );
+
+                        if (selectedSubcontractor) {
+                          // Check if already selected
+                          const isAlreadySelected =
+                            formik.values.subcontractors?.some(
+                              (sub) =>
+                                sub.subcontractor_id ===
+                                selectedSubcontractor.subcontractor_id
+                            );
+
+                          if (!isAlreadySelected) {
+                            const newSubcontractor = {
+                              subcontractor_id:
+                                selectedSubcontractor.subcontractor_id,
+                              company_name: selectedSubcontractor.company_name,
+                              role: "",
+                              assigned_date: new Date().toISOString(),
+                            };
+
+                            formik.setFieldValue("subcontractors", [
+                              ...(formik.values.subcontractors || []),
+                              newSubcontractor,
+                            ]);
+                          } else {
+                            toast.error(
+                              "This subcontractor is already assigned to the project"
+                            );
+                          }
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Add subcontractor..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {/* Option to create a new subcontractor */}
+                        <SelectItem
+                          value="create_new"
+                          className="text-blue-600 font-medium"
+                        >
+                          <div className="flex items-center">
+                            <UserPlus className="h-4 w-4 mr-2" />
+                            Create New Subcontractor
+                          </div>
+                        </SelectItem>
+
+                        <div className="py-1">
+                          <div className="px-2 text-xs text-gray-500">
+                            Existing Subcontractors
+                          </div>
+                        </div>
+
+                        {isLoadingSubcontractors ? (
+                          <SelectItem value="loading" disabled>
+                            Loading...
+                          </SelectItem>
+                        ) : subcontractorsError ? (
+                          <SelectItem value="error" disabled>
+                            Error loading subcontractors
+                          </SelectItem>
+                        ) : subcontractors?.length === 0 ? (
+                          <SelectItem value="none" disabled>
+                            No subcontractors available
+                          </SelectItem>
+                        ) : (
+                          subcontractors?.map((sub) => (
+                            <SelectItem
+                              key={sub.subcontractor_id}
+                              value={sub.subcontractor_id?.toString()}
+                            >
+                              {sub.company_name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Role input for the last added subcontractor */}
+                  {formik.values.subcontractors &&
+                    formik.values.subcontractors.length > 0 && (
+                      <div className="mt-2">
+                        <Label
+                          htmlFor="subcontractor-role"
+                          className="text-sm mb-1 block"
+                        >
+                          Role for{" "}
+                          {
+                            formik.values.subcontractors[
+                              formik.values.subcontractors.length - 1
+                            ].company_name
+                          }
+                          :
+                        </Label>
+                        <Input
+                          id="subcontractor-role"
+                          placeholder="e.g., Electrical, Plumbing, etc."
+                          value={
+                            formik.values.subcontractors[
+                              formik.values.subcontractors.length - 1
+                            ].role || ""
+                          }
+                          onChange={(e) => {
+                            const newSubcontractors = [
+                              ...(formik.values.subcontractors || []),
+                            ];
+                            newSubcontractors[
+                              newSubcontractors.length - 1
+                            ].role = e.target.value;
+                            formik.setFieldValue(
+                              "subcontractors",
+                              newSubcontractors
+                            );
+                          }}
+                        />
+                      </div>
+                    )}
+                </div>
+              </div>
             </div>
             <DialogFooter>
               <Button
@@ -702,14 +1010,14 @@ const Projects: React.FC = () => {
                 Cancel
               </Button>
               <Button
-                type="submit"
+                type="button" // Changed from "submit" to "button" to prevent double submission
                 disabled={createMutation.isPending || updateMutation.isPending}
                 onClick={() => {
                   // Manually trigger form validation before submission
                   formik.validateForm().then((errors) => {
                     if (Object.keys(errors).length === 0) {
                       // No validation errors, proceed with submission
-                      formik.submitForm();
+                      formik.handleSubmit(); // Using handleSubmit instead of submitForm
                     } else {
                       // Show validation errors
                       formik.setTouched(
@@ -753,6 +1061,127 @@ const Projects: React.FC = () => {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Subcontractor Dialog */}
+      <Dialog
+        open={isNewSubcontractorDialogOpen}
+        onOpenChange={setIsNewSubcontractorDialogOpen}
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Create New Subcontractor</DialogTitle>
+            <DialogDescription>
+              Enter the details for the new subcontractor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="company_name" className="text-right">
+                Company Name*
+              </Label>
+              <Input
+                id="company_name"
+                name="company_name"
+                value={newSubcontractorData.company_name || ""}
+                onChange={handleSubcontractorInputChange}
+                className="col-span-3"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="contact_name" className="text-right">
+                Contact Name
+              </Label>
+              <Input
+                id="contact_name"
+                name="contact_name"
+                value={newSubcontractorData.contact_name || ""}
+                onChange={handleSubcontractorInputChange}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="email" className="text-right">
+                Email
+              </Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={newSubcontractorData.email || ""}
+                onChange={handleSubcontractorInputChange}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="phone" className="text-right">
+                Phone
+              </Label>
+              <Input
+                id="phone"
+                name="phone"
+                value={newSubcontractorData.phone || ""}
+                onChange={handleSubcontractorInputChange}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="trade" className="text-right">
+                Trade
+              </Label>
+              <Input
+                id="trade"
+                name="trade"
+                value={newSubcontractorData.trade || ""}
+                onChange={handleSubcontractorInputChange}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsNewSubcontractorDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleCreateSubcontractor}
+              disabled={createSubcontractorMutation.isPending}
+            >
+              {createSubcontractorMutation.isPending ? (
+                <>
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Creating...
+                </>
+              ) : (
+                "Create Subcontractor"
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

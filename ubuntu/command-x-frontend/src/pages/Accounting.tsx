@@ -42,7 +42,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import WorkOrderStatusTable from "@/components/accounting/WorkOrderStatusTable";
 import PaymentStatusTable from "@/components/accounting/PaymentStatusTable";
-import { workOrderData } from "@/components/accounting/WorkOrderStatusTable";
 import MobileTable from "@/components/ui/mobile-table";
 
 import {
@@ -612,34 +611,44 @@ const Accounting: React.FC = () => {
       description: "Processing your request...",
     });
 
-    // Simulate API call with timeout
-    setTimeout(() => {
+    // Import the report generator
+    import("@/utils/reportGenerator").then(({ generateWorkOrderReport }) => {
+      // Generate the report with actual data
+      const reportUrl = generateWorkOrderReport(
+        workOrderData,
+        "Work Order Status Report",
+        "Command X Construction"
+      );
+
+      // Show success toast with download action
       toast({
         title: "Report generated successfully",
-        description: "Your work order report is ready to download",
+        description: "Your work order report is ready to view or download",
         action: (
           <ToastAction
-            altText="Download"
+            altText="View"
             onClick={() => {
-              // Simulate file download
-              const link = document.createElement("a");
-              link.href =
-                "data:application/pdf;base64,JVBERi0xLjcKJeLjz9MKNSAwIG9iago8PAovRmlsdGVyIC9GbGF0ZURlY29kZQovTGVuZ3RoIDM4Cj4+CnN0cmVhbQp4nCvkMlAwUDC1NNUzMVGwMDHUszRSKErMKwktStVLLCjISQUAXX8HCWVUC3RzdHJ1Y3R1cmUgdHJlZQo1IDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovS2lkcyBbNiAwIFJdCi9Db3VudCAxCj4+CmVuZG9iago2IDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCi9SZXNvdXJjZXMgPDwKL0ZvbnQgPDwKL0YxIDcgMCBSCj4+Cj4+Ci9Db250ZW50cyA4IDAgUgovUGFyZW50IDUgMCBSCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9GaWx0ZXIgL0ZsYXRlRGVjb2RlCi9MZW5ndGggMTI5Cj4+CnN0cmVhbQp4nDPQM1QwUDAzNVEwMDRRMAdiCwVDCwUjPQMzE4WiRCCXK5zzUCGXS8FYz8xEwdxAz9JIwdLI0FDBxNTM0kjBzMzC0NTSQMHMwMjA0MhIwcDcwMDY0sJYwdDC0NjC0AQAKXgTnAplbmRzdHJlYW0KZW5kb2JqCjcgMCBvYmoKPDwKL1R5cGUgL0ZvbnQKL1N1YnR5cGUgL1R5cGUxCi9CYXNlRm9udCAvSGVsdmV0aWNhCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCj4+CmVuZG9iagozIDAgb2JqCjw8Cj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyA1IDAgUgo+PgplbmRvYmoKNCAwIG9iago8PAovUHJvZHVjZXIgKGlUZXh0IDIuMS43IGJ5IDFUM1hUKQovTW9kRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKL0NyZWF0aW9uRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKPj4KZW5kb2JqCnhyZWYKMCA5CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwNTc1IDAwMDAwIG4gCjAwMDAwMDA1NDYgMDAwMDAgbiAKMDAwMDAwMDYyNCAwMDAwMCBuIAowMDAwMDAwMDkzIDAwMDAwIG4gCjAwMDAwMDAxNDkgMDAwMDAgbiAKMDAwMDAwMDQ2NyAwMDAwMCBuIAowMDAwMDAwMjc5IDAwMDAwIG4gCnRyYWlsZXIKPDwKL1NpemUgOQovUm9vdCAyIDAgUgovSW5mbyA0IDAgUgovSUQgWzw2YWJhMzBhZGY3YTRmMzc1YmFkMWJmMTk4ZWNjMGIyZD4gPDZhYmEzMGFkZjdhNGYzNzViYWQxYmYxOThlY2MwYjJkPl0KPj4Kc3RhcnR4cmVmCjczNAolJUVPRgo=";
-              link.setAttribute("download", "work_order_report.pdf");
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
+              // Open the report in a new window
+              window.open(reportUrl, "_blank");
             }}
           >
-            Download
+            View Report
           </ToastAction>
         ),
         variant: "default",
       });
 
+      // Create a download link for the report
+      const link = document.createElement("a");
+      link.href = reportUrl;
+      link.setAttribute("download", "work_order_report.html");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
       setIsGeneratingWorkOrderReport(false);
       setShowReportModal(false);
-    }, 2000);
+    });
   };
 
   const handleManageCrew = () => {
@@ -1525,7 +1534,13 @@ const Accounting: React.FC = () => {
                         <h3 className="text-lg font-medium mb-4">
                           Work Order Status Details
                         </h3>
-                        <WorkOrderStatusTable />
+                        <WorkOrderStatusTable
+                          projectId={
+                            projectFilter !== "all"
+                              ? parseInt(projectFilter)
+                              : undefined
+                          }
+                        />
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
@@ -1609,27 +1624,52 @@ const Accounting: React.FC = () => {
                                       "Your work order report is being generated...",
                                   });
 
-                                  // Simulate report generation
-                                  setTimeout(() => {
-                                    // Create a download link
-                                    const link = document.createElement("a");
-                                    link.href =
-                                      "data:application/pdf;base64,JVBERi0xLjcKJeLjz9MKNSAwIG9iago8PAovRmlsdGVyIC9GbGF0ZURlY29kZQovTGVuZ3RoIDM4Cj4+CnN0cmVhbQp4nCvkMlAwUDC1NNUzMVGwMDHUszRSKErMKwktStVLLCjISQUAXX8HCWVUC3RzdHJ1Y3R1cmUgdHJlZQo1IDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovS2lkcyBbNiAwIFJdCi9Db3VudCAxCj4+CmVuZG9iago2IDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCi9SZXNvdXJjZXMgPDwKL0ZvbnQgPDwKL0YxIDcgMCBSCj4+Cj4+Ci9Db250ZW50cyA4IDAgUgovUGFyZW50IDUgMCBSCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9GaWx0ZXIgL0ZsYXRlRGVjb2RlCi9MZW5ndGggMTI5Cj4+CnN0cmVhbQp4nDPQM1QwUDAzNVEwMDRRMAdiCwVDCwUjPQMzE4WiRCCXK5zzUCGXS8FYz8xEwdxAz9JIwdLI0FDBxNTM0kjBzMzC0NTSQMHMwMjA0MhIwcDcwMDY0sJYwdDC0NjC0AQAKXgTnAplbmRzdHJlYW0KZW5kb2JqCjcgMCBvYmoKPDwKL1R5cGUgL0ZvbnQKL1N1YnR5cGUgL1R5cGUxCi9CYXNlRm9udCAvSGVsdmV0aWNhCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCj4+CmVuZG9iagozIDAgb2JqCjw8Cj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyA1IDAgUgo+PgplbmRvYmoKNCAwIG9iago8PAovUHJvZHVjZXIgKGlUZXh0IDIuMS43IGJ5IDFUM1hUKQovTW9kRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKL0NyZWF0aW9uRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKPj4KZW5kb2JqCnhyZWYKMCA5CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwNTc1IDAwMDAwIG4gCjAwMDAwMDA1NDYgMDAwMDAgbiAKMDAwMDAwMDYyNCAwMDAwMCBuIAowMDAwMDAwMDkzIDAwMDAwIG4gCjAwMDAwMDAxNDkgMDAwMDAgbiAKMDAwMDAwMDQ2NyAwMDAwMCBuIAowMDAwMDAwMjc5IDAwMDAwIG4gCnRyYWlsZXIKPDwKL1NpemUgOQovUm9vdCAyIDAgUgovSW5mbyA0IDAgUgovSUQgWzw2YWJhMzBhZGY3YTRmMzc1YmFkMWJmMTk4ZWNjMGIyZD4gPDZhYmEzMGFkZjdhNGYzNzViYWQxYmYxOThlY2MwYjJkPl0KPj4Kc3RhcnR4cmVmCjczNAolJUVPRgo=";
-                                    link.setAttribute(
-                                      "download",
-                                      "work_order_report.pdf"
-                                    );
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
+                                  // Import the direct report generator
+                                  import("@/utils/directReportGenerator").then(
+                                    ({ generateDirectReport }) => {
+                                      // Show loading toast
+                                      toast({
+                                        title: "Generating report",
+                                        description:
+                                          "Creating your financial report...",
+                                        duration: 2000,
+                                      });
 
-                                    toast({
-                                      title: "Report generated",
-                                      description:
-                                        "Your work order report has been generated successfully.",
-                                      variant: "default",
-                                    });
-                                  }, 1500);
+                                      try {
+                                        // Generate the report directly
+                                        const reportWindow =
+                                          generateDirectReport();
+
+                                        if (reportWindow) {
+                                          toast({
+                                            title:
+                                              "Report generated successfully",
+                                            description:
+                                              "Your financial report is ready to view and print.",
+                                            variant: "default",
+                                          });
+                                        } else {
+                                          toast({
+                                            title: "Popup blocked",
+                                            description:
+                                              "Please allow popups to view the report.",
+                                            variant: "destructive",
+                                          });
+                                        }
+                                      } catch (error) {
+                                        console.error(
+                                          "Error generating report:",
+                                          error
+                                        );
+                                        toast({
+                                          title: "Error generating report",
+                                          description:
+                                            "An error occurred while generating the report.",
+                                          variant: "destructive",
+                                        });
+                                      }
+                                    }
+                                  );
                                 }}
                               >
                                 Generate Report
@@ -1639,35 +1679,50 @@ const Accounting: React.FC = () => {
                                 variant="outline"
                                 className="w-full"
                                 onClick={() => {
-                                  // Open a dialog to manage crew
                                   toast({
-                                    title: "Report Generated",
+                                    title: "Preparing download",
                                     description:
-                                      "Work order report has been generated successfully.",
-                                    action: (
-                                      <ToastAction
-                                        altText="Download"
-                                        onClick={() => {
-                                          const link =
-                                            document.createElement("a");
-                                          link.href =
-                                            "data:application/pdf;base64,JVBERi0xLjcKJeLjz9MKNSAwIG9iago8PAovRmlsdGVyIC9GbGF0ZURlY29kZQovTGVuZ3RoIDM4Cj4+CnN0cmVhbQp4nCvkMlAwUDC1NNUzMVGwMDHUszRSKErMKwktStVLLCjISQUAXX8HCWVUC3RzdHJ1Y3R1cmUgdHJlZQo1IDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovS2lkcyBbNiAwIFJdCi9Db3VudCAxCj4+CmVuZG9iago2IDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCi9SZXNvdXJjZXMgPDwKL0ZvbnQgPDwKL0YxIDcgMCBSCj4+Cj4+Ci9Db250ZW50cyA4IDAgUgovUGFyZW50IDUgMCBSCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9GaWx0ZXIgL0ZsYXRlRGVjb2RlCi9MZW5ndGggMTI5Cj4+CnN0cmVhbQp4nDPQM1QwUDAzNVEwMDRRMAdiCwVDCwUjPQMzE4WiRCCXK5zzUCGXS8FYz8xEwdxAz9JIwdLI0FDBxNTM0kjBzMzC0NTSQMHMwMjA0MhIwcDcwMDY0sJYwdDC0NjC0AQAKXgTnAplbmRzdHJlYW0KZW5kb2JqCjcgMCBvYmoKPDwKL1R5cGUgL0ZvbnQKL1N1YnR5cGUgL1R5cGUxCi9CYXNlRm9udCAvSGVsdmV0aWNhCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCj4+CmVuZG9iagozIDAgb2JqCjw8Cj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyA1IDAgUgo+PgplbmRvYmoKNCAwIG9iago8PAovUHJvZHVjZXIgKGlUZXh0IDIuMS43IGJ5IDFUM1hUKQovTW9kRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKL0NyZWF0aW9uRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKPj4KZW5kb2JqCnhyZWYKMCA5CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwNTc1IDAwMDAwIG4gCjAwMDAwMDA1NDYgMDAwMDAgbiAKMDAwMDAwMDYyNCAwMDAwMCBuIAowMDAwMDAwMDkzIDAwMDAwIG4gCjAwMDAwMDAxNDkgMDAwMDAgbiAKMDAwMDAwMDQ2NyAwMDAwMCBuIAowMDAwMDAwMjc5IDAwMDAwIG4gCnRyYWlsZXIKPDwKL1NpemUgOQovUm9vdCAyIDAgUgovSW5mbyA0IDAgUgovSUQgWzw2YWJhMzBhZGY3YTRmMzc1YmFkMWJmMTk4ZWNjMGIyZD4gPDZhYmEzMGFkZjdhNGYzNzViYWQxYmYxOThlY2MwYjJkPl0KPj4Kc3RhcnR4cmVmCjczNAolJUVPRgo=";
-                                          link.setAttribute(
-                                            "download",
-                                            "work_order_report.pdf"
-                                          );
-                                          document.body.appendChild(link);
-                                          link.click();
-                                          document.body.removeChild(link);
-                                        }}
-                                      >
-                                        Download
-                                      </ToastAction>
-                                    ),
+                                      "Your report is being prepared for download...",
                                   });
+
+                                  // Import the direct report generator
+                                  import("@/utils/directReportGenerator").then(
+                                    ({ downloadReport }) => {
+                                      // Show processing toast
+                                      toast({
+                                        title: "Preparing download",
+                                        description:
+                                          "Creating your financial report for download...",
+                                        duration: 2000,
+                                      });
+
+                                      try {
+                                        // Download the report
+                                        downloadReport();
+
+                                        toast({
+                                          title: "Report Downloaded",
+                                          description:
+                                            "Financial report has been downloaded successfully. Check your downloads folder.",
+                                          variant: "default",
+                                        });
+                                      } catch (error) {
+                                        console.error(
+                                          "Error downloading report:",
+                                          error
+                                        );
+                                        toast({
+                                          title: "Error downloading report",
+                                          description:
+                                            "An error occurred while preparing the report for download.",
+                                          variant: "destructive",
+                                        });
+                                      }
+                                    }
+                                  );
                                 }}
                               >
-                                Generate Report
+                                Download Report
                               </Button>
                               <Button
                                 size="sm"
@@ -1694,14 +1749,7 @@ const Accounting: React.FC = () => {
 
               {/* Financial Dashboard Tab */}
               <TabsContent value="dashboard" className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-medium mb-4">
-                    Work Order Status Overview
-                  </h3>
-                  <WorkOrderStatusTable />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   <Card>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-lg">
@@ -1868,7 +1916,20 @@ const Accounting: React.FC = () => {
                   </Card>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-lg font-medium mb-4">
+                    Work Order Status Overview
+                  </h3>
+                  <WorkOrderStatusTable
+                    projectId={
+                      projectFilter !== "all"
+                        ? parseInt(projectFilter)
+                        : undefined
+                    }
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                   <Card>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-lg">
