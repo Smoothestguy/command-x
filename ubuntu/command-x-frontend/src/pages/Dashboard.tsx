@@ -104,6 +104,50 @@ const Dashboard: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
+      // Check if Supabase is configured
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      if (!supabaseUrl || !supabaseAnonKey) {
+        console.warn("Supabase not configured, using mock data");
+        // Use mock data instead
+        const mockSummary: DashboardSummary = {
+          totalProjects: 5,
+          activeProjects: 3,
+          completedProjects: 2,
+          totalWorkOrders: 12,
+          pendingWorkOrders: 4,
+          inProgressWorkOrders: 6,
+          completedWorkOrders: 2,
+          totalPaymentItems: 25,
+          pendingPayments: 8,
+          totalSubcontractors: 8,
+          activeSubcontractors: 6,
+          totalRevenue: 125000,
+          totalExpenses: 85000,
+          netProfit: 40000,
+          projectStatusData: [
+            { name: "Active", value: 3 },
+            { name: "Completed", value: 2 },
+          ],
+          workOrderStatusData: [
+            { name: "Pending", value: 4 },
+            { name: "In Progress", value: 6 },
+            { name: "Completed", value: 2 },
+          ],
+          monthlyRevenueData: [
+            { month: "Jan", revenue: 20000, expenses: 15000 },
+            { month: "Feb", revenue: 25000, expenses: 18000 },
+            { month: "Mar", revenue: 30000, expenses: 22000 },
+            { month: "Apr", revenue: 28000, expenses: 20000 },
+            { month: "May", revenue: 22000, expenses: 10000 },
+          ],
+        };
+        setSummary(mockSummary);
+        setIsLoading(false);
+        return;
+      }
+
       // Fetch all data in parallel
       const [projects, workOrders, paymentItems, subcontractors] =
         await Promise.all([
@@ -362,11 +406,10 @@ const Dashboard: React.FC = () => {
 
             <Card
               className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() =>
-                handleCardClick(
-                  "/projects/5ec5a5c4-1cc8-4ea8-9f8f-e683b5c1fe96/payment-items"
-                )
-              }
+              onClick={() => {
+                // Navigate to projects page where users can select a project to view payment items
+                handleCardClick("/projects");
+              }}
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -379,7 +422,7 @@ const Dashboard: React.FC = () => {
                   {summary.totalPaymentItems}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Click to view payment items
+                  Click to select a project and view payment items
                 </p>
               </CardContent>
             </Card>
