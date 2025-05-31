@@ -21,6 +21,7 @@ import {
   DollarSign,
   CreditCard,
 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import ReportIssueDialog from "./ReportIssueDialog";
 
 interface ExpandableProjectRowProps {
@@ -41,6 +42,9 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
 
   // Get auth context for role-based access control
   const { hasPermission } = useAuth();
+
+  // Get mobile state for responsive design
+  const isMobile = useIsMobile();
 
   // Format date for display
   const formatDate = (dateString?: string | null) => {
@@ -257,26 +261,54 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
       {isExpanded && (
         <TableRow>
           <TableCell colSpan={columns.length + 1} className="p-0">
-            <div className="p-4 bg-gray-50">
+            <div className={`p-4 bg-gray-50 ${isMobile ? "px-2" : ""}`}>
               <Tabs defaultValue="details">
-                <TabsList className="mb-4">
-                  <TabsTrigger value="details">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Details
+                <TabsList
+                  className={`mb-4 ${
+                    isMobile ? "grid grid-cols-2 w-full h-auto" : ""
+                  }`}
+                >
+                  <TabsTrigger
+                    value="details"
+                    className={isMobile ? "text-xs p-2" : ""}
+                  >
+                    <FileText className="h-4 w-4 mr-1" />
+                    {isMobile ? "Details" : "Details"}
                   </TabsTrigger>
-                  <TabsTrigger value="team">
-                    <Users className="h-4 w-4 mr-2" />
-                    Team
+                  <TabsTrigger
+                    value="team"
+                    className={isMobile ? "text-xs p-2" : ""}
+                  >
+                    <Users className="h-4 w-4 mr-1" />
+                    {isMobile ? "Team" : "Team"}
                   </TabsTrigger>
-                  <TabsTrigger value="timeline">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Timeline
-                  </TabsTrigger>
-                  <TabsTrigger value="issues">
-                    <AlertTriangle className="h-4 w-4 mr-2" />
-                    Issues
-                  </TabsTrigger>
+                  {!isMobile && (
+                    <>
+                      <TabsTrigger value="timeline">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Timeline
+                      </TabsTrigger>
+                      <TabsTrigger value="issues">
+                        <AlertTriangle className="h-4 w-4 mr-2" />
+                        Issues
+                      </TabsTrigger>
+                    </>
+                  )}
                 </TabsList>
+
+                {/* Mobile: Additional tabs in second row */}
+                {isMobile && (
+                  <TabsList className="mb-4 grid grid-cols-2 w-full h-auto">
+                    <TabsTrigger value="timeline" className="text-xs p-2">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      Timeline
+                    </TabsTrigger>
+                    <TabsTrigger value="issues" className="text-xs p-2">
+                      <AlertTriangle className="h-4 w-4 mr-1" />
+                      Issues
+                    </TabsTrigger>
+                  </TabsList>
+                )}
 
                 {/* Quick Actions */}
                 <div className="flex gap-2 mb-4">
@@ -292,49 +324,109 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
 
                 {/* Details Tab */}
                 <TabsContent value="details">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div
+                    className={`grid gap-4 ${
+                      isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
+                    }`}
+                  >
                     <Card className="overflow-visible">
-                      <CardContent className="p-4 overflow-visible">
-                        <h3 className="font-medium mb-2">
+                      <CardContent
+                        className={`overflow-visible ${
+                          isMobile ? "p-3" : "p-4"
+                        }`}
+                      >
+                        <h3
+                          className={`font-medium mb-2 ${
+                            isMobile ? "text-sm" : ""
+                          }`}
+                        >
                           Project Description
                         </h3>
                         <div className="w-full overflow-visible">
-                          <p className="text-sm text-gray-600 project-description">
+                          <p
+                            className={`text-gray-600 project-description ${
+                              isMobile ? "text-xs" : "text-sm"
+                            }`}
+                          >
                             {project.description || "No description available."}
                           </p>
                         </div>
 
-                        <h3 className="font-medium mt-4 mb-2">
+                        <h3
+                          className={`font-medium mt-4 mb-2 ${
+                            isMobile ? "text-sm" : ""
+                          }`}
+                        >
                           Project Details
                         </h3>
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div className="text-gray-500">Category:</div>
-                          <div>{project.category || "-"}</div>
-
-                          <div className="text-gray-500">Risk Level:</div>
-                          <div>{project.risk_level || "-"}</div>
-
-                          <div className="text-gray-500">Created:</div>
-                          <div>{formatDate(project.created_at)}</div>
-
-                          <div className="text-gray-500">Last Updated:</div>
-                          <div>{formatDate(project.updated_at)}</div>
+                        <div
+                          className={`grid gap-2 ${
+                            isMobile
+                              ? "grid-cols-1 text-xs"
+                              : "grid-cols-2 text-sm"
+                          }`}
+                        >
+                          {isMobile ? (
+                            <>
+                              <div className="flex justify-between py-1 border-b border-gray-200">
+                                <span className="text-gray-500">Category:</span>
+                                <span>{project.category || "-"}</span>
+                              </div>
+                              <div className="flex justify-between py-1 border-b border-gray-200">
+                                <span className="text-gray-500">
+                                  Risk Level:
+                                </span>
+                                <span>{project.risk_level || "-"}</span>
+                              </div>
+                              <div className="flex justify-between py-1 border-b border-gray-200">
+                                <span className="text-gray-500">Created:</span>
+                                <span>{formatDate(project.created_at)}</span>
+                              </div>
+                              <div className="flex justify-between py-1">
+                                <span className="text-gray-500">
+                                  Last Updated:
+                                </span>
+                                <span>{formatDate(project.updated_at)}</span>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="text-gray-500">Category:</div>
+                              <div>{project.category || "-"}</div>
+                              <div className="text-gray-500">Risk Level:</div>
+                              <div>{project.risk_level || "-"}</div>
+                              <div className="text-gray-500">Created:</div>
+                              <div>{formatDate(project.created_at)}</div>
+                              <div className="text-gray-500">Last Updated:</div>
+                              <div>{formatDate(project.updated_at)}</div>
+                            </>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
 
                     <Card>
-                      <CardContent className="p-4">
-                        <h3 className="font-medium mb-2">Budget & Time</h3>
+                      <CardContent className={isMobile ? "p-3" : "p-4"}>
+                        <h3
+                          className={`font-medium mb-2 ${
+                            isMobile ? "text-sm" : ""
+                          }`}
+                        >
+                          Budget & Time
+                        </h3>
 
                         <div className="space-y-4">
                           <div>
-                            <div className="flex justify-between text-sm mb-1">
+                            <div
+                              className={`flex justify-between mb-1 ${
+                                isMobile ? "text-xs" : "text-sm"
+                              }`}
+                            >
                               <span className="flex items-center">
                                 <DollarSign className="h-4 w-4 mr-1" />
                                 Budget Utilization
                               </span>
-                              <span>
+                              <span className={isMobile ? "text-xs" : ""}>
                                 ${project.actual_cost?.toLocaleString() || 0} /
                                 ${project.budget?.toLocaleString() || 0}
                               </span>
@@ -351,12 +443,16 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
                           </div>
 
                           <div>
-                            <div className="flex justify-between text-sm mb-1">
+                            <div
+                              className={`flex justify-between mb-1 ${
+                                isMobile ? "text-xs" : "text-sm"
+                              }`}
+                            >
                               <span className="flex items-center">
                                 <Clock className="h-4 w-4 mr-1" />
                                 Time Utilization
                               </span>
-                              <span>
+                              <span className={isMobile ? "text-xs" : ""}>
                                 {project.actual_hours || 0} /{" "}
                                 {project.estimated_hours || 0} hours
                               </span>
