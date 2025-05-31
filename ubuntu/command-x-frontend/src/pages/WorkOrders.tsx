@@ -1335,7 +1335,9 @@ const WorkOrders: React.FC = () => {
                       <input type="text" class="role-input w-full p-2 text-sm border rounded"
                              data-id="${contractorCount}" placeholder="e.g., Electrical work">
                     </div>
-                    <div class="flex items-end">
+                    <div class="flex flex-col items-end space-y-2">
+                      <button type="button" class="approve-contractor w-full px-2 py-2 bg-green-500 text-white text-sm rounded hover:bg-green-600"
+                              data-id="${contractorCount}">Approve</button>
                       <button type="button" class="remove-contractor w-full px-2 py-2 bg-red-500 text-white text-sm rounded hover:bg-red-600"
                               data-id="${contractorCount}">Remove</button>
                     </div>
@@ -1352,9 +1354,23 @@ const WorkOrders: React.FC = () => {
                 contractorDiv
                   .querySelector(".allocation-input")
                   .addEventListener("input", updateAllocationSummary);
-                contractorDiv
-                  .querySelector(".contractor-cost")
-                  .addEventListener("input", updateOverallTotal);
+
+                const approveButton = contractorDiv.querySelector(
+                  ".approve-contractor"
+                );
+                console.log("🔥 Found approve button:", approveButton);
+
+                if (approveButton) {
+                  approveButton.addEventListener("click", function () {
+                    console.log(
+                      "🔥 Approve button clicked! ID:",
+                      this.dataset.id
+                    );
+                    approveContractor(this.dataset.id);
+                  });
+                } else {
+                  console.error("❌ Approve button not found!");
+                }
                 contractorDiv
                   .querySelector(".remove-contractor")
                   .addEventListener("click", function () {
@@ -1370,6 +1386,74 @@ const WorkOrders: React.FC = () => {
                   contractorDiv.remove();
                   updateContractorCount();
                   updateAllocationSummary();
+                }
+              }
+
+              function approveContractor(id) {
+                console.log("🔥 approveContractor called with ID:", id);
+                const contractorDiv = document.getElementById(
+                  `contractor-${id}`
+                );
+                console.log("🔥 Found contractorDiv:", contractorDiv);
+                if (contractorDiv) {
+                  // Get contractor details
+                  const contractorSelect = contractorDiv.querySelector(
+                    ".contractor-select"
+                  ) as HTMLSelectElement;
+                  const allocationInput = contractorDiv.querySelector(
+                    ".allocation-input"
+                  ) as HTMLInputElement;
+                  const roleInput = contractorDiv.querySelector(
+                    ".role-input"
+                  ) as HTMLInputElement;
+                  const approveButton = contractorDiv.querySelector(
+                    ".approve-contractor"
+                  ) as HTMLButtonElement;
+
+                  console.log("🔥 Found elements:", {
+                    contractorSelect,
+                    allocationInput,
+                    roleInput,
+                    approveButton,
+                  });
+
+                  const contractorName =
+                    contractorSelect?.options[contractorSelect.selectedIndex]
+                      ?.text || "Unknown";
+                  const allocation = allocationInput?.value || "0";
+                  const role = roleInput?.value || "No role specified";
+
+                  console.log("🔥 Contractor details:", {
+                    contractorName,
+                    allocation,
+                    role,
+                  });
+
+                  // Update button to show approved state
+                  if (approveButton) {
+                    approveButton.textContent = "✓ Approved";
+                    approveButton.className =
+                      "approve-contractor w-full px-2 py-2 bg-blue-500 text-white text-sm rounded cursor-not-allowed";
+                    approveButton.disabled = true;
+                  }
+
+                  // Add visual indicator to the contractor div
+                  contractorDiv.style.border = "2px solid #10b981";
+                  contractorDiv.style.backgroundColor = "#f0fdf4";
+
+                  // Update the allocation summary and overall total immediately
+                  updateAllocationSummary();
+                  updateOverallTotal();
+
+                  // Show approval notification
+                  console.log(
+                    `✅ Contractor approved: ${contractorName} (${allocation}% - ${role})`
+                  );
+
+                  // Show confirmation alert
+                  alert(
+                    `✅ Contractor "${contractorName}" has been approved!\n\nAllocation: ${allocation}%\nRole: ${role}`
+                  );
                 }
               }
 
@@ -1752,18 +1836,16 @@ const WorkOrders: React.FC = () => {
                     ?.textContent.replace("$", "") || "0"
                 );
 
-                // Calculate contractor allocations
-                const contractorCosts = [];
-                document
-                  .querySelectorAll(".contractor-cost")
-                  .forEach((input) => {
-                    const cost = parseFloat(input.value) || 0;
-                    if (cost > 0) contractorCosts.push(cost);
-                  });
-                const contractorTotal = contractorCosts.reduce(
-                  (sum, cost) => sum + cost,
-                  0
-                );
+                // Calculate contractor allocations (using allocation percentages)
+                const allocationInputs =
+                  document.querySelectorAll(".allocation-input");
+                let contractorTotal = 0;
+                allocationInputs.forEach((input) => {
+                  const allocation = parseFloat(input.value) || 0;
+                  // For now, we'll just use the allocation percentage as a simple indicator
+                  // In a real app, you'd calculate based on the total project cost
+                  contractorTotal += allocation;
+                });
 
                 const overallTotal =
                   baseCost + lineItemsTotal + paymentItemsTotal;
