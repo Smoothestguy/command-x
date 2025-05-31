@@ -1,18 +1,18 @@
 export interface TeamMember {
-  id: number;
+  id: string;
   name: string;
   role: string;
 }
 
 export interface ProjectSubcontractor {
-  subcontractor_id: number;
+  subcontractor_id: string;
   company_name: string;
   role?: string;
   assigned_date?: string;
 }
 
 export interface ProjectData {
-  project_id?: number;
+  project_id?: string;
   project_name: string;
   location: string;
   client_name: string;
@@ -24,7 +24,7 @@ export interface ProjectData {
   progress_percentage?: number;
   priority?: string;
   category?: string;
-  manager_id?: number;
+  manager_id?: string;
   manager_name?: string;
   team_members?: TeamMember[];
   subcontractors?: ProjectSubcontractor[]; // Added for subcontractor assignments

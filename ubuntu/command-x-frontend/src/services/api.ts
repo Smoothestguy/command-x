@@ -1310,9 +1310,9 @@ export interface ContractorAssignment {
 }
 
 export interface WorkOrderData {
-  work_order_id?: number;
-  project_id: number;
-  assigned_subcontractor_id?: number | null;
+  work_order_id?: string;
+  project_id: string;
+  assigned_subcontractor_id?: string | null;
   description: string;
   status?: string;
   scheduled_date?: string | null;
@@ -1601,20 +1601,20 @@ export const deleteLineItem = async (lineItemId: number) => {
 
 // Enhanced Work Order Creation with Multi-Contractor Support and Line Items
 export interface EnhancedWorkOrderData {
-  project_id: number;
+  project_id: string;
   description: string;
-  assigned_subcontractor_id?: number; // Legacy single contractor (optional)
+  assigned_subcontractor_id?: string; // Legacy single contractor (optional)
   contractor_assignments?: ContractorAssignment[]; // New multi-contractor assignments
   status?: string;
   scheduled_date?: string;
   retainage_percentage?: number;
-  selectedPaymentItems: number[]; // Payment item IDs to assign
+  selectedPaymentItems: string[]; // Payment item IDs to assign
   newLineItems: {
     description: string;
     quantity: number;
     unit_cost: number;
     unit_of_measure: string;
-    location_id?: number;
+    location_id?: string;
     category?: string;
   }[];
 }
@@ -1781,7 +1781,7 @@ export const getProjectBudgetSummary = async (
 // For now, let"s assume endpoints exist on the User Service
 
 export interface SubcontractorData {
-  subcontractor_id?: number;
+  subcontractor_id?: string;
   company_name: string;
   contact_name?: string;
   email?: string;

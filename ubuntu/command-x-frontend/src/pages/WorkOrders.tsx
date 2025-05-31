@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  getWorkOrders,
-  createWorkOrder,
-  updateWorkOrder,
-  deleteWorkOrder,
   WorkOrderData,
-  getProjects,
   ProjectData,
-  getSubcontractors,
   SubcontractorData,
   LineItemData,
 } from "../services/api";
+import {
+  workOrdersApi,
+  projectsApi,
+  subcontractorsApi,
+} from "../services/supabaseApi";
+import { getCurrentUser } from "../lib/supabase";
+import { getPaymentItems, getLocations } from "../services/paymentItemsApi";
+import { PaymentItemData, LocationData } from "../types/paymentItem";
 import PurchaseOrderSection from "../components/purchase-orders/PurchaseOrderSection";
 import { Button } from "@/components/ui/button";
 import {
@@ -141,8 +143,8 @@ const WorkOrders: React.FC = () => {
   }>({ from: null, to: null });
 
   // UI states
-  const [expandedRows, setExpandedRows] = useState<number[]>([]);
-  const [selectedRows, setSelectedRows] = useState<number[]>([]);
+  const [expandedRows, setExpandedRows] = useState<string[]>([]);
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
@@ -150,14 +152,32 @@ const WorkOrders: React.FC = () => {
   // Fetch Projects for dropdown
   const { data: projects } = useQuery<ProjectData[], Error>({
     queryKey: ["projects"],
-    queryFn: getProjects,
+    queryFn: projectsApi.getAll,
   });
 
   // Fetch Subcontractors for dropdown
   const { data: subcontractors } = useQuery<SubcontractorData[], Error>({
     queryKey: ["subcontractors"],
-    queryFn: getSubcontractors,
+    queryFn: subcontractorsApi.getAll,
   });
+
+  // Log data when it changes
+  useEffect(() => {
+    if (projects) {
+      console.log("Projects loaded:", projects);
+      console.log("First project ID type:", typeof projects[0]?.project_id);
+    }
+  }, [projects]);
+
+  useEffect(() => {
+    if (subcontractors) {
+      console.log("Subcontractors loaded:", subcontractors);
+      console.log(
+        "First subcontractor ID type:",
+        typeof subcontractors[0]?.subcontractor_id
+      );
+    }
+  }, [subcontractors]);
 
   // Fetch Work Orders
   const {
@@ -167,7 +187,22 @@ const WorkOrders: React.FC = () => {
     refetch,
   } = useQuery<WorkOrderData[], Error>({
     queryKey: ["workOrders"],
-    queryFn: () => getWorkOrders(), // Fetch all for now
+    queryFn: () => workOrdersApi.getAll(), // Fetch all for now
+  });
+
+  // Fetch Payment Items for the selected work order (for invoice)
+  const { data: paymentItems } = useQuery<PaymentItemData[], Error>({
+    queryKey: ["paymentItems", selectedWorkOrder?.work_order_id],
+    queryFn: () =>
+      getPaymentItems({ workOrderId: selectedWorkOrder?.work_order_id }),
+    enabled: !!selectedWorkOrder?.work_order_id && isInvoiceDialogOpen,
+  });
+
+  // Fetch Locations for the selected work order's project (for invoice)
+  const { data: locations } = useQuery<LocationData[], Error>({
+    queryKey: ["locations", selectedWorkOrder?.project_id],
+    queryFn: () => getLocations({ projectId: selectedWorkOrder?.project_id }),
+    enabled: !!selectedWorkOrder?.project_id && isInvoiceDialogOpen,
   });
 
   // Handle manual refresh
@@ -182,10 +217,39 @@ const WorkOrders: React.FC = () => {
 
   // Create Work Order
   const createMutation = useMutation({
-    mutationFn: (workOrderData: WorkOrderData) => {
+    mutationFn: async (workOrderData: WorkOrderData) => {
       console.log("Creating work order with data:", workOrderData);
       try {
-        return createWorkOrder(workOrderData);
+        // Get current user for created_by field
+        const { user } = await getCurrentUser();
+
+        // Convert the data to match Supabase schema
+        const supabaseData = {
+          project_id: workOrderData.project_id || "",
+          description: workOrderData.description || "",
+          assigned_subcontractor_id:
+            workOrderData.assigned_subcontractor_id || null,
+          status:
+            (workOrderData.status as
+              | "Pending"
+              | "Assigned"
+              | "Started"
+              | "In Progress"
+              | "Quality Check"
+              | "Completed"
+              | "Cancelled") || "Pending",
+          scheduled_date: workOrderData.scheduled_date || null,
+          completion_date: workOrderData.completion_date || null,
+          estimated_cost: workOrderData.estimated_cost || null,
+          actual_cost: workOrderData.actual_cost || null,
+          retainage_percentage: workOrderData.retainage_percentage || 0,
+          amount_billed: workOrderData.amount_billed || 0,
+          amount_paid: workOrderData.amount_paid || 0,
+          created_by: user?.id || null,
+        };
+
+        console.log("Supabase data to be sent:", supabaseData);
+        return workOrdersApi.create(supabaseData);
       } catch (error) {
         console.error("Error in createWorkOrder function:", error);
         throw error;
@@ -199,7 +263,10 @@ const WorkOrders: React.FC = () => {
     },
     onError: (err) => {
       console.error("Error creating work order:", err);
-      toast.error("Failed to create work order. Please try again.");
+      console.error("Error details:", JSON.stringify(err, null, 2));
+      toast.error(
+        `Failed to create work order: ${err.message || "Unknown error"}`
+      );
       // Don't close the dialog on error so the user can try again
     },
   });
@@ -209,7 +276,56 @@ const WorkOrders: React.FC = () => {
     mutationFn: (workOrderData: Partial<WorkOrderData>) => {
       if (!selectedWorkOrder?.work_order_id)
         throw new Error("No work order selected for update");
-      return updateWorkOrder(selectedWorkOrder.work_order_id, workOrderData);
+
+      // Convert the data to match Supabase schema
+      const supabaseData = {
+        ...(workOrderData.project_id && {
+          project_id: workOrderData.project_id.toString(),
+        }),
+        ...(workOrderData.description && {
+          description: workOrderData.description,
+        }),
+        ...(workOrderData.assigned_subcontractor_id && {
+          assigned_subcontractor_id:
+            workOrderData.assigned_subcontractor_id.toString(),
+        }),
+        ...(workOrderData.status && {
+          status: workOrderData.status as
+            | "Pending"
+            | "Assigned"
+            | "Started"
+            | "In Progress"
+            | "Quality Check"
+            | "Completed"
+            | "Cancelled",
+        }),
+        ...(workOrderData.scheduled_date && {
+          scheduled_date: workOrderData.scheduled_date,
+        }),
+        ...(workOrderData.completion_date && {
+          completion_date: workOrderData.completion_date,
+        }),
+        ...(workOrderData.estimated_cost !== undefined && {
+          estimated_cost: workOrderData.estimated_cost || 0,
+        }),
+        ...(workOrderData.actual_cost !== undefined && {
+          actual_cost: workOrderData.actual_cost || 0,
+        }),
+        ...(workOrderData.retainage_percentage !== undefined && {
+          retainage_percentage: workOrderData.retainage_percentage || 0,
+        }),
+        ...(workOrderData.amount_billed !== undefined && {
+          amount_billed: workOrderData.amount_billed || 0,
+        }),
+        ...(workOrderData.amount_paid !== undefined && {
+          amount_paid: workOrderData.amount_paid || 0,
+        }),
+      };
+
+      return workOrdersApi.update(
+        selectedWorkOrder.work_order_id.toString(),
+        supabaseData
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workOrders"] });
@@ -225,7 +341,8 @@ const WorkOrders: React.FC = () => {
 
   // Delete Work Order
   const deleteMutation = useMutation({
-    mutationFn: deleteWorkOrder,
+    mutationFn: (workOrderId: number) =>
+      workOrdersApi.delete(workOrderId.toString()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workOrders"] });
       toast.success("Work Order deleted successfully!");
@@ -253,16 +370,14 @@ const WorkOrders: React.FC = () => {
       console.log("Form submitted with values:", values);
 
       try {
-        // Ensure project_id is a number before submitting
+        // Ensure IDs are strings for Supabase
         const submissionData = {
           ...values,
-          project_id: Number(values.project_id),
+          project_id: values.project_id || "",
           estimated_cost: values.estimated_cost
             ? Number(values.estimated_cost)
             : null,
-          assigned_subcontractor_id: values.assigned_subcontractor_id
-            ? Number(values.assigned_subcontractor_id)
-            : null,
+          assigned_subcontractor_id: values.assigned_subcontractor_id || null,
         };
 
         console.log("Processed submission data:", submissionData);
@@ -387,7 +502,7 @@ const WorkOrders: React.FC = () => {
 
   // Helper to get project name
   const getProjectName = useCallback(
-    (projectId: number | undefined) => {
+    (projectId: string | undefined) => {
       if (!projectId) return "N/A";
       return (
         projects?.find((p) => p.project_id === projectId)?.project_name ||
@@ -399,7 +514,7 @@ const WorkOrders: React.FC = () => {
 
   // Helper to get subcontractor name
   const getSubcontractorName = useCallback(
-    (subcontractorId: number | undefined | null) => {
+    (subcontractorId: string | undefined | null) => {
       if (!subcontractorId) return "N/A";
       return (
         subcontractors?.find((s) => s.subcontractor_id === subcontractorId)
@@ -410,7 +525,7 @@ const WorkOrders: React.FC = () => {
   );
 
   // Toggle row expansion
-  const toggleRowExpansion = (workOrderId: number) => {
+  const toggleRowExpansion = (workOrderId: string) => {
     setExpandedRows((prev) =>
       prev.includes(workOrderId)
         ? prev.filter((id) => id !== workOrderId)
@@ -419,7 +534,7 @@ const WorkOrders: React.FC = () => {
   };
 
   // Toggle row selection
-  const toggleRowSelection = (workOrderId: number) => {
+  const toggleRowSelection = (workOrderId: string) => {
     setSelectedRows((prev) =>
       prev.includes(workOrderId)
         ? prev.filter((id) => id !== workOrderId)
@@ -731,7 +846,7 @@ const WorkOrders: React.FC = () => {
   // State for batch status update dialog
   const [isBatchStatusDialogOpen, setIsBatchStatusDialogOpen] = useState(false);
   const [batchStatusValue, setBatchStatusValue] = useState("In Progress");
-  const [selectedWorkOrderIds, setSelectedWorkOrderIds] = useState<number[]>(
+  const [selectedWorkOrderIds, setSelectedWorkOrderIds] = useState<string[]>(
     []
   );
 
@@ -761,7 +876,9 @@ const WorkOrders: React.FC = () => {
     selectedWorkOrderIds.forEach((id) => {
       const workOrder = workOrders?.find((wo) => wo.work_order_id === id);
       if (workOrder) {
-        updateWorkOrder(id, { ...workOrder, status: batchStatusValue });
+        // Use the update mutation for batch updates
+        setSelectedWorkOrder(workOrder);
+        updateMutation.mutate({ status: batchStatusValue });
       }
     });
 
@@ -2182,7 +2299,7 @@ Cost Breakdown:
                   // For now, send the basic data that the API expects
                   // TODO: Update API to handle enhanced data
                   const workOrderData = {
-                    project_id: Number(projectId),
+                    project_id: projectId,
                     description,
                     status,
                     estimated_cost: totalCost,
@@ -2817,7 +2934,7 @@ Cost Breakdown:
                           }
 
                           const workOrderData = {
-                            project_id: Number(projectId),
+                            project_id: projectId,
                             description,
                             status,
                             estimated_cost: cost ? Number(cost) : null,
@@ -3378,16 +3495,10 @@ Cost Breakdown:
                                       value={wo.status}
                                       onValueChange={(value) => {
                                         if (wo.work_order_id) {
-                                          updateWorkOrder(wo.work_order_id, {
-                                            ...wo,
+                                          setSelectedWorkOrder(wo);
+                                          updateMutation.mutate({
                                             status: value,
                                           });
-                                          queryClient.invalidateQueries({
-                                            queryKey: ["workOrders"],
-                                          });
-                                          toast.success(
-                                            `Status updated to ${value}`
-                                          );
                                         }
                                       }}
                                     >
@@ -3594,25 +3705,34 @@ Cost Breakdown:
                         </div>
                       </div>
                     </CardContent>
-                    <CardFooter className="p-4 pt-2 flex justify-between">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-24"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedWorkOrder(wo);
-                          setIsViewDialogOpen(true);
-                        }}
-                      >
-                        <Eye className="mr-2 h-4 w-4" />
-                        View
-                      </Button>
-                      <div className="flex gap-2">
+                    <CardFooter className="p-4 pt-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="w-24"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedWorkOrder(wo);
+                            setIsViewDialogOpen(true);
+                          }}
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          View
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewInvoice(wo);
+                          }}
+                        >
+                          <FileText className="mr-2 h-4 w-4" />
+                          Invoice
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleEditClick(wo);
@@ -3624,7 +3744,6 @@ Cost Breakdown:
                         <Button
                           variant="destructive"
                           size="sm"
-                          className="w-24"
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedWorkOrder(wo);
@@ -3829,17 +3948,20 @@ Cost Breakdown:
         </DialogContent>
       </Dialog>
 
-      {/* Invoice Dialog */}
+      {/* Enhanced Invoice Dialog */}
       <Dialog open={isInvoiceDialogOpen} onOpenChange={setIsInvoiceDialogOpen}>
-        <DialogContent className="sm:max-w-[800px]">
+        <DialogContent className="sm:max-w-[1200px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Invoice</DialogTitle>
-            <DialogDescription>Work order invoice details</DialogDescription>
+            <DialogTitle>Detailed Invoice</DialogTitle>
+            <DialogDescription>
+              Comprehensive invoice with payment items breakdown by location
+            </DialogDescription>
           </DialogHeader>
 
           {selectedWorkOrder && (
             <div className="py-4">
               <div className="border rounded-md overflow-hidden">
+                {/* Invoice Header */}
                 <div className="bg-primary text-primary-foreground p-6">
                   <div className="flex justify-between items-start">
                     <div>
@@ -3863,6 +3985,72 @@ Cost Breakdown:
                       <p className="text-primary-foreground/80">
                         info@commandx.com
                       </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Subcontractor Information */}
+                <div className="bg-blue-50 border-b p-4">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="font-medium text-blue-900 mb-2">
+                        Subcontractor Company:
+                        <span className="bg-blue-200 px-2 py-1 rounded ml-2">
+                          {getSubcontractorName(
+                            selectedWorkOrder.assigned_subcontractor_id
+                          ) || "Fairfield"}
+                        </span>
+                      </h4>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="font-medium">
+                            Work Order ID Number:
+                          </span>
+                          <span className="bg-blue-200 px-2 py-1 rounded">
+                            {selectedWorkOrder.work_order_id || "18083"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium">% Complete:</span>
+                          <span className="bg-green-200 px-2 py-1 rounded">
+                            100%
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium">Full Name:</span>
+                          <span>Mattie Allen</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="font-medium">Assigned Date:</span>
+                          <span>
+                            {selectedWorkOrder.scheduled_date
+                              ? new Date(
+                                  selectedWorkOrder.scheduled_date
+                                ).toLocaleDateString()
+                              : new Date().toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium">
+                            Sub Work Order Status:
+                          </span>
+                          <span className="bg-green-200 px-2 py-1 rounded">
+                            Completed
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium">Phone:</span>
+                          <span>(229) 924-4153</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium">Full Address:</span>
+                          <span>118 Tom Hall Circle Americus GA 31719</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -3925,134 +4113,285 @@ Cost Breakdown:
                   </div>
                 </div>
 
+                {/* Payment Items Section */}
                 <div className="p-6">
-                  <h4 className="font-medium mb-4">Work Order Details</h4>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[50%]">Description</TableHead>
-                        <TableHead>Quantity</TableHead>
-                        <TableHead>Unit Price</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell className="font-medium">
-                          {selectedWorkOrder.description}
-                        </TableCell>
-                        <TableCell>1</TableCell>
-                        <TableCell>
-                          $
-                          {selectedWorkOrder.amount_billed?.toLocaleString() ||
-                            selectedWorkOrder.estimated_cost?.toLocaleString() ||
-                            "0"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          $
-                          {selectedWorkOrder.amount_billed?.toLocaleString() ||
-                            selectedWorkOrder.estimated_cost?.toLocaleString() ||
-                            "0"}
-                        </TableCell>
-                      </TableRow>
+                  <h4 className="font-medium mb-4 text-center text-lg">
+                    Pay Items SUB WORK ORDERs
+                  </h4>
 
-                      {/* If there were line items, we would map through them here */}
-                      {/* For now, let's add a few sample line items */}
-                      <TableRow>
-                        <TableCell className="font-medium">Materials</TableCell>
-                        <TableCell>1</TableCell>
-                        <TableCell>
-                          $
-                          {Math.round(
-                            (selectedWorkOrder.estimated_cost || 0) * 0.4
-                          ).toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          $
-                          {Math.round(
-                            (selectedWorkOrder.estimated_cost || 0) * 0.4
-                          ).toLocaleString()}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">Labor</TableCell>
-                        <TableCell>1</TableCell>
-                        <TableCell>
-                          $
-                          {Math.round(
-                            (selectedWorkOrder.estimated_cost || 0) * 0.6
-                          ).toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          $
-                          {Math.round(
-                            (selectedWorkOrder.estimated_cost || 0) * 0.6
-                          ).toLocaleString()}
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
+                  {paymentItems && paymentItems.length > 0 ? (
+                    <div className="space-y-6">
+                      {/* Group payment items by location */}
+                      {locations && locations.length > 0 ? (
+                        locations.map((location) => {
+                          const locationItems = paymentItems.filter(
+                            (item) => item.location_id === location.location_id
+                          );
 
-                  <div className="mt-6 border-t pt-4">
-                    <div className="flex justify-end">
-                      <div className="w-1/2 space-y-2">
-                        <div className="flex justify-between">
-                          <span className="font-medium">Subtotal:</span>
-                          <span>
-                            $
-                            {selectedWorkOrder.amount_billed?.toLocaleString() ||
-                              selectedWorkOrder.estimated_cost?.toLocaleString() ||
-                              "0"}
-                          </span>
+                          if (locationItems.length === 0) return null;
+
+                          return (
+                            <div
+                              key={location.location_id}
+                              className="border rounded-lg overflow-hidden"
+                            >
+                              <div className="bg-gray-50 px-4 py-2 border-b">
+                                <h5 className="font-medium text-gray-900">
+                                  {location.name || location.location_name}
+                                </h5>
+                              </div>
+
+                              <Table>
+                                <TableHeader>
+                                  <TableRow className="bg-gray-100">
+                                    <TableHead className="text-xs">
+                                      Pay Items
+                                    </TableHead>
+                                    <TableHead className="text-xs">
+                                      Pay Items WO Item
+                                    </TableHead>
+                                    <TableHead className="text-xs">
+                                      Location
+                                    </TableHead>
+                                    <TableHead className="text-xs">
+                                      UOM
+                                    </TableHead>
+                                    <TableHead className="text-xs">
+                                      Qty
+                                    </TableHead>
+                                    <TableHead className="text-xs">
+                                      SubCon Unit Price
+                                    </TableHead>
+                                    <TableHead className="text-xs">
+                                      Subcon Total
+                                    </TableHead>
+                                    <TableHead className="text-xs">
+                                      Status
+                                    </TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {locationItems.map((item) => (
+                                    <TableRow
+                                      key={item.item_id}
+                                      className="text-xs"
+                                    >
+                                      <TableCell className="font-medium">
+                                        {item.item_code || item.item_id}
+                                      </TableCell>
+                                      <TableCell>{item.description}</TableCell>
+                                      <TableCell>
+                                        {location.name ||
+                                          location.location_name}
+                                      </TableCell>
+                                      <TableCell>
+                                        {item.unit_of_measure || "SF"}
+                                      </TableCell>
+                                      <TableCell>
+                                        {item.quantity ||
+                                          item.original_quantity}
+                                      </TableCell>
+                                      <TableCell>
+                                        $
+                                        {item.unit_price?.toFixed(5) ||
+                                          "0.00000"}
+                                      </TableCell>
+                                      <TableCell>
+                                        $
+                                        {item.total_price?.toFixed(2) || "0.00"}
+                                      </TableCell>
+                                      <TableCell>
+                                        <span className="bg-green-200 px-2 py-1 rounded text-xs">
+                                          Complete
+                                        </span>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        // If no locations, show all items in one table
+                        <div className="border rounded-lg overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="bg-gray-100">
+                                <TableHead className="text-xs">
+                                  Pay Items
+                                </TableHead>
+                                <TableHead className="text-xs">
+                                  Pay Items WO Item
+                                </TableHead>
+                                <TableHead className="text-xs">
+                                  Location
+                                </TableHead>
+                                <TableHead className="text-xs">UOM</TableHead>
+                                <TableHead className="text-xs">Qty</TableHead>
+                                <TableHead className="text-xs">
+                                  SubCon Unit Price
+                                </TableHead>
+                                <TableHead className="text-xs">
+                                  Subcon Total
+                                </TableHead>
+                                <TableHead className="text-xs">
+                                  Status
+                                </TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {paymentItems.map((item) => (
+                                <TableRow
+                                  key={item.item_id}
+                                  className="text-xs"
+                                >
+                                  <TableCell className="font-medium">
+                                    {item.item_code || item.item_id}
+                                  </TableCell>
+                                  <TableCell>{item.description}</TableCell>
+                                  <TableCell>
+                                    {item.location_name || "General"}
+                                  </TableCell>
+                                  <TableCell>
+                                    {item.unit_of_measure || "SF"}
+                                  </TableCell>
+                                  <TableCell>
+                                    {item.quantity || item.original_quantity}
+                                  </TableCell>
+                                  <TableCell>
+                                    ${item.unit_price?.toFixed(5) || "0.00000"}
+                                  </TableCell>
+                                  <TableCell>
+                                    ${item.total_price?.toFixed(2) || "0.00"}
+                                  </TableCell>
+                                  <TableCell>
+                                    <span className="bg-green-200 px-2 py-1 rounded text-xs">
+                                      Complete
+                                    </span>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="font-medium">Tax (8%):</span>
-                          <span>
-                            $
-                            {Math.round(
-                              (selectedWorkOrder.amount_billed ||
-                                selectedWorkOrder.estimated_cost ||
-                                0) * 0.08
-                            ).toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-medium">
-                            Retainage (
-                            {selectedWorkOrder.retainage_percentage || 0}%):
-                          </span>
-                          <span>
-                            $
-                            {Math.round(
-                              ((selectedWorkOrder.amount_billed ||
-                                selectedWorkOrder.estimated_cost ||
-                                0) *
-                                (selectedWorkOrder.retainage_percentage || 0)) /
-                                100
-                            ).toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="flex justify-between border-t pt-2 text-lg font-bold">
-                          <span>Total Due:</span>
-                          <span>
-                            $
-                            {Math.round(
-                              (selectedWorkOrder.amount_billed ||
-                                selectedWorkOrder.estimated_cost ||
-                                0) *
-                                1.08 -
-                                ((selectedWorkOrder.amount_billed ||
-                                  selectedWorkOrder.estimated_cost ||
-                                  0) *
-                                  (selectedWorkOrder.retainage_percentage ||
-                                    0)) /
-                                  100
-                            ).toLocaleString()}
-                          </span>
-                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    // Show enhanced layout even when no payment items
+                    <div className="border rounded-lg overflow-hidden">
+                      <div className="bg-gray-50 px-4 py-2 border-b">
+                        <h5 className="font-medium text-gray-900">
+                          Work Order Summary
+                        </h5>
+                      </div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-gray-100">
+                            <TableHead className="text-xs">Pay Items</TableHead>
+                            <TableHead className="text-xs">
+                              Pay Items WO Item
+                            </TableHead>
+                            <TableHead className="text-xs">Location</TableHead>
+                            <TableHead className="text-xs">UOM</TableHead>
+                            <TableHead className="text-xs">Qty</TableHead>
+                            <TableHead className="text-xs">
+                              SubCon Unit Price
+                            </TableHead>
+                            <TableHead className="text-xs">
+                              Subcon Total
+                            </TableHead>
+                            <TableHead className="text-xs">Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          <TableRow className="text-xs">
+                            <TableCell className="font-medium">
+                              WO-{selectedWorkOrder.work_order_id}
+                            </TableCell>
+                            <TableCell>
+                              {selectedWorkOrder.description}
+                            </TableCell>
+                            <TableCell>General</TableCell>
+                            <TableCell>lump sum</TableCell>
+                            <TableCell>1</TableCell>
+                            <TableCell>
+                              $
+                              {selectedWorkOrder.amount_billed?.toFixed(5) ||
+                                selectedWorkOrder.estimated_cost?.toFixed(5) ||
+                                "0.00000"}
+                            </TableCell>
+                            <TableCell>
+                              $
+                              {selectedWorkOrder.amount_billed?.toFixed(2) ||
+                                selectedWorkOrder.estimated_cost?.toFixed(2) ||
+                                "0.00"}
+                            </TableCell>
+                            <TableCell>
+                              <span className="bg-blue-200 px-2 py-1 rounded text-xs">
+                                {selectedWorkOrder.status}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                      <div className="p-4 bg-blue-50 border-t">
+                        <p className="text-sm text-blue-700">
+                          💡 <strong>Note:</strong> No detailed payment items
+                          found for this work order. The invoice shows the work
+                          order as a lump sum. To see detailed payment items,
+                          add them through the Payment Items page.
+                        </p>
                       </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Calculate totals from payment items */}
+                  {(() => {
+                    const subtotal =
+                      paymentItems?.reduce(
+                        (sum, item) => sum + (item.total_price || 0),
+                        0
+                      ) ||
+                      selectedWorkOrder.amount_billed ||
+                      selectedWorkOrder.estimated_cost ||
+                      0;
+                    const tax = Math.round(subtotal * 0.08);
+                    const retainage = Math.round(
+                      (subtotal *
+                        (selectedWorkOrder.retainage_percentage || 0)) /
+                        100
+                    );
+                    const totalDue = Math.round(subtotal + tax - retainage);
+
+                    return (
+                      <div className="mt-6 border-t pt-4">
+                        <div className="flex justify-end">
+                          <div className="w-1/2 space-y-2">
+                            <div className="flex justify-between">
+                              <span className="font-medium">Subtotal:</span>
+                              <span>${subtotal.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="font-medium">Tax (8%):</span>
+                              <span>${tax.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="font-medium">
+                                Retainage (
+                                {selectedWorkOrder.retainage_percentage || 0}%):
+                              </span>
+                              <span>-${retainage.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between border-t pt-2 text-lg font-bold">
+                              <span>Total Due:</span>
+                              <span>${totalDue.toLocaleString()}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   <div className="mt-8 border-t pt-6">
                     <h4 className="font-medium mb-2">Payment Information</h4>
