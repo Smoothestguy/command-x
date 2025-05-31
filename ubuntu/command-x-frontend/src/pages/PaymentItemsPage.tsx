@@ -137,15 +137,94 @@ const PaymentItemsPage: React.FC = () => {
   };
 
   if (isLoadingProject) {
-    return <div>Loading project details...</div>;
+    return (
+      <div className="container mx-auto py-6">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-2">Loading project details...</p>
+        </div>
+      </div>
+    );
   }
 
-  if (projectError || !project) {
-    return <div>Error loading project details</div>;
+  if (projectError) {
+    return (
+      <div className="container mx-auto py-6">
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <h2 className="text-lg font-semibold text-red-800">
+            Error Loading Project
+          </h2>
+          <p className="text-red-600 mt-2">
+            Failed to load project details. Please try again.
+          </p>
+          <div className="mt-4 text-sm text-red-500">
+            <p>
+              <strong>Project ID:</strong> {projectId}
+            </p>
+            <p>
+              <strong>Error:</strong> {projectError?.message || "Unknown error"}
+            </p>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="container mx-auto py-6">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+          <h2 className="text-lg font-semibold text-yellow-800">
+            Project Not Found
+          </h2>
+          <p className="text-yellow-600 mt-2">
+            The requested project could not be found.
+          </p>
+          <div className="mt-4 text-sm text-yellow-600">
+            <p>
+              <strong>Project ID:</strong> {projectId}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="container mx-auto py-6 space-y-6">
+      {/* Debug Info */}
+      <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
+        <h3 className="text-sm font-semibold text-blue-800">
+          Debug Information
+        </h3>
+        <div className="mt-2 text-xs text-blue-600 space-y-1">
+          <p>
+            <strong>Project ID:</strong> {projectId}
+          </p>
+          <p>
+            <strong>Project Name:</strong> {project.project_name}
+          </p>
+          <p>
+            <strong>Project Status:</strong> {project.status}
+          </p>
+          <p>
+            <strong>Current URL:</strong> {window.location.pathname}
+          </p>
+          <p>
+            <strong>User Role:</strong> {userRole}
+          </p>
+          <p>
+            <strong>Can Approve Items:</strong> {canApproveItems ? "Yes" : "No"}
+          </p>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
