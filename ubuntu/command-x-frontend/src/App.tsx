@@ -21,6 +21,7 @@ import ReportsPage from "./pages/ReportsPage";
 import UserManagement from "./pages/UserManagement";
 import AllActivity from "./pages/AllActivity";
 import PaymentItemsPage from "./pages/PaymentItemsPage";
+import PaymentItemSelectionPage from "./pages/PaymentItemSelectionPage";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage"; // Import LoginPage
 import TestDialog from "./pages/TestDialog"; // Import TestDialog
@@ -203,6 +204,10 @@ function App() {
               <Route
                 path="/projects/:projectId/payment-items"
                 element={<PaymentItemsPage />}
+              />
+              <Route
+                path="/projects/:projectId/payment-item-selection"
+                element={<PaymentItemSelectionPage />}
               />
               <Route path="/work-orders" element={<WorkOrders />} />
               <Route path="/purchase-orders" element={<PurchaseOrders />} />

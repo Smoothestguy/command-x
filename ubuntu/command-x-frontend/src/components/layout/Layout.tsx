@@ -3,66 +3,56 @@ import Header from "./Header";
 import Sidebar from "./Sidebar";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useIsMobile, useDeviceInfo } from "@/hooks/use-mobile";
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
-  const [sidebarOpen, setSidebarOpen] = useState(!isMobileView);
+  const isMobile = useIsMobile();
+  const deviceInfo = useDeviceInfo();
+  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
 
+  // Update sidebar state when screen size changes
   useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobileView(mobile);
-      if (!mobile) {
-        setSidebarOpen(true);
-      }
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+    if (!isMobile) {
+      setSidebarOpen(true);
+    } else {
+      setSidebarOpen(false);
+    }
+  }, [isMobile]);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
-  // Detect iPhone
-  const [isIPhone, setIsIPhone] = useState(false);
-
-  useEffect(() => {
-    // Check if device is an iPhone
-    const checkIfIPhone = () => {
-      const userAgent = navigator.userAgent;
-      const isIOS = /iPhone|iPad|iPod/.test(userAgent);
-      setIsIPhone(isIOS);
-    };
-
-    checkIfIPhone();
-  }, []);
+  const closeSidebar = () => {
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+  };
 
   return (
     <div className="flex h-screen bg-gray-50 relative">
       {/* Mobile sidebar overlay */}
-      {isMobileView && sidebarOpen && (
+      {isMobile && sidebarOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-20"
-          onClick={() => setSidebarOpen(false)}
+          onClick={closeSidebar}
         />
       )}
 
       {/* Sidebar - conditionally shown based on state */}
       <div
         className={`
-        ${isMobileView ? "fixed z-30 h-full" : "relative"}
+        ${isMobile ? "fixed z-30 h-full" : "relative"}
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         transition-transform duration-300 ease-in-out
-        ${isIPhone ? "iphone-padding-top iphone-padding-bottom" : ""}
+        ${deviceInfo.isIOS ? "safe-area-top safe-area-bottom" : ""}
       `}
       >
-        <Sidebar onCloseMobile={() => isMobileView && setSidebarOpen(false)} />
+        <Sidebar onCloseMobile={closeSidebar} />
       </div>
 
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -71,7 +61,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             variant="ghost"
             size="icon"
             onClick={toggleSidebar}
-            className="md:hidden"
+            className="lg:hidden"
             aria-label="Toggle menu"
           >
             <Menu className="h-6 w-6" />
@@ -80,8 +70,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <main
           className={`flex-1 overflow-x-hidden overflow-y-auto bg-gray-200 p-2 sm:p-4 md:p-6
           ${
-            isIPhone
-              ? "iphone-padding-bottom iphone-padding-left iphone-padding-right"
+            deviceInfo.isIOS
+              ? "safe-area-bottom safe-area-left safe-area-right"
               : ""
           }`}
         >

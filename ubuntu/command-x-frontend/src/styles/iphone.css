@@ -1,58 +1,89 @@
-/* iPhone-specific styles */
+/* Mobile-first responsive styles for Command-X */
 
-/* Safe area insets for notched iPhones */
+/* CSS Custom Properties for Mobile */
 :root {
+  /* Safe area insets for notched devices */
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
   --safe-area-inset-right: env(safe-area-inset-right, 0px);
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-inset-left: env(safe-area-inset-left, 0px);
+
+  /* Mobile-specific spacing */
+  --mobile-padding: 16px;
+  --mobile-padding-sm: 12px;
+  --mobile-padding-lg: 20px;
+  --mobile-gap: 12px;
+  --mobile-gap-sm: 8px;
+  --mobile-gap-lg: 16px;
+
+  /* Touch target sizes */
+  --touch-target-min: 44px;
+  --touch-target-comfortable: 48px;
+
+  /* Mobile typography */
+  --mobile-font-base: 16px;
+  --mobile-font-sm: 14px;
+  --mobile-font-lg: 18px;
+  --mobile-line-height: 1.5;
 }
 
-/* Apply padding to account for the notch and home indicator */
-.iphone-padding-top {
+/* Safe area utility classes */
+.safe-area-top {
   padding-top: var(--safe-area-inset-top);
 }
 
-.iphone-padding-bottom {
+.safe-area-bottom {
   padding-bottom: var(--safe-area-inset-bottom);
 }
 
-.iphone-padding-left {
+.safe-area-left {
   padding-left: var(--safe-area-inset-left);
 }
 
-.iphone-padding-right {
+.safe-area-right {
   padding-right: var(--safe-area-inset-right);
 }
 
-/* Optimize touch targets for iPhone */
-@media screen and (max-width: 428px) {
-  /* iPhone 13 Pro Max width */
-  button, 
-  a, 
-  .clickable {
-    min-height: 44px; /* Apple's recommended minimum touch target size */
+.safe-area-all {
+  padding-top: var(--safe-area-inset-top);
+  padding-right: var(--safe-area-inset-right);
+  padding-bottom: var(--safe-area-inset-bottom);
+  padding-left: var(--safe-area-inset-left);
+}
+
+/* Mobile Breakpoints - Small devices (up to 480px) */
+@media screen and (max-width: 480px) {
+  /* Touch targets and interactive elements */
+  button,
+  a,
+  .clickable,
+  [role="button"],
+  input[type="submit"],
+  input[type="button"] {
+    min-height: var(--touch-target-min);
+    min-width: var(--touch-target-min);
+    padding: 12px 16px;
+    font-size: var(--mobile-font-base);
   }
-  
-  /* Increase font size slightly for better readability */
+
+  /* Base typography for mobile readability */
   body {
-    font-size: 16px;
+    font-size: var(--mobile-font-base);
+    line-height: var(--mobile-line-height);
   }
-  
-  /* Adjust spacing for iPhone */
-  .card-content {
-    padding: 12px;
+
+  /* Form inputs optimized for mobile */
+  input,
+  select,
+  textarea,
+  .input {
+    font-size: var(--mobile-font-base) !important; /* Prevents iOS zoom */
+    padding: 12px 16px;
+    min-height: var(--touch-target-min);
+    border-radius: 8px;
   }
-  
-  /* Ensure inputs are large enough to tap */
-  input, 
-  select, 
-  textarea {
-    font-size: 16px; /* Prevents iOS zoom on focus */
-    padding: 12px 8px;
-  }
-  
-  /* Fix for iPhone input zoom */
+
+  /* Specific input types */
   input[type="text"],
   input[type="email"],
   input[type="password"],
@@ -60,35 +91,156 @@
   input[type="search"],
   input[type="tel"],
   input[type="url"],
+  input[type="date"],
+  input[type="time"],
   textarea {
-    font-size: 16px;
+    font-size: var(--mobile-font-base) !important;
   }
-  
-  /* Prevent pull-to-refresh behavior interfering with custom scrolling */
-  html, body {
+
+  /* Card and container spacing */
+  .card,
+  [class*="card"] {
+    margin: var(--mobile-gap-sm);
+    padding: var(--mobile-padding);
+  }
+
+  .card-content,
+  [class*="card-content"] {
+    padding: var(--mobile-padding-sm);
+  }
+
+  /* Prevent pull-to-refresh and improve scrolling */
+  html,
+  body {
     overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
   }
-  
-  /* Improve scrolling performance */
+
+  /* Improve touch scrolling performance */
   * {
     -webkit-overflow-scrolling: touch;
   }
+
+  /* Mobile-specific layout adjustments */
+  .container {
+    padding-left: var(--mobile-padding);
+    padding-right: var(--mobile-padding);
+  }
+
+  /* Grid adjustments for mobile */
+  .grid {
+    gap: var(--mobile-gap);
+  }
+
+  /* Table responsiveness */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Dialog and modal adjustments */
+  [role="dialog"],
+  .dialog-content {
+    margin: var(--mobile-gap-sm);
+    max-width: calc(100vw - 2 * var(--mobile-padding));
+    max-height: calc(100vh - 2 * var(--mobile-padding));
+  }
 }
 
-/* iPhone landscape orientation */
-@media screen and (max-height: 428px) and (orientation: landscape) {
+/* Medium mobile devices (481px to 767px) */
+@media screen and (min-width: 481px) and (max-width: 767px) {
+  /* Slightly larger touch targets for larger phones */
+  button,
+  a,
+  .clickable {
+    min-height: var(--touch-target-comfortable);
+    padding: 14px 18px;
+  }
+
+  /* Adjust container padding */
+  .container {
+    padding-left: var(--mobile-padding-lg);
+    padding-right: var(--mobile-padding-lg);
+  }
+
+  /* Grid improvements for medium screens */
+  .grid-cols-1 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  /* Dialog sizing for medium mobile */
+  [role="dialog"],
+  .dialog-content {
+    max-width: calc(100vw - 3 * var(--mobile-padding));
+  }
+}
+
+/* Tablet devices (768px to 1023px) */
+@media screen and (min-width: 768px) and (max-width: 1023px) {
+  /* Optimize for tablet touch */
+  button,
+  a,
+  .clickable {
+    min-height: 40px;
+    padding: 12px 20px;
+  }
+
+  /* Better use of tablet space */
+  .container {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  /* Grid layouts for tablets */
+  .grid-cols-1 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Dialog sizing for tablets */
+  [role="dialog"],
+  .dialog-content {
+    max-width: 90vw;
+    max-height: 90vh;
+  }
+}
+
+/* Landscape orientation optimizations */
+@media screen and (max-height: 500px) and (orientation: landscape) {
+  /* Compact sidebar for landscape */
   .sidebar {
     width: 200px;
   }
-  
+
+  /* Reduce chart heights in landscape */
   .chart-container {
     height: 150px !important;
   }
+
+  /* Compact header in landscape */
+  .header {
+    padding: 8px 16px;
+  }
+
+  /* Reduce dialog padding in landscape */
+  [role="dialog"],
+  .dialog-content {
+    padding: 16px;
+    max-height: calc(100vh - 32px);
+  }
 }
 
-/* iPhone dark mode support */
+/* Dark mode support */
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Ensure crisp rendering on high DPI screens */
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }

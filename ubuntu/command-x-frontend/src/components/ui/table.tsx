@@ -4,25 +4,37 @@ import { cn } from "@/lib/utils";
 
 const Table = React.forwardRef<
   HTMLTableElement,
-  React.HTMLAttributes<HTMLTableElement> & { responsive?: boolean }
->(({ className, responsive = true, ...props }, ref) => (
-  <div
-    className={cn(
-      "relative w-full",
-      responsive ? "overflow-x-auto max-w-[100vw]" : "overflow-auto"
-    )}
-  >
-    <table
-      ref={ref}
+  React.HTMLAttributes<HTMLTableElement> & {
+    responsive?: boolean;
+    mobileBreakpoint?: "sm" | "md" | "lg";
+  }
+>(
+  (
+    { className, responsive = true, mobileBreakpoint = "md", ...props },
+    ref
+  ) => (
+    <div
       className={cn(
-        "w-full caption-bottom text-sm",
-        responsive ? "table-fixed md:table-auto" : "",
-        className
+        "relative w-full",
+        responsive
+          ? "overflow-x-auto max-w-[100vw] -webkit-overflow-scrolling-touch"
+          : "overflow-auto"
       )}
-      {...props}
-    />
-  </div>
-));
+    >
+      <table
+        ref={ref}
+        className={cn(
+          "w-full caption-bottom text-sm",
+          responsive ? `table-fixed ${mobileBreakpoint}:table-auto` : "",
+          // Mobile-specific improvements
+          "min-w-full",
+          className
+        )}
+        {...props}
+      />
+    </div>
+  )
+);
 Table.displayName = "Table";
 
 const TableHeader = React.forwardRef<
@@ -92,14 +104,24 @@ TableHead.displayName = "TableHead";
 
 const TableCell = React.forwardRef<
   HTMLTableCellElement,
-  React.TdHTMLAttributes<HTMLTableCellElement>
->(({ className, ...props }, ref) => (
+  React.TdHTMLAttributes<HTMLTableCellElement> & {
+    mobileHidden?: boolean;
+    mobileLabel?: string;
+  }
+>(({ className, mobileHidden = false, mobileLabel, ...props }, ref) => (
   <td
     ref={ref}
     className={cn(
-      "p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] max-w-[150px] truncate",
+      "p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+      // Mobile responsive classes
+      "max-w-[150px] md:max-w-none truncate md:text-clip",
+      "text-xs sm:text-sm",
+      mobileHidden && "hidden md:table-cell",
+      mobileLabel &&
+        "before:content-[attr(data-label)] before:font-medium before:block md:before:hidden",
       className
     )}
+    data-label={mobileLabel}
     {...props}
   />
 ));

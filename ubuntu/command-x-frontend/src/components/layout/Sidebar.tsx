@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   Home,
@@ -14,6 +14,7 @@ import {
   Building,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useDeviceInfo } from "@/hooks/use-mobile";
 
 interface SidebarProps {
   onCloseMobile?: () => void;
@@ -21,23 +22,12 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
   const location = useLocation();
-  const [isIPhone, setIsIPhone] = useState(false);
-
-  useEffect(() => {
-    // Check if device is an iPhone
-    const checkIfIPhone = () => {
-      const userAgent = navigator.userAgent;
-      const isIOS = /iPhone|iPad|iPod/.test(userAgent);
-      setIsIPhone(isIOS);
-    };
-
-    checkIfIPhone();
-  }, []);
+  const deviceInfo = useDeviceInfo();
 
   return (
     <aside
       className={`w-[85vw] md:w-64 bg-gray-100 h-full p-4 border-r border-gray-300 flex flex-col shadow-lg
-      ${isIPhone ? "iphone-padding-top iphone-padding-bottom" : ""}`}
+      ${deviceInfo.isIOS ? "safe-area-top safe-area-bottom" : ""}`}
     >
       <div className="flex justify-between items-center mb-6">
         <Link to="/" onClick={onCloseMobile}>

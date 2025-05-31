@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../features/auth/authSlice";
 import { RootState } from "../../store/store";
@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useDeviceInfo } from "@/hooks/use-mobile";
 
 interface HeaderProps {
   children?: React.ReactNode;
@@ -20,18 +21,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
-  const [isIPhone, setIsIPhone] = useState(false);
-
-  useEffect(() => {
-    // Check if device is an iPhone
-    const checkIfIPhone = () => {
-      const userAgent = navigator.userAgent;
-      const isIOS = /iPhone|iPad|iPod/.test(userAgent);
-      setIsIPhone(isIOS);
-    };
-
-    checkIfIPhone();
-  }, []);
+  const deviceInfo = useDeviceInfo();
 
   const handleLogout = () => {
     dispatch(logout());
@@ -42,9 +32,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     <header
       className={`bg-gray-800 text-white p-2 sm:p-4 shadow-md flex justify-between items-center
       ${
-        isIPhone
-          ? "iphone-padding-top iphone-padding-left iphone-padding-right"
-          : ""
+        deviceInfo.isIOS ? "safe-area-top safe-area-left safe-area-right" : ""
       }`}
     >
       <div className="flex items-center gap-2">
@@ -94,7 +82,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className={isIPhone ? "iphone-padding-right" : ""}
+              className={deviceInfo.isIOS ? "safe-area-right" : ""}
             >
               <DropdownMenuItem className="flex items-center gap-2 min-h-[44px]">
                 <User className="h-4 w-4" />

@@ -313,7 +313,9 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
                 {/* Quick Actions */}
                 <div className="flex gap-2 mb-4">
                   {project.project_id && (
-                    <Link to={`/projects/${project.project_id}/payment-items`}>
+                    <Link
+                      to={`/projects/${project.project_id}/payment-item-selection`}
+                    >
                       <Button variant="outline" size="sm">
                         <CreditCard className="h-4 w-4 mr-2" />
                         Payment Items
