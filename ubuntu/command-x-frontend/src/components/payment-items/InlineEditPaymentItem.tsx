@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 
 interface InlineEditPaymentItemProps {
-  projectId: number;
+  projectId: string;
   paymentItem: PaymentItemData;
   onCancel: () => void;
 }
@@ -26,10 +26,14 @@ const InlineEditPaymentItem: React.FC<InlineEditPaymentItemProps> = ({
   onCancel,
 }) => {
   const [description, setDescription] = useState(paymentItem.description);
-  const [unitOfMeasure, setUnitOfMeasure] = useState(paymentItem.unit_of_measure);
+  const [unitOfMeasure, setUnitOfMeasure] = useState(
+    paymentItem.unit_of_measure
+  );
   const [unitPrice, setUnitPrice] = useState<number>(paymentItem.unit_price);
-  const [quantity, setQuantity] = useState<number>(paymentItem.original_quantity);
-  
+  const [quantity, setQuantity] = useState<number>(
+    paymentItem.original_quantity
+  );
+
   const queryClient = useQueryClient();
 
   // Update mutation
@@ -43,11 +47,11 @@ const InlineEditPaymentItem: React.FC<InlineEditPaymentItemProps> = ({
     }) => updatePaymentItem(itemId, data),
     onSuccess: () => {
       console.log("Payment item updated successfully");
-      
+
       // Force a refetch of the payment items
       queryClient.invalidateQueries({ queryKey: ["paymentItems"] });
       queryClient.invalidateQueries({ queryKey: ["paymentItems", projectId] });
-      
+
       toast({
         title: "Success",
         description: "Payment item updated successfully",
@@ -74,7 +78,7 @@ const InlineEditPaymentItem: React.FC<InlineEditPaymentItemProps> = ({
       unitPrice,
       quantity,
     });
-    
+
     // Create update data object
     const updateData: Partial<PaymentItemData> = {
       description,
@@ -84,11 +88,11 @@ const InlineEditPaymentItem: React.FC<InlineEditPaymentItemProps> = ({
       // Calculate total price
       total_price: unitPrice * quantity,
     };
-    
+
     console.log("Updating payment item:", paymentItem.item_id, updateData);
-    updateMutation.mutate({ 
-      itemId: paymentItem.item_id, 
-      data: updateData 
+    updateMutation.mutate({
+      itemId: paymentItem.item_id,
+      data: updateData,
     });
   };
 
@@ -108,7 +112,7 @@ const InlineEditPaymentItem: React.FC<InlineEditPaymentItemProps> = ({
               required
             />
           </div>
-          
+
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Unit of Measure</label>
@@ -119,7 +123,7 @@ const InlineEditPaymentItem: React.FC<InlineEditPaymentItemProps> = ({
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <label className="text-sm font-medium">Unit Price</label>
               <Input
@@ -131,7 +135,7 @@ const InlineEditPaymentItem: React.FC<InlineEditPaymentItemProps> = ({
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <label className="text-sm font-medium">Quantity</label>
               <Input
@@ -144,9 +148,11 @@ const InlineEditPaymentItem: React.FC<InlineEditPaymentItemProps> = ({
               />
             </div>
           </div>
-          
+
           <div className="pt-2">
-            <p className="text-sm font-medium">Total: ${(unitPrice * quantity).toFixed(2)}</p>
+            <p className="text-sm font-medium">
+              Total: ${(unitPrice * quantity).toFixed(2)}
+            </p>
           </div>
         </form>
       </CardContent>

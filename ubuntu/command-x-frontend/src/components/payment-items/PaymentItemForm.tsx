@@ -55,7 +55,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 interface PaymentItemFormProps {
-  projectId: number;
+  projectId: string | number; // Support both UUID strings and legacy numbers
   initialData?: PaymentItemData;
   onSubmit: (data: FormValues) => void;
   onCancel: () => void;

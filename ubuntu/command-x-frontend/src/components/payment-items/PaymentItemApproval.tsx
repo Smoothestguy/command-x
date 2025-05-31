@@ -23,7 +23,7 @@ import { toast } from "@/components/ui/use-toast";
 
 interface PaymentItemApprovalProps {
   itemId: number;
-  projectId: number;
+  projectId: string | number; // Support both UUID strings and legacy numbers
   isOpen: boolean;
   onClose: () => void;
 }

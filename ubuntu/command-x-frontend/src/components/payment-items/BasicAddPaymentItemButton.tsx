@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 interface BasicAddPaymentItemButtonProps {
-  projectId: number;
+  projectId: string;
 }
 
 const BasicAddPaymentItemButton: React.FC<BasicAddPaymentItemButtonProps> = ({

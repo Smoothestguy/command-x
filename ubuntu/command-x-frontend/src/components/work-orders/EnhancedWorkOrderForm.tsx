@@ -46,20 +46,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2, Search, MapPin, Tag } from "lucide-react";
+import EditablePaymentItemRow from "./EditablePaymentItemRow";
 
 // Form schema
 const workOrderFormSchema = z.object({
-  project_id: z.number().min(1, "Project is required"),
+  project_id: z
+    .union([z.string(), z.number()])
+    .refine((val) => val !== "" && val !== 0, "Project is required"),
   description: z.string().min(3, "Description must be at least 3 characters"),
   assigned_subcontractor_id: z.number().optional(),
   contractor_assignments: z
     .array(
       z.object({
-        subcontractor_id: z.number().min(1, "Subcontractor is required"),
+        subcontractor_id: z.number().min(0, "Subcontractor is required"), // Allow 0 for initial state
         allocation_percentage: z
           .number()
-          .min(0.01)
-          .max(100, "Percentage must be between 0.01 and 100"),
+          .min(0, "Percentage must be non-negative") // Allow 0 for initial state
+          .max(100, "Percentage must be between 0 and 100"),
         allocation_amount: z.number().min(0).optional(),
         role_description: z.string().optional(),
       })
@@ -86,7 +89,7 @@ const workOrderFormSchema = z.object({
 type FormValues = z.infer<typeof workOrderFormSchema>;
 
 interface EnhancedWorkOrderFormProps {
-  projectId?: number;
+  projectId?: string | number; // Support both UUID strings and legacy numbers
   initialData?: Partial<WorkOrderData>;
   onSubmit: (data: FormValues) => void;
   onCancel: () => void;
@@ -107,7 +110,7 @@ const EnhancedWorkOrderForm: React.FC<EnhancedWorkOrderFormProps> = ({
   const form = useForm<FormValues>({
     resolver: zodResolver(workOrderFormSchema),
     defaultValues: {
-      project_id: projectId || initialData?.project_id || 0,
+      project_id: projectId || initialData?.project_id || "",
       description: initialData?.description || "",
       assigned_subcontractor_id:
         initialData?.assigned_subcontractor_id || undefined,
@@ -178,20 +181,42 @@ const EnhancedWorkOrderForm: React.FC<EnhancedWorkOrderFormProps> = ({
 
   // Add new contractor assignment
   const addContractorAssignment = () => {
+    console.log("🔧 Adding new contractor assignment");
+    console.log("🔧 Current contractor fields before add:", contractorFields);
+
     appendContractor({
       subcontractor_id: 0,
       allocation_percentage: 0,
       allocation_amount: 0,
       role_description: "",
     });
+
+    // Log after a short delay to see the updated state
+    setTimeout(() => {
+      console.log("🔧 Contractor fields after add:", contractorFields);
+      console.log(
+        "🔧 Form values after add:",
+        form.getValues("contractor_assignments")
+      );
+    }, 100);
   };
 
   // Calculate total allocation percentage
   const contractorAssignments = form.watch("contractor_assignments");
+
+  // Debug contractor assignments
+  console.log("📊 Watched contractor assignments:", contractorAssignments);
+  console.log("📊 Contractor fields length:", contractorFields.length);
+
   const totalAllocationPercentage = contractorAssignments.reduce(
-    (sum, assignment) => sum + (assignment.allocation_percentage || 0),
+    (sum, assignment) => {
+      console.log("📊 Processing assignment for total:", assignment);
+      return sum + (assignment.allocation_percentage || 0);
+    },
     0
   );
+
+  console.log("📊 Total allocation percentage:", totalAllocationPercentage);
 
   // Filter available payment items
   const filteredPaymentItems =
@@ -242,7 +267,11 @@ const EnhancedWorkOrderForm: React.FC<EnhancedWorkOrderFormProps> = ({
                   <FormItem>
                     <FormLabel>Project *</FormLabel>
                     <Select
-                      onValueChange={(value) => field.onChange(Number(value))}
+                      onValueChange={(value) => {
+                        // Keep as string if it's a UUID, convert to number if it's numeric
+                        const isUUID = value.includes("-");
+                        field.onChange(isUUID ? value : Number(value));
+                      }}
                       defaultValue={field.value?.toString()}
                     >
                       <FormControl>
@@ -445,9 +474,17 @@ const EnhancedWorkOrderForm: React.FC<EnhancedWorkOrderFormProps> = ({
                           <FormItem>
                             <FormLabel>Subcontractor *</FormLabel>
                             <Select
-                              onValueChange={(value) =>
-                                field.onChange(Number(value))
-                              }
+                              onValueChange={(value) => {
+                                console.log(
+                                  `🔧 Subcontractor changed for index ${index}:`,
+                                  value
+                                );
+                                field.onChange(Number(value));
+                                console.log(
+                                  `🔧 Form values after subcontractor change:`,
+                                  form.getValues("contractor_assignments")
+                                );
+                              }}
                               defaultValue={field.value?.toString()}
                             >
                               <FormControl>
@@ -487,9 +524,18 @@ const EnhancedWorkOrderForm: React.FC<EnhancedWorkOrderFormProps> = ({
                                 max="100"
                                 placeholder="0.00"
                                 {...field}
-                                onChange={(e) =>
-                                  field.onChange(Number(e.target.value))
-                                }
+                                onChange={(e) => {
+                                  const value = Number(e.target.value);
+                                  console.log(
+                                    `🔧 Allocation percentage changed for index ${index}:`,
+                                    value
+                                  );
+                                  field.onChange(value);
+                                  console.log(
+                                    `🔧 Form values after percentage change:`,
+                                    form.getValues("contractor_assignments")
+                                  );
+                                }}
                                 className={isMobile ? "h-12" : ""}
                               />
                             </FormControl>
@@ -637,84 +683,38 @@ const EnhancedWorkOrderForm: React.FC<EnhancedWorkOrderFormProps> = ({
                       <TableHead className="text-right">Quantity</TableHead>
                       <TableHead className="text-right">Unit Price</TableHead>
                       <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="w-20">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredPaymentItems.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-4">
+                        <TableCell colSpan={8} className="text-center py-4">
                           No available payment items found
                         </TableCell>
                       </TableRow>
                     ) : (
                       filteredPaymentItems.map((item) => (
-                        <TableRow key={item.item_id}>
-                          <TableCell>
-                            <FormField
-                              control={form.control}
-                              name="selectedPaymentItems"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(
-                                        item.item_id
-                                      )}
-                                      onCheckedChange={(checked) => {
-                                        const currentValue = field.value || [];
-                                        if (checked) {
-                                          field.onChange([
-                                            ...currentValue,
-                                            item.item_id,
-                                          ]);
-                                        } else {
-                                          field.onChange(
-                                            currentValue.filter(
-                                              (id) => id !== item.item_id
-                                            )
-                                          );
-                                        }
-                                      }}
-                                    />
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">
-                                {item.description}
-                              </div>
-                              {item.item_code && (
-                                <div className="text-sm text-gray-500">
-                                  {item.item_code}
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {item.location_id && locations
-                              ? locations.find(
-                                  (loc) => loc.location_id === item.location_id
-                                )?.name || "-"
-                              : "-"}
-                          </TableCell>
-                          <TableCell>
-                            {item.category && (
-                              <Badge variant="outline">{item.category}</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {item.original_quantity} {item.unit_of_measure}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            ${item.unit_price.toFixed(2)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            ${(item.total_price || 0).toFixed(2)}
-                          </TableCell>
-                        </TableRow>
+                        <EditablePaymentItemRow
+                          key={item.item_id}
+                          item={item}
+                          locations={locations}
+                          isSelected={selectedItems.includes(item.item_id)}
+                          onSelectionChange={(checked) => {
+                            const currentValue = selectedItems || [];
+                            if (checked) {
+                              form.setValue("selectedPaymentItems", [
+                                ...currentValue,
+                                item.item_id,
+                              ]);
+                            } else {
+                              form.setValue(
+                                "selectedPaymentItems",
+                                currentValue.filter((id) => id !== item.item_id)
+                              );
+                            }
+                          }}
+                        />
                       ))
                     )}
                   </TableBody>

@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getDashboardSummary } from "../services/api";
+import {
+  projectsApi,
+  workOrdersApi,
+  paymentItemsApi,
+  subcontractorsApi,
+} from "../services/supabaseApi";
 import {
   Card,
   CardContent,
@@ -22,6 +27,7 @@ import {
   Loader2,
   BarChart2,
   Printer,
+  Users,
 } from "lucide-react";
 import {
   BarChart,
@@ -52,63 +58,21 @@ import { Checkbox } from "@/components/ui/checkbox";
 interface DashboardSummary {
   projectCount: number;
   activeWorkOrders: number;
-  openIssuesCount: number;
-  // Add more fields as needed
+  totalPaymentItems: number;
+  totalSubcontractors: number;
+  totalBudget: number;
+  projectStatusData: Array<{ name: string; value: number }>;
+  workOrderData: Array<{ name: string; count: number }>;
+  budgetData: Array<{ name: string; budget: number; spent: number }>;
+  recentActivities: Array<{
+    id: string;
+    type: string;
+    action: string;
+    item: string;
+    user: string;
+    time: string;
+  }>;
 }
-
-// Sample data for charts
-const projectStatusData = [
-  { name: "Planning", value: 1 },
-  { name: "In Progress", value: 2 },
-  { name: "Completed", value: 0 },
-];
-
-const workOrderData = [
-  { name: "Pending", count: 2 },
-  { name: "In Progress", count: 1 },
-  { name: "Completed", count: 0 },
-];
-
-const budgetData = [
-  { name: "Project 1", budget: 350000, spent: 0 },
-  { name: "Project 2", budget: 1500000, spent: 0 },
-  { name: "Project 3", budget: 250000, spent: 0 },
-];
-
-const recentActivities = [
-  {
-    id: 1,
-    type: "project",
-    action: "created",
-    item: "Downtown Office Building",
-    user: "Admin",
-    time: "2 hours ago",
-  },
-  {
-    id: 2,
-    type: "workorder",
-    action: "updated",
-    item: "Foundation Work",
-    user: "Admin",
-    time: "3 hours ago",
-  },
-  {
-    id: 3,
-    type: "issue",
-    action: "reported",
-    item: "Material Quality Issue",
-    user: "Admin",
-    time: "1 day ago",
-  },
-  {
-    id: 4,
-    type: "document",
-    action: "uploaded",
-    item: "Site Inspection Report",
-    user: "Admin",
-    time: "2 days ago",
-  },
-];
 
 // Colors for pie chart
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
@@ -140,10 +104,93 @@ const Dashboard: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await getDashboardSummary();
-      setSummary(data);
+      // Fetch all data in parallel
+      const [projects, workOrders, paymentItems, subcontractors] =
+        await Promise.all([
+          projectsApi.getAll(),
+          workOrdersApi.getAll(),
+          paymentItemsApi.getAll(),
+          subcontractorsApi.getAll(),
+        ]);
+
+      // Calculate project status data
+      const statusCounts = projects.reduce((acc, project) => {
+        acc[project.status] = (acc[project.status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const projectStatusData = Object.entries(statusCounts).map(
+        ([name, value]) => ({
+          name,
+          value,
+        })
+      );
+
+      // Calculate work order status data
+      const workOrderStatusCounts = workOrders.reduce((acc, wo) => {
+        acc[wo.status] = (acc[wo.status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const workOrderData = Object.entries(workOrderStatusCounts).map(
+        ([name, count]) => ({
+          name,
+          count,
+        })
+      );
+
+      // Calculate budget data
+      const budgetData = projects.map((project) => ({
+        name:
+          project.project_name.length > 15
+            ? project.project_name.substring(0, 15) + "..."
+            : project.project_name,
+        budget: project.budget || 0,
+        spent: 0, // TODO: Calculate actual spent amount from financial transactions
+      }));
+
+      // Calculate total budget
+      const totalBudget = projects.reduce(
+        (sum, project) => sum + (project.budget || 0),
+        0
+      );
+
+      // Generate recent activities from work orders and projects
+      const recentActivities = [
+        ...projects.slice(0, 2).map((project) => ({
+          id: project.project_id,
+          type: "project",
+          action: "created",
+          item: project.project_name,
+          user: "Project Manager",
+          time: new Date(project.created_at).toLocaleDateString(),
+        })),
+        ...workOrders.slice(0, 3).map((wo) => ({
+          id: wo.work_order_id,
+          type: "workorder",
+          action: wo.status === "Completed" ? "completed" : "updated",
+          item: wo.description,
+          user: "Field Worker",
+          time: new Date(wo.updated_at).toLocaleDateString(),
+        })),
+      ].slice(0, 5);
+
+      const summary: DashboardSummary = {
+        projectCount: projects.length,
+        activeWorkOrders: workOrders.filter((wo) =>
+          ["Pending", "Assigned", "Started", "In Progress"].includes(wo.status)
+        ).length,
+        totalPaymentItems: paymentItems.length,
+        totalSubcontractors: subcontractors.length,
+        totalBudget,
+        projectStatusData,
+        workOrderData,
+        budgetData,
+        recentActivities,
+      };
+
+      setSummary(summary);
     } catch (err: any) {
-      // Catch specific error types if possible
       console.error("Failed to load dashboard summary:", err);
       setError("Failed to load dashboard summary. Please try again later.");
     } finally {
@@ -274,7 +321,7 @@ const Dashboard: React.FC = () => {
 
       {!isLoading && !error && summary && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card
               className="cursor-pointer hover:shadow-md transition-shadow"
               onClick={() => handleCardClick("/projects")}
@@ -288,7 +335,7 @@ const Dashboard: React.FC = () => {
               <CardContent>
                 <div className="text-2xl font-bold">{summary.projectCount}</div>
                 <p className="text-xs text-muted-foreground">
-                  Click to view all projects
+                  ${(summary.totalBudget / 1000000).toFixed(1)}M total budget
                 </p>
               </CardContent>
             </Card>
@@ -315,20 +362,44 @@ const Dashboard: React.FC = () => {
 
             <Card
               className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => handleCardClick("/quality-control")}
+              onClick={() =>
+                handleCardClick(
+                  "/projects/5ec5a5c4-1cc8-4ea8-9f8f-e683b5c1fe96/payment-items"
+                )
+              }
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Open Issues
+                  Payment Items
                 </CardTitle>
-                <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                <FileText className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {summary.openIssuesCount}
+                  {summary.totalPaymentItems}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Click to view all issues
+                  Click to view payment items
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card
+              className="cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => handleCardClick("/subcontractors")}
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Subcontractors
+                </CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {summary.totalSubcontractors}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Click to view all contractors
                 </p>
               </CardContent>
             </Card>
@@ -344,7 +415,7 @@ const Dashboard: React.FC = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={projectStatusData}
+                      data={summary.projectStatusData}
                       cx="50%"
                       cy="50%"
                       labelLine={false}
@@ -355,7 +426,7 @@ const Dashboard: React.FC = () => {
                         `${name}: ${(percent * 100).toFixed(0)}%`
                       }
                     >
-                      {projectStatusData.map((_, index) => (
+                      {summary.projectStatusData.map((_, index) => (
                         <Cell
                           key={`cell-${index}`}
                           fill={COLORS[index % COLORS.length]}
@@ -377,7 +448,7 @@ const Dashboard: React.FC = () => {
               <CardContent className="h-60 sm:h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={workOrderData}
+                    data={summary.workOrderData}
                     margin={{
                       top: 5,
                       right: 30,
@@ -404,7 +475,7 @@ const Dashboard: React.FC = () => {
               <CardContent className="h-60 sm:h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={budgetData}
+                    data={summary.budgetData}
                     margin={{
                       top: 20,
                       right: 30,
@@ -433,7 +504,7 @@ const Dashboard: React.FC = () => {
               </CardHeader>
               <CardContent className="max-h-[400px] overflow-y-auto">
                 <div className="space-y-4">
-                  {recentActivities.map((activity) => (
+                  {summary.recentActivities.map((activity) => (
                     <div
                       key={activity.id}
                       className="flex items-start space-x-4 p-2 hover:bg-slate-50 rounded-md"

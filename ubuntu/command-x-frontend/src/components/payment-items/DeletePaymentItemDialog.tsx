@@ -14,7 +14,7 @@ import { deletePaymentItem } from "@/services/paymentItemsApi";
 import { toast } from "@/components/ui/use-toast";
 
 interface DeletePaymentItemDialogProps {
-  projectId: number;
+  projectId: string | number; // Support both UUID strings and legacy numbers
   itemId: number;
   itemDescription: string;
   isOpen: boolean;

@@ -1,16 +1,11 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../contexts/AuthContext";
-import {
-  getProjects,
-  createProject,
-  updateProject,
-  deleteProject,
-  getSubcontractors,
-  createSubcontractor,
-  ProjectData,
-  SubcontractorData,
-} from "../services/api";
+import { projectsApi, subcontractorsApi } from "../services/supabaseApi";
+import { Database } from "../lib/database.types";
+
+type ProjectData = Database["public"]["Tables"]["projects"]["Row"];
+type SubcontractorData = Database["public"]["Tables"]["subcontractors"]["Row"];
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -116,10 +111,9 @@ const Projects: React.FC = () => {
     Partial<SubcontractorData>
   >({
     company_name: "",
-    contact_name: "",
+    primary_contact_name: "",
     email: "",
-    phone: "",
-    trade: "",
+    phone_number: "",
   });
 
   // Check for mobile view
@@ -139,7 +133,7 @@ const Projects: React.FC = () => {
     error,
   } = useQuery<ProjectData[], Error>({
     queryKey: ["projects"],
-    queryFn: getProjects,
+    queryFn: projectsApi.getAll,
   });
 
   // Fetch Subcontractors
@@ -149,14 +143,14 @@ const Projects: React.FC = () => {
     error: subcontractorsError,
   } = useQuery<SubcontractorData[], Error>({
     queryKey: ["subcontractors"],
-    queryFn: getSubcontractors,
+    queryFn: subcontractorsApi.getAll,
   });
 
   // --- Mutations ---
 
   // Create Project
   const createMutation = useMutation({
-    mutationFn: createProject,
+    mutationFn: projectsApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       setIsCreateDialogOpen(false);
@@ -164,23 +158,9 @@ const Projects: React.FC = () => {
     },
     onError: (err: any) => {
       console.error("Error creating project:", err);
-      // Provide more specific error messages based on the error
-      if (err.response) {
-        // Server responded with an error status
-        const errorMessage =
-          err.response.data?.message || "Server error occurred";
-        toast.error(`Failed to create project: ${errorMessage}`);
-      } else if (err.request) {
-        // Request was made but no response received
-        toast.error(
-          "Failed to create project: No response from server. Check your connection."
-        );
-      } else {
-        // Something else went wrong
-        toast.error(
-          `Failed to create project: ${err.message || "Unknown error"}`
-        );
-      }
+      toast.error(
+        `Failed to create project: ${err.message || "Unknown error"}`
+      );
     },
   });
 
@@ -189,7 +169,7 @@ const Projects: React.FC = () => {
     mutationFn: (projectData: ProjectData) => {
       if (!projectData.project_id)
         throw new Error("No project ID found for update");
-      return updateProject(projectData.project_id, projectData);
+      return projectsApi.update(projectData.project_id, projectData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
@@ -205,7 +185,7 @@ const Projects: React.FC = () => {
 
   // Delete Project
   const deleteMutation = useMutation({
-    mutationFn: deleteProject,
+    mutationFn: projectsApi.delete,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       toast.success("Project deleted successfully!");
@@ -218,34 +198,20 @@ const Projects: React.FC = () => {
 
   // Create Subcontractor
   const createSubcontractorMutation = useMutation({
-    mutationFn: createSubcontractor,
+    mutationFn: subcontractorsApi.create,
     onSuccess: (newSubcontractor) => {
       queryClient.invalidateQueries({ queryKey: ["subcontractors"] });
       setIsNewSubcontractorDialogOpen(false);
 
-      // Add the newly created subcontractor to the project
-      const newSubcontractorForProject = {
-        subcontractor_id: newSubcontractor.subcontractor_id,
-        company_name: newSubcontractor.company_name,
-        role: "",
-        assigned_date: new Date().toISOString(),
-      };
-
-      formik.setFieldValue("subcontractors", [
-        ...(formik.values.subcontractors || []),
-        newSubcontractorForProject,
-      ]);
-
       // Reset the form
       setNewSubcontractorData({
         company_name: "",
-        contact_name: "",
+        primary_contact_name: "",
         email: "",
-        phone: "",
-        trade: "",
+        phone_number: "",
       });
 
-      toast.success("Subcontractor created and added to project!");
+      toast.success("Subcontractor created successfully!");
     },
     onError: (err) => {
       console.error("Error creating subcontractor:", err);
@@ -255,7 +221,7 @@ const Projects: React.FC = () => {
 
   // --- Form Handling (using Formik) ---
 
-  const formik = useFormik<ProjectData>({
+  const formik = useFormik<Partial<ProjectData>>({
     initialValues: {
       project_name: "",
       location: "",
@@ -263,8 +229,7 @@ const Projects: React.FC = () => {
       start_date: null,
       end_date: null,
       budget: null,
-      status: "Planning",
-      subcontractors: [],
+      status: "Active",
     },
     validationSchema: ProjectSchema,
     onSubmit: (values) => {
@@ -279,9 +244,9 @@ const Projects: React.FC = () => {
         updateMutation.mutate({
           ...submissionData,
           project_id: selectedProject.project_id,
-        });
+        } as ProjectData);
       } else {
-        createMutation.mutate(submissionData);
+        createMutation.mutate(submissionData as any);
       }
     },
     enableReinitialize: true, // Reinitialize form when selectedProject changes
@@ -291,7 +256,6 @@ const Projects: React.FC = () => {
   useEffect(() => {
     if (selectedProject) {
       formik.setValues({
-        project_id: selectedProject.project_id, // Preserve the project_id
         project_name: selectedProject.project_name || "",
         location: selectedProject.location || "",
         client_name: selectedProject.client_name || "",
@@ -303,8 +267,7 @@ const Projects: React.FC = () => {
           ? new Date(selectedProject.end_date).toISOString().split("T")[0]
           : null,
         budget: selectedProject.budget || null,
-        status: selectedProject.status || "Planning",
-        subcontractors: selectedProject.subcontractors || [],
+        status: selectedProject.status || "Active",
       });
     } else {
       formik.resetForm();
@@ -317,7 +280,7 @@ const Projects: React.FC = () => {
     setIsEditDialogOpen(true);
   };
 
-  const handleDeleteClick = (projectId: number) => {
+  const handleDeleteClick = (projectId: string) => {
     if (window.confirm("Are you sure you want to delete this project?")) {
       deleteMutation.mutate(projectId);
     }

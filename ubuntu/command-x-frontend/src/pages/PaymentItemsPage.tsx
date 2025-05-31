@@ -23,6 +23,11 @@ import InlineEditPaymentItem from "@/components/payment-items/InlineEditPaymentI
 const PaymentItemsPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
+
+  // Debug logging
+  console.log("🔍 PaymentItemsPage - projectId from URL:", projectId);
+  console.log("🔍 PaymentItemsPage - projectId type:", typeof projectId);
+  console.log("🔍 PaymentItemsPage - current URL:", window.location.pathname);
   const [selectedPaymentItem, setSelectedPaymentItem] =
     useState<PaymentItemData | null>(null);
 
@@ -58,7 +63,28 @@ const PaymentItemsPage: React.FC = () => {
     error: projectError,
   } = useQuery({
     queryKey: ["project", projectId],
-    queryFn: () => getProjectById(Number(projectId)),
+    queryFn: () => {
+      console.log(
+        "🔍 PaymentItemsPage - React Query calling getProjectById with:",
+        projectId
+      );
+      return getProjectById(projectId!);
+    },
+    enabled: !!projectId,
+    onSuccess: (data) => {
+      console.log("🔍 PaymentItemsPage - React Query success:", data);
+    },
+    onError: (error) => {
+      console.error("🔍 PaymentItemsPage - React Query error:", error);
+    },
+  });
+
+  // Debug the query state
+  console.log("🔍 PaymentItemsPage - Query state:", {
+    projectId,
+    isLoadingProject,
+    hasProject: !!project,
+    projectError,
     enabled: !!projectId,
   });
 
@@ -142,7 +168,7 @@ const PaymentItemsPage: React.FC = () => {
               <CheckCircle className="h-4 w-4 mr-2" /> Approve Items
             </Button>
           )}
-          <BasicAddPaymentItemButton projectId={Number(projectId)} />
+          <BasicAddPaymentItemButton projectId={projectId!} />
         </div>
       </div>
 
@@ -158,7 +184,7 @@ const PaymentItemsPage: React.FC = () => {
           {editingItemId !== null && selectedPaymentItem ? (
             <div className="mb-6">
               <InlineEditPaymentItem
-                projectId={Number(projectId)}
+                projectId={projectId!}
                 paymentItem={selectedPaymentItem}
                 onCancel={handleCancelEdit}
               />
@@ -166,7 +192,7 @@ const PaymentItemsPage: React.FC = () => {
           ) : null}
 
           <PaymentItemsTable
-            projectId={Number(projectId)}
+            projectId={projectId!}
             onViewItem={handleViewPaymentItem}
             onEditItem={handleEditPaymentItem}
             onDeleteItem={handleDeletePaymentItem}
@@ -179,7 +205,7 @@ const PaymentItemsPage: React.FC = () => {
         <>
           {/* Add Payment Item Dialog */}
           <PaymentItemDialog
-            projectId={Number(projectId)}
+            projectId={projectId}
             isOpen={isAddDialogOpen}
             onClose={() => setIsAddDialogOpen(false)}
           />
@@ -187,7 +213,7 @@ const PaymentItemsPage: React.FC = () => {
           {/* Edit Payment Item Dialog */}
           {selectedPaymentItem && (
             <PaymentItemDialog
-              projectId={Number(projectId)}
+              projectId={projectId}
               paymentItem={selectedPaymentItem}
               isOpen={isEditDialogOpen}
               onClose={() => setIsEditDialogOpen(false)}
@@ -197,7 +223,7 @@ const PaymentItemsPage: React.FC = () => {
           {/* Delete Payment Item Dialog */}
           {selectedPaymentItem && (
             <DeletePaymentItemDialog
-              projectId={Number(projectId)}
+              projectId={projectId}
               itemId={selectedPaymentItem.item_id}
               itemDescription={selectedPaymentItem.description}
               isOpen={isDeleteDialogOpen}
@@ -219,7 +245,7 @@ const PaymentItemsPage: React.FC = () => {
           {selectedPaymentItem && (
             <PaymentItemApproval
               itemId={selectedPaymentItem.item_id}
-              projectId={Number(projectId)}
+              projectId={projectId}
               isOpen={isApprovalDialogOpen}
               onClose={() => setIsApprovalDialogOpen(false)}
             />

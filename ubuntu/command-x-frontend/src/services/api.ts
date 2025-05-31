@@ -19,13 +19,13 @@ const apiClient = axios.create({
 });
 
 // Add a mock adapter to simulate API responses
-const USE_MOCK_DATA = true; // Set to true to use mock data for UI testing (auth not set up yet)
+const USE_MOCK_DATA = false; // Set to false to use real Supabase data
 
 // Mock database for storing data when using mock mode
 const mockDB = {
   projects: [
     {
-      project_id: 1,
+      project_id: "5ec5a5c4-1cc8-4ea8-9f8f-e683b5c1fe96",
       project_name: "Smith Residence Renovation",
       location: "123 Main St, Anytown, USA",
       client_name: "John Smith",
@@ -64,7 +64,7 @@ const mockDB = {
       change_orders_value: 15000,
     },
     {
-      project_id: 2,
+      project_id: "880e8400-e29b-41d4-a716-446655440001",
       project_name: "Downtown Office Building",
       location: "456 Commerce Ave, Anytown, USA",
       client_name: "ABC Corporation",
@@ -104,7 +104,7 @@ const mockDB = {
       change_orders_value: 75000,
     },
     {
-      project_id: 3,
+      project_id: "880e8400-e29b-41d4-a716-446655440002",
       project_name: "City Park Pavilion",
       location: "789 Park Rd, Anytown, USA",
       client_name: "Anytown Municipality",
@@ -143,7 +143,7 @@ const mockDB = {
       change_orders_value: 0,
     },
     {
-      project_id: 4,
+      project_id: "880e8400-e29b-41d4-a716-446655440003",
       project_name: "Riverside Apartments",
       location: "321 River View Dr, Anytown, USA",
       client_name: "Riverfront Development LLC",
@@ -182,7 +182,7 @@ const mockDB = {
       change_orders_value: 0,
     },
     {
-      project_id: 5,
+      project_id: "880e8400-e29b-41d4-a716-446655440004",
       project_name: "Highway 7 Bridge Repair",
       location: "Highway 7, Anytown County",
       client_name: "State Transportation Department",
@@ -217,11 +217,46 @@ const mockDB = {
       change_orders_count: 0,
       change_orders_value: 0,
     },
+    {
+      project_id: "6d85162b-93c3-4f3e-ad29-cbc43a270eb8",
+      project_name: "Test Project for Payment Items",
+      location: "123 Test St, Test City, USA",
+      client_name: "Test Client",
+      start_date: "2025-01-01",
+      end_date: "2025-12-31",
+      budget: 500000,
+      status: "In Progress",
+      description: "Test project for payment items functionality",
+      progress_percentage: 30,
+      priority: "Medium",
+      category: "Residential",
+      manager_id: 1,
+      manager_name: "John Smith",
+      team_members: [],
+      actual_cost: 150000,
+      estimated_hours: 2000,
+      actual_hours: 600,
+      created_at: "2025-01-01T08:00:00Z",
+      updated_at: "2025-01-15T12:00:00Z",
+      tags: ["test", "residential"],
+      risk_level: "Low",
+      // Accounting-related fields
+      budget_utilization: 30.0,
+      total_invoiced: 150000,
+      total_paid: 135000,
+      outstanding_balance: 15000,
+      retainage_held: 7500,
+      payment_terms: "Net 30",
+      contract_number: "CONT-2025-006",
+      contract_type: "Fixed Price",
+      change_orders_count: 0,
+      change_orders_value: 0,
+    },
   ],
   workOrders: [
     {
       work_order_id: 1,
-      project_id: 1,
+      project_id: "5ec5a5c4-1cc8-4ea8-9f8f-e683b5c1fe96", // Smith Residence Renovation
       description: "Foundation Work",
       status: "In Progress",
       scheduled_date: "2025-02-15",
@@ -243,7 +278,7 @@ const mockDB = {
     },
     {
       work_order_id: 2,
-      project_id: 1,
+      project_id: "5ec5a5c4-1cc8-4ea8-9f8f-e683b5c1fe96", // Smith Residence Renovation
       description: "Framing",
       status: "Completed",
       scheduled_date: "2025-03-01",
@@ -265,7 +300,7 @@ const mockDB = {
     },
     {
       work_order_id: 3,
-      project_id: 2,
+      project_id: "880e8400-e29b-41d4-a716-446655440001", // Downtown Office Building
       description: "Electrical Installation",
       status: "In Progress",
       scheduled_date: "2025-04-10",
@@ -287,7 +322,7 @@ const mockDB = {
     },
     {
       work_order_id: 4,
-      project_id: 2,
+      project_id: "880e8400-e29b-41d4-a716-446655440001", // Downtown Office Building
       description: "HVAC Installation",
       status: "Completed",
       scheduled_date: "2025-03-15",
@@ -309,7 +344,7 @@ const mockDB = {
     },
     {
       work_order_id: 5,
-      project_id: 3,
+      project_id: "880e8400-e29b-41d4-a716-446655440002", // City Park Pavilion
       description: "Site Preparation",
       status: "Completed",
       scheduled_date: "2025-03-10",
@@ -331,7 +366,7 @@ const mockDB = {
     },
     {
       work_order_id: 6,
-      project_id: 1,
+      project_id: "5ec5a5c4-1cc8-4ea8-9f8f-e683b5c1fe96", // Smith Residence Renovation
       description: "Multi-Contractor Kitchen Renovation",
       status: "In Progress",
       scheduled_date: "2025-05-01",
@@ -624,46 +659,47 @@ const mockUsers = [
 export const loginUser = async (
   credentials: LoginCredentials
 ): Promise<AuthResponse> => {
+  const { username, password } = credentials;
+
+  console.log("Login attempt with:", { username, password: "***" });
+
+  // Special case for admin@example.com - works regardless of USE_MOCK_DATA setting
+  if (
+    (username === "admin@example.com" || username === "admin") &&
+    password === "admin123"
+  ) {
+    console.log("Admin login successful");
+
+    // Create admin user
+    const adminUser = {
+      user_id: 1,
+      username: "admin",
+      password: "admin123",
+      email: "admin@example.com",
+      role: "admin",
+      status: "Active",
+      created_at: "2025-01-01T00:00:00Z",
+      first_name: "Admin",
+      last_name: "User",
+    };
+
+    // Create a mock token
+    const token = `mock-jwt-token-admin-${Date.now()}`;
+
+    // Store token in localStorage
+    localStorage.setItem("authToken", token);
+
+    // Return user data without password
+    const { password: _, ...userWithoutPassword } = adminUser;
+
+    return {
+      token,
+      user: userWithoutPassword,
+    };
+  }
+
   if (USE_MOCK_DATA) {
-    // Simulate login with mock data
-    const { username, password } = credentials;
-
-    console.log("Login attempt with:", { username, password: "***" });
-
-    // Special case for admin@example.com
-    if (
-      (username === "admin@example.com" || username === "admin") &&
-      password === "admin123"
-    ) {
-      console.log("Admin login successful");
-
-      // Create admin user if it doesn't exist in mock database
-      const adminUser = mockUsers.find((u) => u.username === "admin") || {
-        user_id: 1,
-        username: "admin",
-        password: "admin123",
-        email: "admin@example.com",
-        role: "Admin",
-        status: "Active",
-        created_at: "2025-01-01T00:00:00Z",
-        first_name: "Admin",
-        last_name: "User",
-      };
-
-      // Create a mock token
-      const token = `mock-jwt-token-admin-${Date.now()}`;
-
-      // Store token in localStorage
-      localStorage.setItem("authToken", token);
-
-      // Return user data without password
-      const { password: _, ...userWithoutPassword } = adminUser;
-
-      return {
-        token,
-        user: userWithoutPassword,
-      };
-    }
+    // Simulate login with mock data for other users
 
     console.log(
       "Available mock users:",
@@ -876,34 +912,63 @@ export const getProjects = async () => {
   return response.data;
 };
 
-export const getProjectById = async (projectId: number) => {
-  if (USE_MOCK_DATA) {
-    console.log(`Fetching project with ID ${projectId}`);
+export const getProjectById = async (projectId: string | number) => {
+  console.log(
+    `🔍 getProjectById called with ID: ${projectId}, type: ${typeof projectId}`
+  );
+  console.log(`🔍 USE_MOCK_DATA: ${USE_MOCK_DATA}`);
 
-    // Find the project in our mock database
-    const project = mockDB.projects.find((p) => p.project_id === projectId);
+  if (USE_MOCK_DATA) {
+    console.log(`🔍 Using mock data, searching for project ID ${projectId}`);
+    console.log(
+      `🔍 Available projects:`,
+      mockDB.projects.map((p) => ({ id: p.project_id, name: p.project_name }))
+    );
+
+    // Find the project in our mock database - handle both string and number IDs
+    const project = mockDB.projects.find(
+      (p) => p.project_id === String(projectId)
+    );
+
+    console.log(
+      `🔍 Found project:`,
+      project
+        ? { id: project.project_id, name: project.project_name }
+        : "NOT FOUND"
+    );
 
     if (!project) {
-      console.error(`Project with ID ${projectId} not found`);
-      return Promise.reject({
-        response: {
-          status: 404,
-          data: { message: "Project not found" },
-        },
-      });
+      console.error(`🔍 Project with ID ${projectId} not found`);
+      const error = new Error(`Project with ID ${projectId} not found`);
+      console.log(`🔍 Throwing error:`, error);
+      throw error;
     }
 
     // Simulate a delay for the API call
+    console.log(`🔍 Simulating API delay...`);
     await new Promise((resolve) => setTimeout(resolve, 300));
 
+    console.log(`🔍 Returning project:`, {
+      id: project.project_id,
+      name: project.project_name,
+    });
     return { ...project }; // Return a copy to prevent direct modification
   }
 
   // If not using mock data, make the actual API call
-  const response = await axios.get(
-    `${PROJECT_SERVICE_URL}/projects/${projectId}`
+  console.log(
+    `🔍 Making real API call to: ${PROJECT_SERVICE_URL}/projects/${projectId}`
   );
-  return response.data;
+  try {
+    const response = await axios.get(
+      `${PROJECT_SERVICE_URL}/projects/${projectId}`
+    );
+    console.log(`🔍 API response:`, response.data);
+    return response.data;
+  } catch (error) {
+    console.error(`🔍 API call failed:`, error);
+    throw error;
+  }
 };
 
 export const createProject = async (projectData: ProjectData) => {
@@ -1267,7 +1332,7 @@ export interface WorkOrderData {
   contractor_assignments?: ContractorAssignment[]; // New multi-contractor support
 }
 
-export const getWorkOrders = async (projectId?: number) => {
+export const getWorkOrders = async (projectId?: string | number) => {
   if (USE_MOCK_DATA) {
     console.log("Fetching work orders from mock DB:", mockDB.workOrders.length);
 
@@ -1276,7 +1341,9 @@ export const getWorkOrders = async (projectId?: number) => {
 
     // Filter by project ID if provided
     if (projectId) {
-      return workOrders.filter((wo) => wo.project_id === projectId);
+      return workOrders.filter(
+        (wo) => String(wo.project_id) === String(projectId)
+      );
     }
 
     return workOrders;
@@ -1347,7 +1414,7 @@ export const createWorkOrder = async (workOrderData: WorkOrderData) => {
 
       // Validate that the project exists
       const projectExists = mockDB.projects.some(
-        (p) => p.project_id === workOrderData.project_id
+        (p) => String(p.project_id) === String(workOrderData.project_id)
       );
       if (!projectExists) {
         console.error(`Project with ID ${workOrderData.project_id} not found`);

@@ -24,6 +24,13 @@ import PaymentItemsPage from "./pages/PaymentItemsPage";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage"; // Import LoginPage
 import TestDialog from "./pages/TestDialog"; // Import TestDialog
+import SupabaseTest from "./pages/SupabaseTest"; // Import SupabaseTest
+import RealDataDemo from "./pages/RealDataDemo"; // Import RealDataDemo
+import EnhancedWorkOrderTest from "./pages/EnhancedWorkOrderTest"; // Import EnhancedWorkOrderTest
+import PaymentItemsDebug from "./pages/PaymentItemsDebug"; // Import PaymentItemsDebug
+import ContractorAssignmentTest from "./pages/ContractorAssignmentTest"; // Import ContractorAssignmentTest
+import PaymentItemsDebugSimple from "./pages/PaymentItemsDebugSimple"; // Import PaymentItemsDebugSimple
+import DirectApiTest from "./pages/DirectApiTest"; // Import DirectApiTest
 import { useEffect } from "react";
 import { setUser } from "./features/auth/authSlice";
 import { ThemeProvider } from "./components/theme/ThemeProvider";
@@ -138,6 +145,55 @@ function App() {
 
             {/* Test Dialog Route - Public for testing */}
             <Route path="/test-dialog" element={<TestDialog />} />
+
+            {/* Supabase Test Route - Public for testing */}
+            <Route path="/supabase-test" element={<SupabaseTest />} />
+
+            {/* Dashboard Test Route - Public for testing real data */}
+            <Route path="/dashboard-test" element={<Dashboard />} />
+
+            {/* Projects Test Route - Public for testing real data */}
+            <Route path="/projects-test" element={<Projects />} />
+
+            {/* Real Data Demo - Comprehensive showcase */}
+            <Route path="/real-data-demo" element={<RealDataDemo />} />
+
+            {/* Enhanced Work Order Test - Test multi-contractor and payment item editing */}
+            <Route
+              path="/enhanced-work-order-test"
+              element={<EnhancedWorkOrderTest />}
+            />
+
+            {/* Payment Items Debug - Debug payment items API */}
+            <Route
+              path="/payment-items-debug"
+              element={<PaymentItemsDebug />}
+            />
+
+            {/* Contractor Assignment Test - Debug contractor assignments */}
+            <Route
+              path="/contractor-assignment-test"
+              element={<ContractorAssignmentTest />}
+            />
+
+            {/* Payment Items Debug Simple - Debug payment items loading */}
+            <Route
+              path="/payment-items-debug-simple"
+              element={<PaymentItemsDebugSimple />}
+            />
+            <Route
+              path="/projects/:projectId/payment-items-debug"
+              element={<PaymentItemsDebugSimple />}
+            />
+
+            {/* Direct API Test - Test API functions directly */}
+            <Route path="/direct-api-test" element={<DirectApiTest />} />
+
+            {/* Public Payment Items Test - Test payment items without auth */}
+            <Route
+              path="/payment-items-test/:projectId"
+              element={<PaymentItemsPage />}
+            />
 
             {/* Protected Routes */}
             <Route element={<ProtectedRoute />}>

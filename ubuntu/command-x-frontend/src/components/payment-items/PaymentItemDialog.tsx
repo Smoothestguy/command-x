@@ -16,7 +16,7 @@ import {
 import { toast } from "@/components/ui/use-toast";
 
 interface PaymentItemDialogProps {
-  projectId: number;
+  projectId: string | number; // Support both UUID strings and legacy numbers
   paymentItem?: PaymentItemData;
   isOpen: boolean;
   onClose: () => void;

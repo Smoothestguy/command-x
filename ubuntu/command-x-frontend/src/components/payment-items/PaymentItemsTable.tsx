@@ -49,7 +49,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 interface PaymentItemsTableProps {
   workOrderId?: number;
   locationId?: number;
-  projectId?: number;
+  projectId?: string | number; // Support both UUID strings and legacy numbers
   onEditItem?: (item: PaymentItemData) => void;
   onViewItem?: (item: PaymentItemData) => void;
   onDeleteItem?: (item: PaymentItemData) => void;
