@@ -41,8 +41,23 @@ const initializeStateFromToken = (): Partial<AuthState> => {
   const token = localStorage.getItem("authToken");
   if (!token) return {};
 
+  // Check if token looks like a JWT (has 3 parts separated by dots)
+  if (token.split(".").length !== 3) {
+    console.warn("Invalid JWT format, removing token");
+    localStorage.removeItem("authToken");
+    return {};
+  }
+
   try {
     const decoded = jwtDecode<JwtPayload>(token);
+
+    // Check if token is expired
+    if (decoded.exp && decoded.exp * 1000 < Date.now()) {
+      console.warn("Token expired, removing token");
+      localStorage.removeItem("authToken");
+      return {};
+    }
+
     return {
       token,
       tokenExpiration: decoded.exp * 1000, // Convert to milliseconds
@@ -54,13 +69,20 @@ const initializeStateFromToken = (): Partial<AuthState> => {
     };
   } catch (error) {
     // Invalid token
+    console.warn("Error decoding token:", error);
     localStorage.removeItem("authToken");
     return {};
   }
 };
 
-// Apply the initialization
-Object.assign(initialState, initializeStateFromToken());
+// Apply the initialization safely
+try {
+  Object.assign(initialState, initializeStateFromToken());
+} catch (error) {
+  console.error("Error initializing auth state:", error);
+  // Clear any problematic data
+  localStorage.removeItem("authToken");
+}
 
 // Import the loginUser function from the API service
 import { loginUser as apiLoginUser } from "../../services/api";
@@ -125,13 +147,22 @@ const authSlice = createSlice({
       state.user = action.payload.user;
       state.token = action.payload.token;
 
-      try {
-        // Decode token to get expiration
-        const decoded = jwtDecode<JwtPayload>(action.payload.token);
-        state.tokenExpiration = decoded.exp * 1000; // Convert to milliseconds
-      } catch (error) {
-        console.error("Error decoding JWT token:", error);
-        state.tokenExpiration = null;
+      // Only try to decode if it looks like a JWT
+      if (
+        action.payload.token &&
+        action.payload.token.split(".").length === 3
+      ) {
+        try {
+          // Decode token to get expiration
+          const decoded = jwtDecode<JwtPayload>(action.payload.token);
+          state.tokenExpiration = decoded.exp * 1000; // Convert to milliseconds
+        } catch (error) {
+          console.error("Error decoding JWT token:", error);
+          state.tokenExpiration = null;
+        }
+      } else {
+        // Not a JWT token, set a default expiration (e.g., 24 hours from now)
+        state.tokenExpiration = Date.now() + 24 * 60 * 60 * 1000;
       }
     },
   },
