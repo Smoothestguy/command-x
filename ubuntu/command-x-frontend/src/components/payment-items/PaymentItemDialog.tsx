@@ -13,7 +13,7 @@ import {
   createPaymentItem,
   updatePaymentItem,
 } from "@/services/paymentItemsApi";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 
 interface PaymentItemDialogProps {
   projectId: string | number; // Support both UUID strings and legacy numbers
@@ -42,20 +42,15 @@ const PaymentItemDialog: React.FC<PaymentItemDialogProps> = ({
     mutationFn: createPaymentItem,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["paymentItems", projectId] });
-      toast({
-        title: "Success",
-        description: "Payment item created successfully",
-      });
+      toast.success("Payment item created successfully");
       onClose();
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to create payment item: ${
+      toast.error(
+        `Failed to create payment item: ${
           error instanceof Error ? error.message : "Unknown error"
-        }`,
-        variant: "destructive",
-      });
+        }`
+      );
     },
   });
 
@@ -70,20 +65,15 @@ const PaymentItemDialog: React.FC<PaymentItemDialogProps> = ({
     }) => updatePaymentItem(itemId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["paymentItems", projectId] });
-      toast({
-        title: "Success",
-        description: "Payment item updated successfully",
-      });
+      toast.success("Payment item updated successfully");
       onClose();
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to update payment item: ${
+      toast.error(
+        `Failed to update payment item: ${
           error instanceof Error ? error.message : "Unknown error"
-        }`,
-        variant: "destructive",
-      });
+        }`
+      );
     },
   });
 

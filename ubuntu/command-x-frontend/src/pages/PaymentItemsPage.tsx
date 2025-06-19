@@ -189,11 +189,16 @@ const PaymentItemsPage: React.FC = () => {
           </div>
         </div>
         <Button
-          onClick={() => setIsAddDialogOpen(true)}
+          onClick={() => {
+            console.log("Add Custom Item button clicked!");
+            console.log("Current isAddDialogOpen state:", isAddDialogOpen);
+            setIsAddDialogOpen(true);
+            console.log("Setting isAddDialogOpen to true");
+          }}
           className="flex items-center gap-2"
         >
           <Plus className="h-4 w-4" />
-          Add Payment Item
+          Add Custom Item
         </Button>
       </div>
 
@@ -339,8 +344,18 @@ const PaymentItemsPage: React.FC = () => {
       <PaymentItemDialog
         projectId={projectId!}
         isOpen={isAddDialogOpen}
-        onClose={() => setIsAddDialogOpen(false)}
+        onClose={() => {
+          console.log("Dialog onClose called");
+          setIsAddDialogOpen(false);
+        }}
       />
+
+      {/* Debug Info */}
+      {process.env.NODE_ENV === "development" && (
+        <div className="fixed bottom-4 right-4 bg-black text-white p-2 rounded text-xs">
+          Dialog Open: {isAddDialogOpen ? "true" : "false"}
+        </div>
+      )}
     </div>
   );
 };
