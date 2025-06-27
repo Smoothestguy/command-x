@@ -19,7 +19,7 @@ const apiClient = axios.create({
 });
 
 // Add a mock adapter to simulate API responses
-const USE_MOCK_DATA = false; // Set to false to use real Supabase data
+const USE_MOCK_DATA = true; // Set to true to use mock data for work orders and other services
 
 // Mock database for storing data when using mock mode
 const mockDB = {
@@ -407,6 +407,58 @@ const mockDB = {
           contact_name: "Jane Smith",
         },
       ],
+    },
+    // Work orders for test project
+    {
+      work_order_id: 7,
+      project_id: "85b7f467-a860-4962-b645-51ea950b526f", // Test project
+      description: "Electrical Installation",
+      status: "Pending",
+      scheduled_date: "2025-03-01",
+      completion_date: null,
+      estimated_cost: 25000,
+      actual_cost: 0,
+      assigned_subcontractor_id: 1,
+      amount_billed: 0,
+      amount_paid: 0,
+      retainage_percentage: 10,
+      payment_status: "Not Billed",
+      created_at: "2025-02-20T10:00:00Z",
+      updated_at: "2025-02-20T10:00:00Z",
+    },
+    {
+      work_order_id: 8,
+      project_id: "85b7f467-a860-4962-b645-51ea950b526f", // Test project
+      description: "Plumbing Rough-in",
+      status: "In Progress",
+      scheduled_date: "2025-03-05",
+      completion_date: null,
+      estimated_cost: 18000,
+      actual_cost: 5000,
+      assigned_subcontractor_id: 2,
+      amount_billed: 0,
+      amount_paid: 0,
+      retainage_percentage: 10,
+      payment_status: "Not Billed",
+      created_at: "2025-02-22T09:30:00Z",
+      updated_at: "2025-02-25T14:15:00Z",
+    },
+    {
+      work_order_id: 9,
+      project_id: "85b7f467-a860-4962-b645-51ea950b526f", // Test project
+      description: "HVAC Installation",
+      status: "Completed",
+      scheduled_date: "2025-02-15",
+      completion_date: "2025-02-28",
+      estimated_cost: 32000,
+      actual_cost: 31500,
+      assigned_subcontractor_id: 3,
+      amount_billed: 31500,
+      amount_paid: 28350,
+      retainage_percentage: 10,
+      payment_status: "Partially Paid",
+      created_at: "2025-02-10T11:00:00Z",
+      updated_at: "2025-03-01T16:45:00Z",
     },
   ],
   subcontractors: [

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Custom Item Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Add Custom Item Functionality Test</h1>
+    
+    <div class="test-section info">
+        <h2>Test Instructions</h2>
+        <p>This page will test the "Add Custom Item" functionality by:</p>
+        <ol>
+            <li>Opening the Add Payment Item Test page in an iframe</li>
+            <li>Checking if the "Add Custom Item" button is present</li>
+            <li>Testing if the dialog opens when clicked</li>
+            <li>Testing form submission</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Controls</h2>
+        <button onclick="runTests()">Run All Tests</button>
+        <button onclick="openTestPage()">Open Test Page</button>
+        <button onclick="testDirectAPI()">Test Direct API</button>
+    </div>
+
+    <div id="results" class="test-section">
+        <h2>Test Results</h2>
+        <div id="test-output">Click "Run All Tests" to start testing...</div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Page</h2>
+        <iframe id="testFrame" src="http://localhost:5173/add-payment-item-test" 
+                width="100%" height="600" style="border: 1px solid #ddd;"></iframe>
+    </div>
+
+    <script>
+        let testResults = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            testResults.push(`[${timestamp}] ${type.toUpperCase()}: ${message}`);
+            updateOutput();
+        }
+
+        function updateOutput() {
+            const output = document.getElementById('test-output');
+            output.innerHTML = '<pre>' + testResults.join('\n') + '</pre>';
+        }
+
+        function openTestPage() {
+            window.open('http://localhost:5173/add-payment-item-test', '_blank');
+        }
+
+        async function testDirectAPI() {
+            log('Testing direct API call...', 'info');
+            
+            try {
+                // Test the Supabase connection directly
+                const response = await fetch('https://riwruahskjexyamsekgm.supabase.co/rest/v1/payment_items?select=count', {
+                    headers: {
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJpd3J1YWhza2pleHlhbXNla2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg1Nzk1ODksImV4cCI6MjA2NDE1NTU4OX0.T1Mnoyh7yPUA8lyrm9x5D5L7euuRGk8ZEFoachfMSpw',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJpd3J1YWhza2pleHlhbXNla2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg1Nzk1ODksImV4cCI6MjA2NDE1NTU4OX0.T1Mnoyh7yPUA8lyrm9x5D5L7euuRGk8ZEFoachfMSpw'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ Direct API test successful. Found ${data.length} payment items`, 'success');
+                } else {
+                    log(`❌ Direct API test failed: ${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Direct API test error: ${error.message}`, 'error');
+            }
+        }
+
+        async function runTests() {
+            testResults = [];
+            log('Starting Add Custom Item functionality tests...', 'info');
+            
+            // Test 1: Check if test page loads
+            log('Test 1: Checking if test page loads...', 'info');
+            const iframe = document.getElementById('testFrame');
+            
+            try {
+                await new Promise((resolve, reject) => {
+                    iframe.onload = resolve;
+                    iframe.onerror = reject;
+                    iframe.src = 'http://localhost:5173/add-payment-item-test';
+                    setTimeout(reject, 10000); // 10 second timeout
+                });
+                log('✅ Test page loaded successfully', 'success');
+            } catch (error) {
+                log('❌ Test page failed to load', 'error');
+                return;
+            }
+
+            // Test 2: Test direct API
+            await testDirectAPI();
+
+            // Test 3: Check application status
+            log('Test 3: Checking application status...', 'info');
+            try {
+                const response = await fetch('http://localhost:5173/');
+                if (response.ok) {
+                    log('✅ Application is running and accessible', 'success');
+                } else {
+                    log('❌ Application returned error status', 'error');
+                }
+            } catch (error) {
+                log('❌ Cannot connect to application', 'error');
+            }
+
+            log('Tests completed!', 'info');
+        }
+
+        // Auto-run tests when page loads
+        window.onload = function() {
+            setTimeout(runTests, 1000);
+        };
+    </script>
+</body>
+</html>

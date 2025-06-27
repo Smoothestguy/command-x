@@ -190,10 +190,12 @@ const PaymentItemsPage: React.FC = () => {
         </div>
         <Button
           onClick={() => {
-            console.log("Add Custom Item button clicked!");
-            console.log("Current isAddDialogOpen state:", isAddDialogOpen);
+            console.log("🔥 Add Custom Item button clicked!");
+            console.log("🔥 Current isAddDialogOpen state:", isAddDialogOpen);
+            console.log("🔥 Project ID:", projectId);
             setIsAddDialogOpen(true);
-            console.log("Setting isAddDialogOpen to true");
+            console.log("🔥 Setting isAddDialogOpen to true");
+            console.log("🔥 New isAddDialogOpen state should be:", true);
           }}
           className="flex items-center gap-2"
         >

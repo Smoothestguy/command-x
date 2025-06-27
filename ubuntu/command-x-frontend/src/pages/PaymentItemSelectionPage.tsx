@@ -27,6 +27,13 @@ import { getPaymentItems } from "@/services/paymentItemsApi";
 import { PaymentItemData } from "@/types/paymentItem";
 import { useIsMobile } from "@/hooks/use-mobile";
 import PaymentItemDialog from "@/components/payment-items/PaymentItemDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const PaymentItemSelectionPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -123,7 +130,13 @@ const PaymentItemSelectionPage: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Search Items</span>
-            <Button onClick={() => setIsAddDialogOpen(true)}>
+            <Button
+              onClick={() => {
+                console.log("Add Custom Item button clicked");
+                setIsAddDialogOpen(true);
+                console.log("isAddDialogOpen set to true");
+              }}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add Custom Item
             </Button>
@@ -267,8 +280,8 @@ const PaymentItemSelectionPage: React.FC = () => {
 
       {/* Add Payment Item Dialog */}
       <PaymentItemDialog
-        open={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
+        isOpen={isAddDialogOpen}
+        onClose={() => setIsAddDialogOpen(false)}
         projectId={projectId!}
       />
     </div>

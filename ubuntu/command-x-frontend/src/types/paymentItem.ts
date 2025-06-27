@@ -2,6 +2,7 @@
 
 export interface PaymentItemData {
   item_id: number;
+  uuid_item_id?: string; // Store the actual UUID from database
   project_id: string | number; // Support both UUID strings and legacy numbers
   work_order_id?: number;
   location_id?: number;

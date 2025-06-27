@@ -89,9 +89,9 @@ const PaymentItemForm: React.FC<PaymentItemFormProps> = ({
       : {
           description: "",
           item_code: "",
-          unit_of_measure: "",
+          unit_of_measure: "each",
           unit_price: 0,
-          original_quantity: 0,
+          original_quantity: 1,
           category: "GENERAL",
           status: "pending",
           notes: "",
@@ -99,21 +99,49 @@ const PaymentItemForm: React.FC<PaymentItemFormProps> = ({
   });
 
   // Fetch locations for the project
-  const { data: locations, isLoading: isLoadingLocations } = useQuery({
+  const {
+    data: locations,
+    isLoading: isLoadingLocations,
+    error: locationsError,
+  } = useQuery({
     queryKey: ["locations", projectId],
-    queryFn: () => {
-      console.log("Fetching locations for project ID:", projectId);
-      return getLocations({ projectId });
+    queryFn: async () => {
+      try {
+        console.log("Fetching locations for project ID:", projectId);
+        const result = await getLocations({ projectId });
+        console.log("Locations fetched successfully:", result);
+        return result;
+      } catch (error) {
+        console.error("Error fetching locations:", error);
+        throw error;
+      }
     },
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!projectId,
   });
 
   // Fetch work orders for the project
-  const { data: workOrders, isLoading: isLoadingWorkOrders } = useQuery({
+  const {
+    data: workOrders,
+    isLoading: isLoadingWorkOrders,
+    error: workOrdersError,
+  } = useQuery({
     queryKey: ["workOrders", projectId],
-    queryFn: () => {
-      console.log("Fetching work orders for project ID:", projectId);
-      return getWorkOrders(projectId);
+    queryFn: async () => {
+      try {
+        console.log("Fetching work orders for project ID:", projectId);
+        const result = await getWorkOrders(projectId);
+        console.log("Work orders fetched successfully:", result);
+        return result;
+      } catch (error) {
+        console.error("Error fetching work orders:", error);
+        throw error;
+      }
     },
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!projectId,
   });
 
   // Handle form submission
@@ -121,6 +149,26 @@ const PaymentItemForm: React.FC<PaymentItemFormProps> = ({
     console.log("PaymentItemForm handleSubmit called with values:", values);
     onSubmit(values);
   };
+
+  // Log errors for debugging
+  if (locationsError) {
+    console.error("Locations error:", locationsError);
+  }
+  if (workOrdersError) {
+    console.error("Work orders error:", workOrdersError);
+  }
+
+  // Show loading state
+  if (isLoadingLocations || isLoadingWorkOrders) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-sm text-gray-600">Loading form data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Form {...form}>

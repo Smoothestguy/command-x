@@ -32,6 +32,13 @@ import PaymentItemsDebug from "./pages/PaymentItemsDebug"; // Import PaymentItem
 import ContractorAssignmentTest from "./pages/ContractorAssignmentTest"; // Import ContractorAssignmentTest
 import PaymentItemsDebugSimple from "./pages/PaymentItemsDebugSimple"; // Import PaymentItemsDebugSimple
 import DirectApiTest from "./pages/DirectApiTest"; // Import DirectApiTest
+import AddPaymentItemTest from "./pages/AddPaymentItemTest"; // Import AddPaymentItemTest
+import PaymentItemCreateTest from "./pages/PaymentItemCreateTest"; // Import PaymentItemCreateTest
+import FinalPaymentItemTest from "./pages/FinalPaymentItemTest"; // Import FinalPaymentItemTest
+import TestAddCustomItem from "./pages/TestAddCustomItem"; // Import TestAddCustomItem
+import MinimalDialogTest from "./pages/MinimalDialogTest"; // Import MinimalDialogTest
+import SimpleFormTest from "./pages/SimpleFormTest"; // Import SimpleFormTest
+import DialogDebugTest from "./pages/DialogDebugTest"; // Import DialogDebugTest
 import { useEffect } from "react";
 import { setUser } from "./features/auth/authSlice";
 import { ThemeProvider } from "./components/theme/ThemeProvider";
@@ -189,6 +196,42 @@ function App() {
 
             {/* Direct API Test - Test API functions directly */}
             <Route path="/direct-api-test" element={<DirectApiTest />} />
+
+            {/* Add Payment Item Test - Test adding custom payment items */}
+            <Route
+              path="/add-payment-item-test"
+              element={<AddPaymentItemTest />}
+            />
+
+            {/* Payment Item Create Test - Test payment item creation directly */}
+            <Route
+              path="/payment-item-create-test"
+              element={<PaymentItemCreateTest />}
+            />
+
+            {/* Final Payment Item Test - Complete end-to-end test */}
+            <Route
+              path="/final-payment-item-test"
+              element={<FinalPaymentItemTest />}
+            />
+
+            {/* Test Add Custom Item - Test the Add Custom Item functionality */}
+            <Route
+              path="/test-add-custom-item"
+              element={<TestAddCustomItem />}
+            />
+
+            {/* Minimal Dialog Test - Test basic dialog functionality */}
+            <Route
+              path="/minimal-dialog-test"
+              element={<MinimalDialogTest />}
+            />
+
+            {/* Simple Form Test - Test form without API dependencies */}
+            <Route path="/simple-form-test" element={<SimpleFormTest />} />
+
+            {/* Dialog Debug Test - Test dialog state without shadcn components */}
+            <Route path="/dialog-debug-test" element={<DialogDebugTest />} />
 
             {/* Public Payment Items Test - Test payment items without auth */}
             <Route

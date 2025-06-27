@@ -1,6 +1,6 @@
 import React from "react";
 import { PaymentItemData } from "@/types/paymentItem";
-import PaymentItemForm from "./PaymentItemForm";
+import SimplePaymentItemForm from "./SimplePaymentItemForm";
 import {
   Dialog,
   DialogContent,
@@ -28,11 +28,19 @@ const PaymentItemDialog: React.FC<PaymentItemDialogProps> = ({
   isOpen,
   onClose,
 }) => {
-  console.log("PaymentItemDialog rendered with:", {
+  console.log("🚀 PaymentItemDialog rendered with:", {
     projectId,
     paymentItem,
     isOpen,
+    isEditing: !!paymentItem,
   });
+
+  // Additional debugging
+  console.log("PaymentItemDialog isOpen state:", isOpen);
+
+  React.useEffect(() => {
+    console.log("PaymentItemDialog isOpen changed to:", isOpen);
+  }, [isOpen]);
 
   const queryClient = useQueryClient();
   const isEditing = !!paymentItem;
@@ -106,9 +114,8 @@ const PaymentItemDialog: React.FC<PaymentItemDialogProps> = ({
               : "Fill in the details to create a new payment item"}
           </DialogDescription>
         </DialogHeader>
-        <PaymentItemForm
+        <SimplePaymentItemForm
           projectId={projectId}
-          initialData={paymentItem}
           onSubmit={handleSubmit}
           onCancel={onClose}
         />

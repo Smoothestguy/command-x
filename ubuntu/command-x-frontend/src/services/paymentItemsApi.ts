@@ -183,28 +183,37 @@ export const getPaymentItems = async (filters?: {
     console.log("Payment items fetched from Supabase:", data);
 
     // Transform the data to match our interface
-    const transformedData: PaymentItemData[] = (data || []).map((item) => ({
-      item_id: item.item_id,
-      project_id: item.project_id,
-      work_order_id: item.work_order_id,
-      location_id: item.location_id,
-      vendor_id: item.vendor_id,
-      description: item.description,
-      category: item.category,
-      quantity: item.original_quantity || item.quantity, // Use original_quantity if available
-      unit_price: item.unit_price,
-      total_price: item.total_price,
-      status: item.status,
-      notes: item.notes,
-      unit_of_measure: item.unit_of_measure || "each",
-      item_code: item.item_code,
-      original_quantity: item.original_quantity || item.quantity,
-      created_at: item.created_at,
-      updated_at: item.updated_at,
-      // Add location and vendor names from joins
-      location_name: item.locations?.name,
-      vendor_name: item.vendors?.name,
-    }));
+    const transformedData: PaymentItemData[] = (data || []).map(
+      (item, index) => ({
+        item_id: index + 1, // Use index as integer ID for frontend compatibility
+        uuid_item_id: item.item_id, // Store the actual UUID for database operations
+        project_id: item.project_id,
+        work_order_id: item.work_order_id,
+        location_id: item.location_id,
+        vendor_id: item.vendor_id,
+        description: item.description,
+        category: item.category,
+        quantity: item.original_quantity || item.quantity, // Use original_quantity if available
+        unit_price: item.unit_price,
+        total_price: item.total_price,
+        status: item.status,
+        notes: item.notes,
+        unit_of_measure: item.unit_of_measure || "each",
+        item_code: item.item_code,
+        original_quantity: item.original_quantity || item.quantity,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        // Add location and vendor names from joins
+        location_name: item.locations?.name,
+        vendor_name: item.vendors?.name,
+        // Add default values for required fields
+        qc_approval_status: item.qc_approval_status || "pending",
+        supervisor_approval_status:
+          item.supervisor_approval_status || "pending",
+        accountant_approval_status:
+          item.accountant_approval_status || "pending",
+      })
+    );
 
     return transformedData;
   } catch (error) {
@@ -228,9 +237,64 @@ export const getPaymentItemById = async (
     return item;
   }
 
-  // In a real implementation, we would make an API call here
-  // This is just a placeholder for when the backend is ready
-  throw new Error(`Payment item with ID ${itemId} not found`);
+  // Real Supabase implementation
+  try {
+    console.log("Fetching payment item by ID from Supabase:", itemId);
+
+    const { data, error } = await supabase
+      .from("payment_items")
+      .select(
+        `
+        *,
+        locations(name),
+        vendors(name)
+      `
+      )
+      .eq("item_id", itemId)
+      .single();
+
+    if (error) {
+      console.error("Error fetching payment item:", error);
+      throw error;
+    }
+
+    if (!data) {
+      throw new Error(`Payment item with ID ${itemId} not found`);
+    }
+
+    console.log("Payment item fetched from Supabase:", data);
+
+    // Transform the data to match our interface
+    return {
+      item_id: data.item_id,
+      project_id: data.project_id,
+      work_order_id: data.work_order_id,
+      location_id: data.location_id,
+      vendor_id: data.vendor_id,
+      description: data.description,
+      category: data.category,
+      quantity: data.original_quantity || data.quantity,
+      unit_price: data.unit_price,
+      total_price: data.total_price,
+      status: data.status,
+      notes: data.notes,
+      unit_of_measure: data.unit_of_measure || "each",
+      item_code: data.item_code,
+      original_quantity: data.original_quantity || data.quantity,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+      // Add location and vendor names from joins
+      location_name: data.locations?.name,
+      vendor_name: data.vendors?.name,
+      // Add default values for required fields
+      qc_approval_status: "pending",
+      supervisor_approval_status: "pending",
+      accountant_approval_status: "pending",
+    };
+  } catch (error) {
+    console.error("Error in getPaymentItemById:", error);
+    throw error;
+  }
 };
 
 // Create a new payment item
@@ -282,14 +346,78 @@ export const createPaymentItem = async (
     return newItem;
   }
 
-  // In a real implementation, we would make an API call here
-  // This is just a placeholder for when the backend is ready
-  throw new Error("Failed to create payment item");
+  // Real Supabase implementation
+  try {
+    console.log("Creating payment item in Supabase:", data);
+
+    // Prepare insert data with correct column names
+    const insertData: any = {
+      project_id: data.project_id,
+      description: data.description,
+      unit_of_measure: data.unit_of_measure,
+      unit_price: data.unit_price,
+      original_quantity: data.original_quantity,
+      status: data.status || "pending",
+      // Don't set total_price - it's a generated column
+    };
+
+    // Add optional fields if provided
+    if (data.item_code) insertData.item_code = data.item_code;
+    if (data.category) insertData.category = data.category;
+    if (data.location_id) insertData.location_id = data.location_id;
+    if (data.work_order_id) insertData.work_order_id = data.work_order_id;
+    if (data.vendor_id) insertData.vendor_id = data.vendor_id;
+    if (data.notes) insertData.notes = data.notes;
+
+    const { data: createdData, error } = await supabase
+      .from("payment_items")
+      .insert(insertData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating payment item:", error);
+      throw error;
+    }
+
+    console.log("Payment item created successfully:", createdData);
+
+    // Transform the response to match our interface
+    return {
+      item_id: 1, // Use a simple integer for frontend compatibility
+      uuid_item_id: createdData.item_id, // Store the actual UUID
+      project_id: createdData.project_id,
+      work_order_id: createdData.work_order_id,
+      location_id: createdData.location_id,
+      vendor_id: createdData.vendor_id,
+      description: createdData.description,
+      category: createdData.category,
+      quantity: createdData.original_quantity,
+      unit_price: createdData.unit_price,
+      total_price: createdData.total_price,
+      status: createdData.status,
+      notes: createdData.notes,
+      unit_of_measure: createdData.unit_of_measure || "each",
+      item_code: createdData.item_code,
+      original_quantity: createdData.original_quantity,
+      created_at: createdData.created_at,
+      updated_at: createdData.updated_at,
+      // Add default values for required fields
+      qc_approval_status: createdData.qc_approval_status || "pending",
+      supervisor_approval_status:
+        createdData.supervisor_approval_status || "pending",
+      accountant_approval_status:
+        createdData.accountant_approval_status || "pending",
+    };
+  } catch (error) {
+    console.error("Error in createPaymentItem:", error);
+    throw error;
+  }
 };
 
 // Update an existing payment item
 export const updatePaymentItem = async (
-  itemId: number,
+  itemId: number | string,
   data: Partial<PaymentItemData>
 ): Promise<PaymentItemData> => {
   if (USE_MOCK_DATA) {
@@ -398,7 +526,9 @@ export const updatePaymentItem = async (
 };
 
 // Delete a payment item
-export const deletePaymentItem = async (itemId: number): Promise<void> => {
+export const deletePaymentItem = async (
+  itemId: number | string
+): Promise<void> => {
   // Simulate API call delay
   await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -412,9 +542,25 @@ export const deletePaymentItem = async (itemId: number): Promise<void> => {
     return;
   }
 
-  // In a real implementation, we would make an API call here
-  // This is just a placeholder for when the backend is ready
-  throw new Error(`Failed to delete payment item with ID ${itemId}`);
+  // Real Supabase implementation
+  try {
+    console.log("Deleting payment item from Supabase:", itemId);
+
+    const { error } = await supabase
+      .from("payment_items")
+      .delete()
+      .eq("item_id", itemId);
+
+    if (error) {
+      console.error("Error deleting payment item:", error);
+      throw error;
+    }
+
+    console.log("Payment item deleted successfully");
+  } catch (error) {
+    console.error("Error in deletePaymentItem:", error);
+    throw error;
+  }
 };
 
 // Locations API

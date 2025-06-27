@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Add Custom Item</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Add Custom Item Functionality Test</h1>
+    
+    <div class="test-section info">
+        <h2>Test Instructions</h2>
+        <p>This page will help you test the "Add Custom Item" functionality:</p>
+        <ol>
+            <li>Click the button below to open the Payment Item Selection page</li>
+            <li>Click the "Add Custom Item" button in the top right</li>
+            <li>Fill out the form with test data</li>
+            <li>Submit the form</li>
+            <li>Verify the item appears in the list</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>Quick Access</h2>
+        <button onclick="openPaymentItemSelection()">Open Payment Item Selection Page</button>
+        <button onclick="openDashboard()">Open Dashboard</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Data Suggestions</h2>
+        <p>Use this sample data when testing the form:</p>
+        <ul>
+            <li><strong>Description:</strong> Test Custom Item</li>
+            <li><strong>Unit of Measure:</strong> each</li>
+            <li><strong>Unit Price:</strong> 25.50</li>
+            <li><strong>Quantity:</strong> 10</li>
+            <li><strong>Category:</strong> Materials</li>
+            <li><strong>Status:</strong> pending</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>Expected Behavior</h2>
+        <div class="success">
+            <h3>✅ What Should Happen:</h3>
+            <ul>
+                <li>Clicking "Add Custom Item" should open a dialog/modal</li>
+                <li>The form should have all required fields</li>
+                <li>Submitting should show a success message</li>
+                <li>The new item should appear in the payment items list</li>
+                <li>The dialog should close after successful submission</li>
+            </ul>
+        </div>
+        
+        <div class="error">
+            <h3>❌ What Was Broken Before:</h3>
+            <ul>
+                <li>Clicking "Add Custom Item" did nothing</li>
+                <li>No dialog would open</li>
+                <li>Console errors about prop mismatches</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Technical Fix Applied</h2>
+        <p>The issue was a prop interface mismatch between the PaymentItemDialog component and how it was being used in PaymentItemSelectionPage:</p>
+        <ul>
+            <li><strong>Before:</strong> <code>open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}</code></li>
+            <li><strong>After:</strong> <code>isOpen={isAddDialogOpen} onClose={() => setIsAddDialogOpen(false)}</code></li>
+        </ul>
+    </div>
+
+    <script>
+        function openPaymentItemSelection() {
+            window.open('http://localhost:5173/projects/85b7f467-a860-4962-b645-51ea950b526f/payment-item-selection', '_blank');
+        }
+        
+        function openDashboard() {
+            window.open('http://localhost:5173/dashboard', '_blank');
+        }
+        
+        // Auto-open the payment item selection page for convenience
+        setTimeout(() => {
+            if (confirm('Would you like to open the Payment Item Selection page now to test the fix?')) {
+                openPaymentItemSelection();
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

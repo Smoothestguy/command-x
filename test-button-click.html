@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Add Custom Item Button</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        iframe {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Live Test: Add Custom Item Button</h1>
+    
+    <div class="test-section info">
+        <h2>Test Instructions</h2>
+        <p>This page will test the "Add Custom Item" button by:</p>
+        <ol>
+            <li>Loading the payment items page in an iframe</li>
+            <li>Finding the "Add Custom Item" button</li>
+            <li>Simulating a click on the button</li>
+            <li>Checking if the dialog opens</li>
+            <li>Monitoring console output</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Controls</h2>
+        <button onclick="testButtonClick()">Test Button Click</button>
+        <button onclick="checkDialogExists()">Check Dialog Exists</button>
+        <button onclick="fillAndSubmitForm()">Fill & Submit Form</button>
+        <button onclick="clearResults()">Clear Results</button>
+    </div>
+
+    <div id="results" class="test-section">
+        <h2>Test Results</h2>
+        <div id="test-output">Click "Test Button Click" to start testing...</div>
+    </div>
+
+    <div class="test-section">
+        <h2>Payment Items Page</h2>
+        <iframe id="testFrame" 
+                src="http://localhost:5173/payment-items-test/880e8400-e29b-41d4-a716-446655440001" 
+                width="100%" 
+                height="600">
+        </iframe>
+    </div>
+
+    <script>
+        let testResults = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            testResults.push(`[${timestamp}] ${type.toUpperCase()}: ${message}`);
+            updateOutput();
+        }
+
+        function updateOutput() {
+            const output = document.getElementById('test-output');
+            output.innerHTML = '<pre>' + testResults.join('\n') + '</pre>';
+        }
+
+        function clearResults() {
+            testResults = [];
+            updateOutput();
+        }
+
+        async function testButtonClick() {
+            log('🔥 Starting button click test...', 'info');
+            
+            try {
+                const iframe = document.getElementById('testFrame');
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                
+                // Wait for the page to load
+                await new Promise(resolve => {
+                    if (iframe.contentDocument.readyState === 'complete') {
+                        resolve();
+                    } else {
+                        iframe.onload = resolve;
+                    }
+                });
+                
+                log('✅ Iframe loaded successfully', 'success');
+                
+                // Look for the "Add Custom Item" button
+                const buttons = iframeDoc.querySelectorAll('button');
+                let addButton = null;
+                
+                for (let button of buttons) {
+                    if (button.textContent.includes('Add Custom Item')) {
+                        addButton = button;
+                        break;
+                    }
+                }
+                
+                if (!addButton) {
+                    log('❌ Add Custom Item button not found!', 'error');
+                    log(`Found ${buttons.length} buttons total`, 'info');
+                    buttons.forEach((btn, i) => {
+                        log(`Button ${i}: "${btn.textContent.trim()}"`, 'info');
+                    });
+                    return;
+                }
+                
+                log('✅ Found Add Custom Item button', 'success');
+                log(`Button text: "${addButton.textContent.trim()}"`, 'info');
+                
+                // Check if button is enabled
+                if (addButton.disabled) {
+                    log('❌ Button is disabled!', 'error');
+                    return;
+                }
+                
+                log('✅ Button is enabled', 'success');
+                
+                // Click the button
+                log('🖱️ Clicking the Add Custom Item button...', 'info');
+                addButton.click();
+                
+                // Wait a moment for the dialog to appear
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Check if dialog appeared
+                checkDialogExists();
+                
+            } catch (error) {
+                log(`❌ Error during test: ${error.message}`, 'error');
+            }
+        }
+
+        function checkDialogExists() {
+            try {
+                const iframe = document.getElementById('testFrame');
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                
+                // Look for dialog elements
+                const dialogs = iframeDoc.querySelectorAll('[role="dialog"], dialog, .dialog');
+                const overlays = iframeDoc.querySelectorAll('[data-state="open"], .modal, .overlay');
+                
+                log(`🔍 Found ${dialogs.length} dialog elements`, 'info');
+                log(`🔍 Found ${overlays.length} overlay elements`, 'info');
+                
+                if (dialogs.length > 0 || overlays.length > 0) {
+                    log('✅ Dialog appears to be open!', 'success');
+                    
+                    // Look for form elements
+                    const forms = iframeDoc.querySelectorAll('form');
+                    const inputs = iframeDoc.querySelectorAll('input[placeholder*="description"], input[placeholder*="Description"]');
+                    
+                    log(`📝 Found ${forms.length} forms`, 'info');
+                    log(`📝 Found ${inputs.length} description inputs`, 'info');
+                    
+                    if (inputs.length > 0) {
+                        log('✅ Payment item form found!', 'success');
+                    }
+                } else {
+                    log('❌ No dialog found - button click may have failed', 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Error checking dialog: ${error.message}`, 'error');
+            }
+        }
+
+        async function fillAndSubmitForm() {
+            log('📝 Attempting to fill and submit form...', 'info');
+            
+            try {
+                const iframe = document.getElementById('testFrame');
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                
+                // Find form inputs
+                const descInput = iframeDoc.querySelector('input[placeholder*="description"], input[placeholder*="Description"]');
+                const priceInput = iframeDoc.querySelector('input[type="number"][step="0.01"]');
+                const quantityInput = iframeDoc.querySelector('input[placeholder*="0"]');
+                const submitButton = iframeDoc.querySelector('button[type="submit"]');
+                
+                if (!descInput) {
+                    log('❌ Description input not found', 'error');
+                    return;
+                }
+                
+                log('✅ Found form inputs', 'success');
+                
+                // Fill the form
+                descInput.value = 'Test Item from Live Test';
+                descInput.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                if (priceInput) {
+                    priceInput.value = '25.99';
+                    priceInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+                
+                if (quantityInput) {
+                    quantityInput.value = '2';
+                    quantityInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+                
+                log('📝 Form filled with test data', 'info');
+                
+                // Submit the form
+                if (submitButton) {
+                    log('🚀 Submitting form...', 'info');
+                    submitButton.click();
+                    
+                    // Wait for submission
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    
+                    log('✅ Form submitted!', 'success');
+                } else {
+                    log('❌ Submit button not found', 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Error filling form: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-start test when page loads
+        window.onload = function() {
+            log('🚀 Page loaded, ready for testing', 'info');
+        };
+    </script>
+</body>
+</html>
