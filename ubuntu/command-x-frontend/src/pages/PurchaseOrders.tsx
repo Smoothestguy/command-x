@@ -152,15 +152,15 @@ const PurchaseOrders: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="container mx-auto py-6 px-3 sm:px-4 space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Purchase Orders</h1>
           <p className="text-muted-foreground">
             Manage and track purchase orders across all work orders
           </p>
         </div>
-        <Button onClick={handleCreatePurchaseOrder}>
+        <Button onClick={handleCreatePurchaseOrder} className="w-full sm:w-auto">
           Create Purchase Order
         </Button>
       </div>
@@ -173,7 +173,7 @@ const PurchaseOrders: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className="text-sm font-medium mb-1 block">Search</label>
               <Input
@@ -233,129 +233,204 @@ const PurchaseOrders: React.FC = () => {
           <p>Error loading purchase orders</p>
         </div>
       ) : filteredPurchaseOrders && filteredPurchaseOrders.length > 0 ? (
-        <div className="border rounded-lg overflow-hidden">
-          <Table>
-            <TableHeader className="bg-gray-50">
-              <TableRow>
-                <TableHead className="font-semibold">PO Number</TableHead>
-                <TableHead className="font-semibold">Work Order</TableHead>
-                <TableHead className="font-semibold">Vendor</TableHead>
-                <TableHead className="font-semibold">Status</TableHead>
-                <TableHead className="font-semibold">Issue Date</TableHead>
-                <TableHead className="font-semibold">
-                  Expected Delivery
-                </TableHead>
-                <TableHead className="font-semibold">Total</TableHead>
-                <TableHead className="text-right font-semibold">
-                  Actions
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredPurchaseOrders.map((po) => {
-                // Calculate fulfillment percentage
-                const totalItems = po.items.length;
-                const fulfilledItems = po.items.filter(
-                  (item) => (item.received_quantity || 0) >= item.quantity
-                ).length;
-                const partiallyFulfilledItems = po.items.filter(
-                  (item) =>
-                    (item.received_quantity || 0) > 0 &&
-                    (item.received_quantity || 0) < item.quantity
-                ).length;
+        <>
+          <div className="hidden md:block border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader className="bg-gray-50">
+                <TableRow>
+                  <TableHead className="font-semibold">PO Number</TableHead>
+                  <TableHead className="font-semibold">Work Order</TableHead>
+                  <TableHead className="font-semibold">Vendor</TableHead>
+                  <TableHead className="font-semibold">Status</TableHead>
+                  <TableHead className="font-semibold">Issue Date</TableHead>
+                  <TableHead className="font-semibold">
+                    Expected Delivery
+                  </TableHead>
+                  <TableHead className="font-semibold">Total</TableHead>
+                  <TableHead className="text-right font-semibold">
+                    Actions
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredPurchaseOrders.map((po) => {
+                  const totalItems = po.items.length;
+                  const fulfilledItems = po.items.filter(
+                    (item) => (item.received_quantity || 0) >= item.quantity
+                  ).length;
+                  const partiallyFulfilledItems = po.items.filter(
+                    (item) =>
+                      (item.received_quantity || 0) > 0 &&
+                      (item.received_quantity || 0) < item.quantity
+                  ).length;
+                  const totalAmount =
+                    po.total_amount ||
+                    po.items.reduce(
+                      (sum, item) => sum + item.quantity * item.unit_price,
+                      0
+                    );
 
-                // Calculate total amount
-                const totalAmount =
-                  po.total_amount ||
-                  po.items.reduce(
-                    (sum, item) => sum + item.quantity * item.unit_price,
-                    0
+                  return (
+                    <TableRow
+                      key={po.purchase_order_id}
+                      className="hover:bg-gray-50 cursor-pointer"
+                      onClick={() =>
+                        handleViewPurchaseOrder(po.purchase_order_id!)
+                      }
+                    >
+                      <TableCell className="font-medium">
+                        {po.po_number}
+                      </TableCell>
+                      <TableCell>WO-{po.work_order_id}</TableCell>
+                      <TableCell>{po.vendor?.name}</TableCell>
+                      <TableCell>{renderStatusBadge(po.status)}</TableCell>
+                      <TableCell>
+                        {po.issue_date
+                          ? new Date(po.issue_date).toLocaleDateString()
+                          : "N/A"}
+                      </TableCell>
+                      <TableCell>
+                        {po.expected_delivery_date
+                          ? new Date(
+                              po.expected_delivery_date
+                            ).toLocaleDateString()
+                          : "N/A"}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        ${totalAmount.toLocaleString()}
+                        {po.status === "Partially Fulfilled" && (
+                          <div className="flex items-center mt-1">
+                            <div className="w-24 bg-gray-200 rounded-full h-2 mr-2">
+                              <div
+                                className="bg-amber-500 h-2 rounded-full"
+                                style={{
+                                  width: `${Math.round(
+                                    ((fulfilledItems +
+                                      partiallyFulfilledItems * 0.5) /
+                                      totalItems) *
+                                      100
+                                  )}%`,
+                                }}
+                              ></div>
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {Math.round(
+                                ((fulfilledItems +
+                                  partiallyFulfilledItems * 0.5) /
+                                  totalItems) *
+                                  100
+                              )}
+                              % fulfilled
+                            </span>
+                          </div>
+                        )}
+                        {po.status === "Fulfilled" && (
+                          <div className="flex items-center mt-1">
+                            <div className="w-24 bg-gray-200 rounded-full h-2 mr-2">
+                              <div className="bg-green-500 h-2 rounded-full w-full"></div>
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              100% fulfilled
+                            </span>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewPurchaseOrder(po.purchase_order_id!);
+                          }}
+                        >
+                          View Details
+                        </Button>
+                      </TableCell>
+                    </TableRow>
                   );
+                })}
+              </TableBody>
+            </Table>
+          </div>
 
-                return (
-                  <TableRow
-                    key={po.purchase_order_id}
-                    className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() =>
-                      handleViewPurchaseOrder(po.purchase_order_id!)
-                    }
-                  >
-                    <TableCell className="font-medium">
-                      {po.po_number}
-                    </TableCell>
-                    <TableCell>WO-{po.work_order_id}</TableCell>
-                    <TableCell>{po.vendor?.name}</TableCell>
-                    <TableCell>{renderStatusBadge(po.status)}</TableCell>
-                    <TableCell>
+          <div className="md:hidden space-y-3">
+            {filteredPurchaseOrders.map((po) => {
+              const totalAmount =
+                po.total_amount ||
+                po.items.reduce(
+                  (sum, item) => sum + item.quantity * item.unit_price,
+                  0
+                );
+              return (
+                <div
+                  key={po.purchase_order_id}
+                  className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-2"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="text-xs text-slate-500">
+                        PO #{po.po_number}
+                      </div>
+                      <div className="text-base font-semibold">
+                        {po.vendor?.name || "N/A"}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        WO-{po.work_order_id}
+                      </div>
+                    </div>
+                    {renderStatusBadge(po.status || "Draft")}
+                  </div>
+                  <div className="flex justify-between text-sm text-slate-600">
+                    <span>Total</span>
+                    <span className="font-semibold text-slate-800">
+                      ${totalAmount.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs text-slate-500">
+                    <span>Issue</span>
+                    <span>
                       {po.issue_date
                         ? new Date(po.issue_date).toLocaleDateString()
                         : "N/A"}
-                    </TableCell>
-                    <TableCell>
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs text-slate-500">
+                    <span>Delivery</span>
+                    <span>
                       {po.expected_delivery_date
                         ? new Date(
                             po.expected_delivery_date
                           ).toLocaleDateString()
                         : "N/A"}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      ${totalAmount.toLocaleString()}
-                      {po.status === "Partially Fulfilled" && (
-                        <div className="flex items-center mt-1">
-                          <div className="w-24 bg-gray-200 rounded-full h-2 mr-2">
-                            <div
-                              className="bg-amber-500 h-2 rounded-full"
-                              style={{
-                                width: `${Math.round(
-                                  ((fulfilledItems +
-                                    partiallyFulfilledItems * 0.5) /
-                                    totalItems) *
-                                    100
-                                )}%`,
-                              }}
-                            ></div>
-                          </div>
-                          <span className="text-xs text-gray-500">
-                            {Math.round(
-                              ((fulfilledItems +
-                                partiallyFulfilledItems * 0.5) /
-                                totalItems) *
-                                100
-                            )}
-                            % fulfilled
-                          </span>
-                        </div>
-                      )}
-                      {po.status === "Fulfilled" && (
-                        <div className="flex items-center mt-1">
-                          <div className="w-24 bg-gray-200 rounded-full h-2 mr-2">
-                            <div className="bg-green-500 h-2 rounded-full w-full"></div>
-                          </div>
-                          <span className="text-xs text-gray-500">
-                            100% fulfilled
-                          </span>
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewPurchaseOrder(po.purchase_order_id!);
-                        }}
-                      >
-                        View Details
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+                    </span>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() =>
+                        handleViewPurchaseOrder(po.purchase_order_id!)
+                      }
+                    >
+                      View
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => deleteMutation.mutate(po.purchase_order_id!)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       ) : (
         <div className="bg-gray-50 border border-gray-200 text-gray-600 px-4 py-12 rounded flex flex-col items-center justify-center">
           <svg
