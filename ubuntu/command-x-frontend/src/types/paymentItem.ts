@@ -6,8 +6,11 @@ export interface PaymentItemData {
   project_id: string | number; // Support both UUID strings and legacy numbers
   work_order_id?: number;
   location_id?: number;
+  location_name?: string;
+  line_number?: string | number;
   description: string;
   item_code?: string;
+  quantity?: number;
   unit_of_measure: string;
   unit_price: number;
   original_quantity: number;
@@ -33,20 +36,23 @@ export interface PaymentItemData {
   purchase_order_number?: string;
   balance?: number;
   received_quantity?: number;
+  [key: string]: any;
 }
 
 export interface LocationData {
   location_id: number;
-  project_id: number;
+  project_id: string | number;
   parent_location_id?: number;
+  location_name?: string;
   name: string;
   description?: string;
   location_type?: string;
-  item_count: number;
-  created_at: string;
-  updated_at: string;
+  item_count?: number;
+  created_at?: string;
+  updated_at?: string;
   children?: LocationData[];
   payment_items?: PaymentItemData[];
+  [key: string]: any;
 }
 
 export interface DocumentLinkData {

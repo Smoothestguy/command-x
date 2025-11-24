@@ -49,8 +49,10 @@ const WorkOrderFinancials: React.FC<WorkOrderFinancialsProps> = ({
   //   useState<WorkOrderData | null>(null);
 
   // Get project name by ID
-  const getProjectName = (projectId: number) => {
-    const project = projects.find((p) => p.project_id === projectId);
+  const getProjectName = (projectId: string | number) => {
+    const project = projects.find(
+      (p) => String(p.project_id) === String(projectId)
+    );
     return project ? project.project_name : "Unknown Project";
   };
 

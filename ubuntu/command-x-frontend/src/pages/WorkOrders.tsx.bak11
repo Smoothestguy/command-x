@@ -481,6 +481,7 @@ const WorkOrders: React.FC = () => {
     setSelectedWorkOrderIds(selectedRows);
     setIsBatchStatusDialogOpen(true);
   };
+  
 
   // Handle sort
   const handleSort = (field: keyof WorkOrderData) => {

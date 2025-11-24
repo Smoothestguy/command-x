@@ -37,8 +37,8 @@ import {
 // Mock change order data (in a real app, this would come from the API)
 interface ChangeOrderData {
   id: number;
-  project_id: number;
-  work_order_id?: number;
+  project_id: string | number;
+  work_order_id?: string | number;
   description: string;
   amount: number;
   status: "Pending" | "Approved" | "Rejected" | "Completed";
@@ -130,8 +130,10 @@ const ChangeOrderFinancials: React.FC<ChangeOrderFinancialsProps> = ({
   }, [projects, workOrders]);
 
   // Get project name by ID
-  const getProjectName = (projectId: number) => {
-    const project = projects.find((p) => p.project_id === projectId);
+  const getProjectName = (projectId: string | number) => {
+    const project = projects.find(
+      (p) => String(p.project_id) === String(projectId)
+    );
     return project ? project.project_name : "Unknown Project";
   };
 

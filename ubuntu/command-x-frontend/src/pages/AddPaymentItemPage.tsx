@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
-import { getProjectById } from "@/services/api";
+import { getProjectById, ProjectData } from "@/services/api";
 import { PaymentItemData } from "@/types/paymentItem";
 import { createPaymentItem } from "@/services/paymentItemsApi";
 import { toast } from "@/components/ui/use-toast";
@@ -33,24 +33,18 @@ const AddPaymentItemPage: React.FC = () => {
     data: project,
     isLoading: isLoadingProject,
     error: projectError,
-  } = useQuery({
+  } = useQuery<ProjectData>({
     queryKey: ["project", projectId],
     queryFn: () => {
       console.log("Fetching project with ID:", projectId);
       try {
-        return getProjectById(Number(projectId));
+        return getProjectById(projectId!);
       } catch (error) {
         console.error("Error in getProjectById:", error);
         throw error;
       }
     },
     enabled: !!projectId,
-    onSuccess: (data) => {
-      console.log("Project data loaded:", data);
-    },
-    onError: (error) => {
-      console.error("Error loading project:", error);
-    },
   });
 
   // Create mutation

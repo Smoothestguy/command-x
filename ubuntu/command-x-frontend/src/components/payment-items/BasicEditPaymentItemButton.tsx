@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
 import { PaymentItemData } from "@/types/paymentItem";
+import { WorkOrderData } from "@/services/api";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { updatePaymentItem, getLocations } from "@/services/paymentItemsApi";
 import { getWorkOrders } from "@/services/api";
@@ -254,14 +255,17 @@ const BasicEditPaymentItemButton: React.FC<BasicEditPaymentItemButtonProps> = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">None</SelectItem>
-                    {workOrders?.map((workOrder) => (
-                      <SelectItem
-                        key={workOrder.work_order_id}
-                        value={workOrder.work_order_id.toString()}
-                      >
-                        {workOrder.description}
-                      </SelectItem>
-                    ))}
+                    {workOrders?.map((workOrder: WorkOrderData) => {
+                      const idValue = workOrder.work_order_id ?? "";
+                      return (
+                        <SelectItem
+                          key={idValue?.toString()}
+                          value={idValue?.toString()}
+                        >
+                          {workOrder.description}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>

@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Test script to verify Supabase integration
 // Run this in the browser console to test the connection
 

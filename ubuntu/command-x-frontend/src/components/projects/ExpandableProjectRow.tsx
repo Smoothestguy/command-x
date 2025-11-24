@@ -240,7 +240,7 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
                 variant="destructive"
                 size="icon"
                 onClick={() =>
-                  project.project_id && onDelete(project.project_id)
+                  project.project_id && onDelete(Number(project.project_id))
                 }
               >
                 <Trash2 className="h-4 w-4" />

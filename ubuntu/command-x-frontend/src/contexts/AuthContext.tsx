@@ -12,7 +12,7 @@ interface AuthContextState {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   hasPermission: (requiredRole: UserRole | UserRole[]) => boolean;
-  hasProjectAccess: (projectId: number) => boolean;
+  hasProjectAccess: (projectId: string | number) => boolean;
 }
 
 // Create the context with a default value
@@ -123,7 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   // Function to check if user has access to a specific project
-  const hasProjectAccess = (projectId: number): boolean => {
+  const hasProjectAccess = (projectId: string | number): boolean => {
     if (!isAuthenticated || !user) return false;
 
     // Admin has access to all projects
@@ -140,8 +140,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (userRole === "subcontractor" && user.subcontractor_id) {
       // In a real app, this would check if the subcontractor is assigned to this project
       // For now, we'll use a mock check
-      const assignedProjects = [1, 2]; // Mock assigned project IDs
-      return assignedProjects.includes(projectId);
+      const assignedProjects = ["1", "2"]; // Mock assigned project IDs
+      return assignedProjects.includes(String(projectId));
     }
 
     // Regular users don't have access to projects

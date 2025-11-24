@@ -48,10 +48,12 @@ const SubcontractorPayments: React.FC<SubcontractorPaymentsProps> = ({
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   // Get subcontractor name by ID
-  const getSubcontractorName = (subcontractorId: number | undefined | null) => {
+  const getSubcontractorName = (
+    subcontractorId: string | number | undefined | null
+  ) => {
     if (!subcontractorId) return "Unassigned";
     const subcontractor = subcontractors.find(
-      (s) => s.subcontractor_id === subcontractorId
+      (s) => String(s.subcontractor_id) === String(subcontractorId)
     );
     return subcontractor ? subcontractor.company_name : "Unknown";
   };
@@ -61,7 +63,7 @@ const SubcontractorPayments: React.FC<SubcontractorPaymentsProps> = ({
     const data: Record<
       string,
       {
-        subcontractorId: number;
+        subcontractorId: string | number;
         name: string;
         totalBilled: number;
         totalPaid: number;

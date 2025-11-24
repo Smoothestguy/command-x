@@ -29,9 +29,10 @@ import {
 import { Search, Package, Plus, ArrowLeft } from "lucide-react";
 import { getProjectById, getUserRole } from "@/services/api";
 import { getPaymentItems } from "@/services/paymentItemsApi";
-import { PaymentItemData } from "@/types/paymentItem";
+import { LocationData, PaymentItemData } from "@/types/paymentItem";
 import EditablePaymentItemRow from "@/components/work-orders/EditablePaymentItemRow";
 import PaymentItemDialog from "@/components/payment-items/PaymentItemDialog";
+import WorkOrderSelectionDialog from "@/components/work-orders/WorkOrderSelectionDialog";
 
 const PaymentItemsPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -47,14 +48,15 @@ const PaymentItemsPage: React.FC = () => {
 
   // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isWorkOrderDialogOpen, setIsWorkOrderDialogOpen] = useState(false);
 
   // Mock locations data (same as Enhanced Work Order)
-  const locations = [
-    { location_id: 1, name: "Bedroom 1" },
-    { location_id: 2, name: "Bedroom 2" },
-    { location_id: 3, name: "Kitchen" },
-    { location_id: 4, name: "Living Room" },
-    { location_id: 5, name: "Bathroom" },
+  const locations: LocationData[] = [
+    { location_id: 1, name: "Bedroom 1", project_id: projectId || 0 },
+    { location_id: 2, name: "Bedroom 2", project_id: projectId || 0 },
+    { location_id: 3, name: "Kitchen", project_id: projectId || 0 },
+    { location_id: 4, name: "Living Room", project_id: projectId || 0 },
+    { location_id: 5, name: "Bathroom", project_id: projectId || 0 },
   ];
 
   // Fetch project details
@@ -106,6 +108,24 @@ const PaymentItemsPage: React.FC = () => {
   const selectedItemsTotal = filteredPaymentItems
     .filter((item) => selectedPaymentItems.includes(item.item_id))
     .reduce((sum, item) => sum + (item.total_price || 0), 0);
+
+  // Get selected payment item objects
+  const selectedPaymentItemObjects = filteredPaymentItems.filter((item) =>
+    selectedPaymentItems.includes(item.item_id)
+  );
+
+  // Handle adding items to work order
+  const handleAddToWorkOrder = () => {
+    if (selectedPaymentItems.length === 0) {
+      return;
+    }
+    setIsWorkOrderDialogOpen(true);
+  };
+
+  // Handle successful assignment
+  const handleAssignmentSuccess = () => {
+    setSelectedPaymentItems([]); // Clear selection after successful assignment
+  };
 
   if (isLoadingProject) {
     return (
@@ -308,6 +328,7 @@ const PaymentItemsPage: React.FC = () => {
                       key={item.item_id}
                       item={item}
                       locations={locations}
+                      projectId={projectId}
                       isSelected={selectedPaymentItems.includes(item.item_id)}
                       onSelectionChange={(checked) => {
                         if (checked) {
@@ -331,11 +352,18 @@ const PaymentItemsPage: React.FC = () => {
           {/* Selection Summary */}
           {selectedPaymentItems.length > 0 && (
             <div className="bg-blue-50 p-4 rounded-lg">
-              <div className="text-sm font-medium text-blue-900">
-                Selected Items: {selectedPaymentItems.length}
-              </div>
-              <div className="text-lg font-bold text-blue-900">
-                Total: ${selectedItemsTotal.toFixed(2)}
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="text-sm font-medium text-blue-900">
+                    Selected Items: {selectedPaymentItems.length}
+                  </div>
+                  <div className="text-lg font-bold text-blue-900">
+                    Total: ${selectedItemsTotal.toFixed(2)}
+                  </div>
+                </div>
+                <Button onClick={handleAddToWorkOrder}>
+                  Add to Work Order
+                </Button>
               </div>
             </div>
           )}
@@ -350,6 +378,15 @@ const PaymentItemsPage: React.FC = () => {
           console.log("Dialog onClose called");
           setIsAddDialogOpen(false);
         }}
+      />
+
+      {/* Work Order Selection Dialog */}
+      <WorkOrderSelectionDialog
+        isOpen={isWorkOrderDialogOpen}
+        onClose={() => setIsWorkOrderDialogOpen(false)}
+        projectId={projectId!}
+        selectedItems={selectedPaymentItemObjects}
+        onSuccess={handleAssignmentSuccess}
       />
 
       {/* Debug Info */}

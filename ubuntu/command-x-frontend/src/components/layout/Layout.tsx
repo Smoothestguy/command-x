@@ -34,7 +34,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 relative">
+    <div className="flex h-screen bg-[var(--surface-0)] relative">
       {/* Mobile sidebar overlay */}
       {isMobile && sidebarOpen && (
         <div
@@ -63,19 +63,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             onClick={toggleSidebar}
             className="lg:hidden"
             aria-label="Toggle menu"
+            aria-expanded={sidebarOpen}
           >
             <Menu className="h-6 w-6" />
           </Button>
         </Header>
         <main
-          className={`flex-1 overflow-x-hidden overflow-y-auto bg-gray-200 p-2 sm:p-4 md:p-6
+          className={`flex-1 overflow-x-hidden overflow-y-auto bg-transparent p-3 sm:p-5 md:p-8
           ${
             deviceInfo.isIOS
               ? "safe-area-bottom safe-area-left safe-area-right"
               : ""
           }`}
         >
-          {children}
+          <div className="app-surface p-3 sm:p-5 md:p-6">{children}</div>
         </main>
       </div>
     </div>

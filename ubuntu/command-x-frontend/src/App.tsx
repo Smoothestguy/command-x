@@ -19,6 +19,7 @@ import DocumentsPage from "./pages/DocumentsPage";
 import Accounting from "./pages/Accounting";
 import ReportsPage from "./pages/ReportsPage";
 import UserManagement from "./pages/UserManagement";
+import Personnel from "./pages/Personnel";
 import AllActivity from "./pages/AllActivity";
 import PaymentItemsPage from "./pages/PaymentItemsPage";
 import PaymentItemSelectionPage from "./pages/PaymentItemSelectionPage";
@@ -260,6 +261,7 @@ function App() {
               <Route path="/accounting" element={<Accounting />} />
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/user-management" element={<UserManagement />} />
+              <Route path="/personnel" element={<Personnel />} />
               <Route path="/activity" element={<AllActivity />} />
             </Route>
 

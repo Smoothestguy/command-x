@@ -47,8 +47,10 @@ const RetainageManagement: React.FC<RetainageManagementProps> = ({
   const [statusFilter, setStatusFilter] = useState("all");
 
   // Get project name by ID
-  const getProjectName = (projectId: number) => {
-    const project = projects.find((p) => p.project_id === projectId);
+  const getProjectName = (projectId: string | number) => {
+    const project = projects.find(
+      (p) => String(p.project_id) === String(projectId)
+    );
     return project ? project.project_name : "Unknown Project";
   };
 
@@ -110,11 +112,11 @@ const RetainageManagement: React.FC<RetainageManagementProps> = ({
       if (!hasRetainage && statusFilter !== "all") return false;
 
       // Search filter
-      const searchMatch =
-        wo.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        getProjectName(wo.project_id)
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
+        const searchMatch =
+          wo.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          getProjectName(wo.project_id)
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase());
 
       // Project filter
       const projectMatch =

@@ -30,7 +30,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
 
   return (
     <header
-      className={`bg-gray-800 text-white p-2 sm:p-4 shadow-md flex justify-between items-center
+      className={`bg-white/90 backdrop-blur-md border-b border-[var(--border-subtle)] px-3 sm:px-5 py-3 shadow-sm flex justify-between items-center sticky top-0 z-10
       ${
         deviceInfo.isIOS ? "safe-area-top safe-area-left safe-area-right" : ""
       }`}
@@ -41,7 +41,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
           <img
             src="/command-x-logo-white.png"
             alt="Command X Logo"
-            className="h-8 sm:h-10"
+            className="h-8 sm:h-10 drop-shadow-sm"
           />
         </Link>
       </div>
@@ -51,14 +51,16 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
         {user && (
           <>
             <div className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              <span>{user.username}</span>
+              <User className="h-4 w-4 text-slate-600" />
+              <span className="text-slate-700 font-medium">
+                {user.username}
+              </span>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={handleLogout}
-              className="text-white hover:text-white hover:bg-gray-700"
+              className="text-slate-700 hover:text-slate-900 hover:bg-slate-100"
             >
               <LogOut className="h-4 w-4 mr-2" />
               Sign Out

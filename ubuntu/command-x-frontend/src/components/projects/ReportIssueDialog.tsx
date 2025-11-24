@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { ProjectData } from "@/services/api";
 import {
   Dialog,
   DialogContent,
@@ -20,15 +21,15 @@ import {
 } from "@/components/ui/select";
 
 interface ReportIssueDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  projectId: number;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  project: ProjectData;
 }
 
 const ReportIssueDialog: React.FC<ReportIssueDialogProps> = ({
-  isOpen,
-  onClose,
-  projectId,
+  open,
+  onOpenChange,
+  project,
 }) => {
   const [issueData, setIssueData] = useState({
     title: "",
@@ -39,17 +40,18 @@ const ReportIssueDialog: React.FC<ReportIssueDialogProps> = ({
 
   const handleSubmit = () => {
     // Handle issue submission
-    console.log("Reporting issue for project:", projectId, issueData);
-    onClose();
+    console.log("Reporting issue for project:", project.project_id, issueData);
+    onOpenChange(false);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Report Issue</DialogTitle>
           <DialogDescription>
-            Report an issue for this project. Provide as much detail as possible.
+            Report an issue for project {project.project_name}. Provide as much
+            detail as possible.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -125,7 +127,7 @@ const ReportIssueDialog: React.FC<ReportIssueDialogProps> = ({
           </div>
         </div>
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button type="button" onClick={handleSubmit}>

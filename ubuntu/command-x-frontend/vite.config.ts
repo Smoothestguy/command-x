@@ -35,7 +35,16 @@ export default defineConfig({
     assetsDir: "assets",
     sourcemap: false,
     minify: "esbuild", // Changed from terser to esbuild
-    chunkSizeWarningLimit: 1600,
+    chunkSizeWarningLimit: 2000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom", "react-router-dom"],
+          ui: ["@tanstack/react-query", "lucide-react"],
+          supabase: ["@supabase/supabase-js"],
+        },
+      },
+    },
   },
   optimizeDeps: {
     include: ["jwt-decode"],

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Card,
   CardContent,
@@ -7,339 +7,395 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Badge } from "../components/ui/badge";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
 import {
   Loader2,
   CheckCircle,
-  XCircle,
-  Database,
-  Users,
-  Briefcase,
-  DollarSign,
+  Upload,
+  UserPlus,
+  FileText,
+  AlertCircle,
 } from "lucide-react";
 import {
-  projectsApi,
-  workOrdersApi,
-  paymentItemsApi,
-  subcontractorsApi,
-} from "../services/supabaseApi";
-import { supabase } from "../lib/supabase";
+  personnelApi,
+  type PersonnelRegistration as PersonnelRegistrationType,
+} from "../services/personnelApi";
+import { uploadDocument } from "../services/api";
+import { toast } from "sonner";
 
-interface TestResult {
-  name: string;
-  status: "pending" | "success" | "error";
-  data?: any;
-  error?: string;
-  count?: number;
-}
+// File upload component
+const PersonalIdUpload: React.FC<{
+  onFileSelect: (file: File | null) => void;
+  file: File | null;
+  isUploading: boolean;
+  progress: number;
+}> = ({ onFileSelect, file, isUploading, progress }) => {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor="personal-id-upload">Personal ID Document *</Label>
+      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors">
+        <input
+          type="file"
+          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+          onChange={(e) => onFileSelect(e.target.files?.[0] || null)}
+          className="hidden"
+          id="personal-id-upload"
+        />
+        <label htmlFor="personal-id-upload" className="cursor-pointer block">
+          {file ? (
+            <div className="text-center">
+              <CheckCircle className="mx-auto h-8 w-8 text-green-500 mb-2" />
+              <p className="text-sm text-gray-600 font-medium">{file.name}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {(file.size / 1024 / 1024).toFixed(2)} MB
+              </p>
+            </div>
+          ) : (
+            <div className="text-center">
+              <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+              <p className="text-sm text-gray-600 font-medium">
+                Click to upload Personal ID
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                PDF, Image, or Document (Max 10MB)
+              </p>
+            </div>
+          )}
+        </label>
+        {isUploading && (
+          <div className="mt-4">
+            <div className="bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1 text-center">
+              Uploading... {progress.toFixed(0)}%
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
-const SupabaseTest: React.FC = () => {
-  const [tests, setTests] = useState<TestResult[]>([
-    { name: "Database Connection", status: "pending" },
-    { name: "Projects API", status: "pending" },
-    { name: "Work Orders API", status: "pending" },
-    { name: "Payment Items API", status: "pending" },
-    { name: "Subcontractors API", status: "pending" },
-    { name: "Real-time Connection", status: "pending" },
-  ]);
+const PersonnelRegistrationForm: React.FC = () => {
+  const [formData, setFormData] = useState<
+    Omit<PersonnelRegistrationType, "worker_id">
+  >({
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+    home_address: "",
+    position_applying_for: "",
+    is_active: true,
+  });
 
-  const [isRunning, setIsRunning] = useState(false);
-  const [currentTest, setCurrentTest] = useState(0);
+  const [personalIdFile, setPersonalIdFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [submissionResult, setSubmissionResult] = useState<{
+    success: boolean;
+    message: string;
+    workerId?: string;
+  } | null>(null);
 
-  const updateTest = (index: number, updates: Partial<TestResult>) => {
-    setTests((prev) =>
-      prev.map((test, i) => (i === index ? { ...test, ...updates } : test))
-    );
+  const resetForm = () => {
+    setFormData({
+      first_name: "",
+      last_name: "",
+      email: "",
+      phone: "",
+      home_address: "",
+      position_applying_for: "",
+      is_active: true,
+    });
+    setPersonalIdFile(null);
+    setUploadProgress(0);
   };
 
-  const runTests = async () => {
-    setIsRunning(true);
-    setCurrentTest(0);
+  const validateForm = (): string | null => {
+    if (!formData.first_name.trim()) return "First name is required";
+    if (!formData.last_name.trim()) return "Last name is required";
+    if (!formData.email.trim()) return "Email is required";
+    if (!formData.phone.trim()) return "Phone number is required";
+    if (!formData.home_address.trim()) return "Home address is required";
+    if (!formData.position_applying_for.trim())
+      return "Position applying for is required";
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email))
+      return "Please enter a valid email address";
+
+    // Phone validation (basic)
+    const phoneRegex = /^[\d\s\-()+ ]+$/;
+    if (!phoneRegex.test(formData.phone))
+      return "Please enter a valid phone number";
+
+    return null;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validate form
+    const validationError = validateForm();
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setUploadProgress(0);
+    setSubmissionResult(null);
 
     try {
-      // Test 1: Database Connection
-      setCurrentTest(0);
-      try {
-        const { data, error } = await supabase
-          .from("users")
-          .select("count")
-          .limit(1);
-        if (error) throw error;
-        updateTest(0, { status: "success", data: "Connected successfully" });
-      } catch (error) {
-        updateTest(0, { status: "error", error: error.message });
-      }
+      let documentId: string | null = null;
 
-      // Test 2: Projects API
-      setCurrentTest(1);
-      try {
-        const projects = await projectsApi.getAll();
-        updateTest(1, {
-          status: "success",
-          count: projects.length,
-          data: projects.map((p) => p.project_name),
-        });
-      } catch (error) {
-        updateTest(1, { status: "error", error: error.message });
-      }
+      // Step 1: Upload personal ID document if provided
+      if (personalIdFile) {
+        const formDataForUpload = new FormData();
+        formDataForUpload.append("file", personalIdFile);
+        formDataForUpload.append(
+          "description",
+          `Personal ID for ${formData.first_name} ${formData.last_name}`
+        );
 
-      // Test 3: Work Orders API
-      setCurrentTest(2);
-      try {
-        const workOrders = await workOrdersApi.getAll();
-        updateTest(2, {
-          status: "success",
-          count: workOrders.length,
-          data: workOrders.map((wo) => wo.description),
-        });
-      } catch (error) {
-        updateTest(2, { status: "error", error: error.message });
-      }
+        // Simulate upload progress
+        const progressInterval = setInterval(() => {
+          setUploadProgress((prev) => {
+            const newProgress = prev + Math.random() * 20;
+            return newProgress > 90 ? 90 : newProgress;
+          });
+        }, 200);
 
-      // Test 4: Payment Items API
-      setCurrentTest(3);
-      try {
-        const paymentItems = await paymentItemsApi.getAll();
-        updateTest(3, {
-          status: "success",
-          count: paymentItems.length,
-          data: paymentItems.map((pi) => pi.description),
-        });
-      } catch (error) {
-        updateTest(3, { status: "error", error: error.message });
-      }
-
-      // Test 5: Subcontractors API
-      setCurrentTest(4);
-      try {
-        // Step 1: Try direct Supabase query first
-        const { data: directData, error: directError } = await supabase
-          .from("subcontractors")
-          .select("*")
-          .limit(10);
-
-        if (directError) {
+        try {
+          const uploadResult = await uploadDocument(formDataForUpload);
+          documentId = uploadResult.document_id;
+          clearInterval(progressInterval);
+          setUploadProgress(100);
+        } catch (uploadError) {
+          clearInterval(progressInterval);
           throw new Error(
-            `Direct query failed: ${directError.message}. Code: ${
-              directError.code || "unknown"
+            `Document upload failed: ${
+              uploadError instanceof Error
+                ? uploadError.message
+                : "Unknown error"
             }`
           );
         }
-
-        // Step 2: Try the API function
-        const subcontractors = await subcontractorsApi.getAll();
-        updateTest(4, {
-          status: "success",
-          count: subcontractors.length,
-          data: subcontractors.map(
-            (s) => s.company_name || s.name || "Unnamed"
-          ),
-        });
-      } catch (error) {
-        updateTest(4, { status: "error", error: error.message });
       }
 
-      // Test 6: Real-time Connection
-      setCurrentTest(5);
-      try {
-        const channel = supabase.channel("test-channel");
-        await new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => reject(new Error("Timeout")), 5000);
+      // Step 2: Create personnel registration
+      const registrationData = {
+        ...formData,
+        personal_id_document_id: documentId,
+      };
 
-          channel
-            .on(
-              "postgres_changes",
-              { event: "*", schema: "public", table: "projects" },
-              () => {}
-            )
-            .subscribe((status) => {
-              if (status === "SUBSCRIBED") {
-                clearTimeout(timeout);
-                resolve(true);
-              } else if (status === "CHANNEL_ERROR") {
-                clearTimeout(timeout);
-                reject(new Error("Channel error"));
-              }
-            });
-        });
+      const newWorker = await personnelApi.createPersonnelRegistration(
+        registrationData
+      );
 
-        updateTest(5, {
-          status: "success",
-          data: "Real-time subscriptions working",
-        });
-        supabase.removeChannel(channel);
-      } catch (error) {
-        updateTest(5, { status: "error", error: error.message });
-      }
+      // Success!
+      setSubmissionResult({
+        success: true,
+        message: `Personnel registration completed successfully! Worker ID: ${newWorker.worker_id}`,
+        workerId: newWorker.worker_id,
+      });
+
+      toast.success("Personnel registered successfully!");
+      resetForm();
+    } catch (error) {
+      console.error("Registration error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      setSubmissionResult({
+        success: false,
+        message: `Registration failed: ${errorMessage}`,
+      });
+      toast.error(`Registration failed: ${errorMessage}`);
     } finally {
-      setIsRunning(false);
-      setCurrentTest(-1);
+      setIsSubmitting(false);
     }
-  };
-
-  const getStatusIcon = (status: string, isActive: boolean) => {
-    if (isActive && status === "pending") {
-      return <Loader2 className="h-4 w-4 animate-spin text-blue-500" />;
-    }
-
-    switch (status) {
-      case "success":
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case "error":
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      default:
-        return <div className="h-4 w-4 rounded-full bg-gray-300" />;
-    }
-  };
-
-  const getTestIcon = (index: number) => {
-    const icons = [Database, Database, Briefcase, DollarSign, Users, Database];
-    const Icon = icons[index];
-    return <Icon className="h-5 w-5" />;
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="container mx-auto p-6 max-w-2xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">
-          🚀 Supabase Integration Test
+        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+          <UserPlus className="h-8 w-8 text-blue-600" />
+          Personnel Registration
         </h1>
         <p className="text-gray-600">
-          Testing the Command-X Construction Management System with Supabase
-          backend
+          Register new personnel with complete information and document upload
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="h-5 w-5" />
-              Connection Tests
-            </CardTitle>
-            <CardDescription>
-              Verify all Supabase services are working correctly
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button
-              onClick={runTests}
-              disabled={isRunning}
-              className="w-full mb-4"
-            >
-              {isRunning ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Running Tests...
-                </>
-              ) : (
-                "Run All Tests"
-              )}
-            </Button>
-
-            <div className="space-y-3">
-              {tests.map((test, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 border rounded-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    {getTestIcon(index)}
-                    <div>
-                      <div className="font-medium">{test.name}</div>
-                      {test.count !== undefined && (
-                        <div className="text-sm text-gray-500">
-                          Found {test.count} records
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {test.status === "success" && test.count !== undefined && (
-                      <Badge variant="secondary">{test.count}</Badge>
-                    )}
-                    {getStatusIcon(test.status, currentTest === index)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Test Results</CardTitle>
-            <CardDescription>
-              Detailed information about each test
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {tests.map((test, index) => (
-                <div key={index}>
-                  {test.status === "success" && test.data && (
-                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <div className="font-medium text-green-800 mb-1">
-                        ✅ {test.name}
-                      </div>
-                      {Array.isArray(test.data) ? (
-                        <ul className="text-sm text-green-700 list-disc list-inside">
-                          {test.data.slice(0, 3).map((item, i) => (
-                            <li key={i}>{item}</li>
-                          ))}
-                          {test.data.length > 3 && (
-                            <li>... and {test.data.length - 3} more</li>
-                          )}
-                        </ul>
-                      ) : (
-                        <div className="text-sm text-green-700">
-                          {test.data}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {test.status === "error" && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <div className="font-medium text-red-800 mb-1">
-                        ❌ {test.name}
-                      </div>
-                      <div className="text-sm text-red-700">{test.error}</div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="mt-6">
+      <Card>
         <CardHeader>
-          <CardTitle>🎉 Migration Status</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            New Personnel Registration
+          </CardTitle>
+          <CardDescription>
+            Fill out all required information to register new personnel
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold text-green-600">✅</div>
-              <div className="font-medium">Database Schema</div>
-              <div className="text-sm text-gray-500">15+ tables migrated</div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Basic Information */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="first_name">First Name *</Label>
+                <Input
+                  id="first_name"
+                  value={formData.first_name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, first_name: e.target.value })
+                  }
+                  placeholder="Enter first name"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="last_name">Last Name *</Label>
+                <Input
+                  id="last_name"
+                  value={formData.last_name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, last_name: e.target.value })
+                  }
+                  placeholder="Enter last name"
+                  required
+                />
+              </div>
             </div>
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold text-green-600">✅</div>
-              <div className="font-medium">API Services</div>
-              <div className="text-sm text-gray-500">All endpoints ready</div>
+
+            {/* Contact Information */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="phone">Phone Number *</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
+                  placeholder="(555) 123-4567"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="email">Email Address *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  placeholder="email@example.com"
+                  required
+                />
+              </div>
             </div>
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold text-green-600">✅</div>
-              <div className="font-medium">Real-time</div>
-              <div className="text-sm text-gray-500">Live updates enabled</div>
+
+            {/* Address and Position */}
+            <div>
+              <Label htmlFor="home_address">Home Address *</Label>
+              <Textarea
+                id="home_address"
+                value={formData.home_address}
+                onChange={(e) =>
+                  setFormData({ ...formData, home_address: e.target.value })
+                }
+                placeholder="Enter complete home address"
+                rows={3}
+                required
+              />
             </div>
-          </div>
+
+            <div>
+              <Label htmlFor="position_applying_for">
+                Position Applying For *
+              </Label>
+              <Input
+                id="position_applying_for"
+                value={formData.position_applying_for}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    position_applying_for: e.target.value,
+                  })
+                }
+                placeholder="e.g., Construction Worker, Electrician, Plumber"
+                required
+              />
+            </div>
+
+            {/* Personal ID Upload */}
+            <PersonalIdUpload
+              onFileSelect={setPersonalIdFile}
+              file={personalIdFile}
+              isUploading={isSubmitting}
+              progress={uploadProgress}
+            />
+
+            {/* Submission Result */}
+            {submissionResult && (
+              <div
+                className={`p-4 rounded-lg border ${
+                  submissionResult.success
+                    ? "bg-green-50 border-green-200 text-green-800"
+                    : "bg-red-50 border-red-200 text-red-800"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {submissionResult.success ? (
+                    <CheckCircle className="h-5 w-5" />
+                  ) : (
+                    <AlertCircle className="h-5 w-5" />
+                  )}
+                  <p className="font-medium">
+                    {submissionResult.success ? "Success!" : "Error"}
+                  </p>
+                </div>
+                <p className="mt-1 text-sm">{submissionResult.message}</p>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full"
+              size="lg"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {personalIdFile
+                    ? "Uploading & Registering..."
+                    : "Registering Personnel..."}
+                </>
+              ) : (
+                <>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Register Personnel
+                </>
+              )}
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>
   );
 };
 
-export default SupabaseTest;
+export default PersonnelRegistrationForm;

@@ -27,6 +27,7 @@ import { getPaymentItems } from "@/services/paymentItemsApi";
 import { PaymentItemData } from "@/types/paymentItem";
 import { useIsMobile } from "@/hooks/use-mobile";
 import PaymentItemDialog from "@/components/payment-items/PaymentItemDialog";
+import WorkOrderSelectionDialog from "@/components/work-orders/WorkOrderSelectionDialog";
 import {
   Dialog,
   DialogContent,
@@ -46,6 +47,7 @@ const PaymentItemSelectionPage: React.FC = () => {
   const [locationFilter, setLocationFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isWorkOrderDialogOpen, setIsWorkOrderDialogOpen] = useState(false);
 
   // Mock locations data
   const locations = [
@@ -97,6 +99,24 @@ const PaymentItemSelectionPage: React.FC = () => {
     const item = paymentItems.find((item) => item.item_id === itemId);
     return total + (item?.total_price || 0);
   }, 0);
+
+  // Get selected payment item objects
+  const selectedPaymentItems = filteredItems.filter((item) =>
+    selectedItems.includes(item.item_id)
+  );
+
+  // Handle adding items to work order
+  const handleAddToWorkOrder = () => {
+    if (selectedItems.length === 0) {
+      return;
+    }
+    setIsWorkOrderDialogOpen(true);
+  };
+
+  // Handle successful assignment
+  const handleAssignmentSuccess = () => {
+    setSelectedItems([]); // Clear selection after successful assignment
+  };
 
   if (isLoadingProject || isLoadingItems) {
     return (
@@ -269,7 +289,9 @@ const PaymentItemSelectionPage: React.FC = () => {
                         Total: ${selectedItemsTotal.toFixed(2)}
                       </div>
                     </div>
-                    <Button>Add to Work Order</Button>
+                    <Button onClick={handleAddToWorkOrder}>
+                      Add to Work Order
+                    </Button>
                   </div>
                 </div>
               )}
@@ -283,6 +305,15 @@ const PaymentItemSelectionPage: React.FC = () => {
         isOpen={isAddDialogOpen}
         onClose={() => setIsAddDialogOpen(false)}
         projectId={projectId!}
+      />
+
+      {/* Work Order Selection Dialog */}
+      <WorkOrderSelectionDialog
+        isOpen={isWorkOrderDialogOpen}
+        onClose={() => setIsWorkOrderDialogOpen(false)}
+        projectId={projectId!}
+        selectedItems={selectedPaymentItems}
+        onSuccess={handleAssignmentSuccess}
       />
     </div>
   );

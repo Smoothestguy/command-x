@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,12 @@ import {
   Calculator,
   Loader2,
 } from "lucide-react";
-import { getProjects, getWorkOrders, getSubcontractors } from "@/services/api";
+import {
+  projectsApi,
+  workOrdersApi,
+  subcontractorsApi,
+  paymentItemsApi,
+} from "@/services/supabaseApi";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import WorkOrderStatusTable from "@/components/accounting/WorkOrderStatusTable";
@@ -131,27 +136,34 @@ const Accounting: React.FC = () => {
   const [selectedEntry, setSelectedEntry] = useState<any | null>(null);
 
   // Fetch projects data
-  const { isLoading: projectsLoading, error: projectsError } = useQuery({
+  const { data: projects = [], isLoading: projectsLoading, error: projectsError, refetch: projectsRefetch } = useQuery({
     queryKey: ["projects"],
-    queryFn: getProjects,
+    queryFn: projectsApi.getAll,
   });
 
   // Fetch work orders data
-  const { isLoading: workOrdersLoading, error: workOrdersError } = useQuery({
+  const { data: workOrders = [], isLoading: workOrdersLoading, error: workOrdersError, refetch: workOrdersRefetch } = useQuery({
     queryKey: ["workOrders"],
-    queryFn: () => getWorkOrders(),
+    queryFn: () => workOrdersApi.getAll(),
   });
 
   // Fetch subcontractors data
-  const { isLoading: subcontractorsLoading, error: subcontractorsError } =
+  const { data: subcontractors = [], isLoading: subcontractorsLoading, error: subcontractorsError, refetch: subcontractorsRefetch } =
     useQuery({
       queryKey: ["subcontractors"],
-      queryFn: getSubcontractors,
+      queryFn: subcontractorsApi.getAll,
+    });
+
+  // Fetch payment items data
+  const { data: paymentItems = [], isLoading: paymentItemsLoading, error: paymentItemsError, refetch: paymentItemsRefetch } =
+    useQuery({
+      queryKey: ["paymentItems"],
+      queryFn: () => paymentItemsApi.getAll(),
     });
 
   const isLoading =
-    projectsLoading || workOrdersLoading || subcontractorsLoading;
-  const hasError = projectsError || workOrdersError || subcontractorsError;
+    projectsLoading || workOrdersLoading || subcontractorsLoading || paymentItemsLoading;
+  const hasError = projectsError || workOrdersError || subcontractorsError || paymentItemsError;
 
   const handleExportData = () => {
     // Implementation for exporting data
@@ -470,21 +482,6 @@ const Accounting: React.FC = () => {
     }, 1500);
   };
 
-  const { refetch: projectsRefetch } = useQuery({
-    queryKey: ["projects"],
-    queryFn: getProjects,
-  });
-
-  const { refetch: workOrdersRefetch } = useQuery({
-    queryKey: ["workOrders"],
-    queryFn: () => getWorkOrders(),
-  });
-
-  const { refetch: subcontractorsRefetch } = useQuery({
-    queryKey: ["subcontractors"],
-    queryFn: getSubcontractors,
-  });
-
   const handleRefreshData = () => {
     // Implementation for refreshing data
     toast({
@@ -496,6 +493,7 @@ const Accounting: React.FC = () => {
     projectsRefetch();
     workOrdersRefetch();
     subcontractorsRefetch();
+    paymentItemsRefetch();
 
     // Show success toast after all data is refreshed
     setTimeout(() => {
@@ -505,6 +503,87 @@ const Accounting: React.FC = () => {
         variant: "default",
       });
     }, 2000);
+  };
+
+  const handleWorkOrderExport = () => {
+    const rows = accountingEntries.map((entry) => [
+      entry.id,
+      entry.project,
+      entry.subcontractor,
+      entry.workOrderNumber,
+      entry.status,
+      entry.completed,
+      entry.swoTotal,
+      entry.retainageAmount,
+      entry.paidAmount,
+      entry.total,
+    ]);
+    const headers = [
+      "ID",
+      "Project",
+      "Subcontractor",
+      "Work Order",
+      "Status",
+      "Completed %",
+      "SWO Total",
+      "Retainage",
+      "Paid Amount",
+      "Total",
+    ];
+    const csv = [headers, ...rows]
+      .map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "work_orders.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+    toast({
+      title: "Export complete",
+      description: "Work orders exported as CSV.",
+    });
+  };
+
+  const handlePaymentExport = () => {
+    const rows = paymentItems.map((p: any) => [
+      p.item_id,
+      p.project_id,
+      p.work_order_id,
+      p.description,
+      p.status,
+      p.qc_approval_status,
+      p.supervisor_approval_status,
+      p.accountant_approval_status,
+      (p.total_price ??
+        (p.original_quantity || 0) * (p.unit_price || 0)) || "",
+    ]);
+    const headers = [
+      "Item ID",
+      "Project",
+      "Work Order",
+      "Description",
+      "Status",
+      "QC",
+      "Supervisor",
+      "Accountant",
+      "Total",
+    ];
+    const csv = [headers, ...rows]
+      .map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "payment_items.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+    toast({
+      title: "Export complete",
+      description: "Payment items exported as CSV.",
+    });
   };
 
   // Save current view
@@ -565,114 +644,7 @@ const Accounting: React.FC = () => {
     });
   };
 
-  // Work Order Status Management Handlers
-  const handleUpdateStatus = () => {
-    // Show the status update modal
-    setShowStatusUpdateModal(true);
-    // Default to selecting all work orders
-    setSelectedWorkOrders(workOrderData.map((wo) => wo.id));
-  };
-
-  const handleStatusUpdateConfirm = () => {
-    setIsUpdatingStatus(true);
-
-    // Show initial toast
-    toast({
-      title: "Updating work order status",
-      description: "Processing your request...",
-    });
-
-    // Simulate API call with timeout
-    setTimeout(() => {
-      // Update would happen here in a real implementation
-
-      // Show success toast
-      toast({
-        title: "Status updated successfully",
-        description: `${selectedWorkOrders.length} work orders updated to "${selectedStatus}"`,
-        variant: "default",
-      });
-
-      setIsUpdatingStatus(false);
-      setShowStatusUpdateModal(false);
-    }, 1500);
-  };
-
-  const handleGenerateReport = () => {
-    setShowReportModal(true);
-  };
-
-  const handleReportGeneration = () => {
-    setIsGeneratingWorkOrderReport(true);
-
-    // Show initial toast
-    toast({
-      title: "Generating work order report",
-      description: "Processing your request...",
-    });
-
-    // Import the report generator
-    import("@/utils/reportGenerator").then(({ generateWorkOrderReport }) => {
-      // Generate the report with actual data
-      const reportUrl = generateWorkOrderReport(
-        workOrderData,
-        "Work Order Status Report",
-        "Command X Construction"
-      );
-
-      // Show success toast with download action
-      toast({
-        title: "Report generated successfully",
-        description: "Your work order report is ready to view or download",
-        action: (
-          <ToastAction
-            altText="View"
-            onClick={() => {
-              // Open the report in a new window
-              window.open(reportUrl, "_blank");
-            }}
-          >
-            View Report
-          </ToastAction>
-        ),
-        variant: "default",
-      });
-
-      // Create a download link for the report
-      const link = document.createElement("a");
-      link.href = reportUrl;
-      link.setAttribute("download", "work_order_report.html");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      setIsGeneratingWorkOrderReport(false);
-      setShowReportModal(false);
-    });
-  };
-
-  const handleManageCrew = () => {
-    setShowCrewManagementModal(true);
-  };
-
-  const handleCrewAssignment = (crewName: string) => {
-    // Show initial toast
-    toast({
-      title: "Updating crew assignment",
-      description: "Processing your request...",
-    });
-
-    // Simulate API call with timeout
-    setTimeout(() => {
-      toast({
-        title: "Crew assigned successfully",
-        description: `Crew "${crewName}" has been assigned to the selected work orders.`,
-        variant: "default",
-      });
-
-      setShowCrewManagementModal(false);
-    }, 1500);
-  };
+  // Work order status/report/crew management stubs omitted in this demo
 
   // Handle sorting
   const handleSort = (field: string) => {
@@ -703,148 +675,101 @@ const Accounting: React.FC = () => {
   };
 
   // Mock data for accounting entries
-  const accountingEntries = [
-    {
-      id: "1",
-      action: "View",
-      project: "2-20-M4 Mira Loma",
-      subcontractor: "ABC Contractors",
-      workOrderNumber: "WO-2023-001",
-      completed: 100,
-      swoTotal: 12500.0,
-      retainage: 5,
-      retainageAmount: 625.0,
-      paidAmount: 11875.0,
-      total: 12500.0,
-      status: "Approved",
-    },
-    {
-      id: "2",
-      action: "View",
-      project: "2-20-M4 Mira Loma",
-      subcontractor: "ABC Contractors",
-      workOrderNumber: "WO-2023-002",
-      completed: 100,
-      swoTotal: 8750.5,
-      retainage: 5,
-      retainageAmount: 437.53,
-      paidAmount: 8312.97,
-      total: 8750.5,
-      status: "Approved",
-    },
-    {
-      id: "3",
-      action: "View",
-      project: "2-20-M4 Mira Loma",
-      subcontractor: "XYZ Services",
-      workOrderNumber: "WO-2023-003",
-      completed: 75,
-      swoTotal: 15250.75,
-      retainage: 5,
-      retainageAmount: 762.54,
-      paidAmount: 10688.21,
-      total: 15250.75,
-      status: "Pending",
-    },
-    {
-      id: "4",
-      action: "View",
-      project: "3-21-M4 Mira Loma",
-      subcontractor: "Delta Engineering",
-      workOrderNumber: "WO-2023-004",
-      completed: 100,
-      swoTotal: 3500.0,
-      retainage: 5,
-      retainageAmount: 175.0,
-      paidAmount: 3325.0,
-      total: 3500.0,
-      status: "Approved",
-    },
-    {
-      id: "5",
-      action: "View",
-      project: "3-21-M4 Mira Loma",
-      subcontractor: "Delta Engineering",
-      workOrderNumber: "WO-2023-005",
-      completed: 0,
-      swoTotal: 2100.0,
-      retainage: 5,
-      retainageAmount: 0.0,
-      paidAmount: 0.0,
-      total: 2100.0,
-      status: "Rejected",
-    },
-    {
-      id: "6",
-      action: "View",
-      project: "4-21-M4 Mira Loma",
-      subcontractor: "Omega Construction",
-      workOrderNumber: "WO-2023-006",
-      completed: 100,
-      swoTotal: 9800.0,
-      retainage: 5,
-      retainageAmount: 490.0,
-      paidAmount: 9310.0,
-      total: 9800.0,
-      status: "Approved",
-    },
-    {
-      id: "7",
-      action: "View",
-      project: "4-21-M4 Mira Loma",
-      subcontractor: "Omega Construction",
-      workOrderNumber: "WO-2023-007",
-      completed: 50,
-      swoTotal: 11250.0,
-      retainage: 5,
-      retainageAmount: 562.5,
-      paidAmount: 5062.5,
-      total: 11250.0,
-      status: "Pending",
-    },
-    {
-      id: "8",
-      action: "View",
-      project: "5-21-M4 Mira Loma",
-      subcontractor: "Acme Builders",
-      workOrderNumber: "WO-2023-008",
-      completed: 100,
-      swoTotal: 7500.0,
-      retainage: 5,
-      retainageAmount: 375.0,
-      paidAmount: 7125.0,
-      total: 7500.0,
-      status: "Approved",
-    },
-    {
-      id: "9",
-      action: "View",
-      project: "5-21-M4 Mira Loma",
-      subcontractor: "Acme Builders",
-      workOrderNumber: "WO-2023-009",
-      completed: 25,
-      swoTotal: 4200.0,
-      retainage: 5,
-      retainageAmount: 210.0,
-      paidAmount: 840.0,
-      total: 4200.0,
-      status: "Pending",
-    },
-    {
-      id: "10",
-      action: "View",
-      project: "6-21-M4 Mira Loma",
-      subcontractor: "Best Contractors",
-      workOrderNumber: "WO-2023-010",
-      completed: 100,
-      swoTotal: 13750.0,
-      retainage: 5,
-      retainageAmount: 687.5,
-      paidAmount: 13062.5,
-      total: 13750.0,
-      status: "Approved",
-    },
-  ];
+  const accountingEntries = useMemo(() => {
+    if (workOrders.length === 0) {
+      return [];
+    }
+
+    return workOrders.map((wo: any) => {
+      const project =
+        projects.find(
+          (p: any) => String(p.project_id) === String(wo.project_id)
+        ) || {};
+      const subcontractor =
+        subcontractors.find(
+          (s: any) =>
+            String(s.subcontractor_id) ===
+            String(wo.assigned_subcontractor_id || wo.subcontractor_id)
+        ) || {};
+      const projectName = (project as any).project_name || "Unknown Project";
+      const subcontractorName =
+        (subcontractor as any).company_name || "Unassigned";
+      const itemsForWO = paymentItems.filter(
+        (pi: any) => String(pi.work_order_id) === String(wo.work_order_id)
+      );
+
+      const totalFromItems = itemsForWO.reduce((sum: number, pi: any) => {
+        const base =
+          (pi.total_price ??
+            (pi.original_quantity || 0) * (pi.unit_price || 0)) || 0;
+        return sum + base;
+      }, 0);
+
+      const retainagePct = wo.retainage_percentage ?? 0;
+      const paidAmount = wo.amount_paid ?? 0;
+      const completed = wo.status === "Completed" ? 100 : 0;
+
+      return {
+        id: String(wo.work_order_id ?? crypto.randomUUID()),
+        action: "View",
+        project: projectName,
+        subcontractor: subcontractorName,
+        workOrderNumber: wo.work_order_number || wo.work_order_id || "-",
+        completed,
+        swoTotal: Number(totalFromItems.toFixed(2)),
+        retainage: retainagePct,
+        retainageAmount: Number(
+          ((totalFromItems * retainagePct) / 100).toFixed(2)
+        ),
+        paidAmount:
+          typeof paidAmount === "number"
+            ? Number(paidAmount.toFixed(2))
+            : Number(paidAmount) || 0,
+        total: Number(totalFromItems.toFixed(2)),
+        status: wo.status || "Pending",
+      };
+    });
+  }, [workOrders, projects, subcontractors, paymentItems]);
+
+  // Derived stats
+  const workOrderStats = useMemo(() => {
+    const total = accountingEntries.length;
+    const completed = accountingEntries.filter(
+      (entry) => entry.completed === 100
+    ).length;
+    const totalSwo = accountingEntries.reduce(
+      (sum, entry) => sum + entry.swoTotal,
+      0
+    );
+    const totalRetainage = accountingEntries.reduce(
+      (sum, entry) => sum + entry.retainageAmount,
+      0
+    );
+    return {
+      total,
+      completed,
+      totalSwo,
+      totalRetainage,
+    };
+  }, [accountingEntries]);
+
+  const paymentStats = useMemo(() => {
+    if (paymentItems.length === 0) {
+      return {
+        total: 0,
+        qcPending: 0,
+        completed: 0,
+      };
+    }
+    const total = paymentItems.length;
+    const qcPending = paymentItems.filter(
+      (p: any) => p.qc_approval_status === "pending"
+    ).length;
+    const completed = paymentItems.filter(
+      (p: any) => p.status === "completed"
+    ).length;
+    return { total, qcPending, completed };
+  }, [paymentItems]);
 
   // Filter entries based on search and filters
   const filteredEntries = accountingEntries.filter((entry) => {
@@ -1344,10 +1269,10 @@ const Accounting: React.FC = () => {
           <div className="mt-8">
             <Tabs defaultValue="dashboard" className="w-full">
               <div className="overflow-x-auto pb-2">
-                <TabsList className="flex mb-4 w-max min-w-full">
+                <TabsList className="floating-toolbar w-max min-w-full">
                   <TabsTrigger
                     value="dashboard"
-                    className="flex-1 min-w-[120px]"
+                    className="pill-tab text-sm font-semibold min-w-[120px]"
                   >
                     <BarChart2 className="h-4 w-4 mr-2" />
                     <span className="hidden sm:inline">
@@ -1357,43 +1282,55 @@ const Accounting: React.FC = () => {
                   </TabsTrigger>
                   <TabsTrigger
                     value="workorders"
-                    className="flex-1 min-w-[120px]"
+                    className="pill-tab text-sm font-semibold min-w-[120px]"
                   >
                     <FileCheck className="h-4 w-4 mr-2" />
                     <span className="hidden sm:inline">Work Orders</span>
                     <span className="sm:hidden">Orders</span>
                   </TabsTrigger>
-                  <TabsTrigger value="filters" className="flex-1 min-w-[120px]">
+                  <TabsTrigger
+                    value="filters"
+                    className="pill-tab text-sm font-semibold min-w-[120px]"
+                  >
                     <Filter className="h-4 w-4 mr-2" />
                     <span className="hidden sm:inline">Advanced Filters</span>
                     <span className="sm:hidden">Filters</span>
                   </TabsTrigger>
-                  <TabsTrigger value="reports" className="flex-1 min-w-[120px]">
+                  <TabsTrigger
+                    value="reports"
+                    className="pill-tab text-sm font-semibold min-w-[120px]"
+                  >
                     <FileText className="h-4 w-4 mr-2" />
                     <span className="hidden sm:inline">Reporting Tools</span>
                     <span className="sm:hidden">Reports</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="payments"
-                    className="flex-1 min-w-[120px]"
+                    className="pill-tab text-sm font-semibold min-w-[120px]"
                   >
                     <CreditCard className="h-4 w-4 mr-2" />
                     <span className="hidden sm:inline">Payment Tracking</span>
                     <span className="sm:hidden">Payments</span>
                   </TabsTrigger>
-                  <TabsTrigger value="billing" className="flex-1 min-w-[120px]">
+                  <TabsTrigger
+                    value="billing"
+                    className="pill-tab text-sm font-semibold min-w-[120px]"
+                  >
                     <Calculator className="h-4 w-4 mr-2" />
                     <span className="hidden sm:inline">Billing Automation</span>
                     <span className="sm:hidden">Billing</span>
                   </TabsTrigger>
-                  <TabsTrigger value="audit" className="flex-1 min-w-[120px]">
+                  <TabsTrigger
+                    value="audit"
+                    className="pill-tab text-sm font-semibold min-w-[120px]"
+                  >
                     <FileCheck className="h-4 w-4 mr-2" />
                     <span className="hidden sm:inline">Audit Trail</span>
                     <span className="sm:hidden">Audit</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="analytics"
-                    className="flex-1 min-w-[120px]"
+                    className="pill-tab text-sm font-semibold min-w-[120px]"
                   >
                     <TrendingUp className="h-4 w-4 mr-2" />
                     <span className="hidden sm:inline">
@@ -1420,23 +1357,7 @@ const Accounting: React.FC = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              toast({
-                                title: "Filtering work orders",
-                                description:
-                                  "Applying filters to work orders...",
-                              });
-
-                              // Simulate filtering process
-                              setTimeout(() => {
-                                toast({
-                                  title: "Filters applied",
-                                  description:
-                                    "Work orders have been filtered successfully.",
-                                  variant: "default",
-                                });
-                              }, 1000);
-                            }}
+                            onClick={() => setStatusFilter("Pending")}
                           >
                             <Filter className="h-4 w-4 mr-2" />
                             Filter
@@ -1444,23 +1365,7 @@ const Accounting: React.FC = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              toast({
-                                title: "Refreshing work orders",
-                                description:
-                                  "Work order data is being refreshed...",
-                              });
-
-                              // Simulate refresh process
-                              setTimeout(() => {
-                                toast({
-                                  title: "Work orders refreshed",
-                                  description:
-                                    "Work order data has been refreshed successfully.",
-                                  variant: "default",
-                                });
-                              }, 1500);
-                            }}
+                            onClick={handleRefreshData}
                           >
                             <RefreshCw className="h-4 w-4 mr-2" />
                             Refresh
@@ -1470,35 +1375,7 @@ const Accounting: React.FC = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              toast({
-                                title: "Exporting work orders",
-                                description:
-                                  "Work order data is being exported...",
-                              });
-
-                              // Simulate export process
-                              setTimeout(() => {
-                                // Create a download link
-                                const link = document.createElement("a");
-                                link.href =
-                                  "data:application/pdf;base64,JVBERi0xLjcKJeLjz9MKNSAwIG9iago8PAovRmlsdGVyIC9GbGF0ZURlY29kZQovTGVuZ3RoIDM4Cj4+CnN0cmVhbQp4nCvkMlAwUDC1NNUzMVGwMDHUszRSKErMKwktStVLLCjISQUAXX8HCWVUC3RzdHJ1Y3R1cmUgdHJlZQo1IDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovS2lkcyBbNiAwIFJdCi9Db3VudCAxCj4+CmVuZG9iago2IDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCi9SZXNvdXJjZXMgPDwKL0ZvbnQgPDwKL0YxIDcgMCBSCj4+Cj4+Ci9Db250ZW50cyA4IDAgUgovUGFyZW50IDUgMCBSCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9GaWx0ZXIgL0ZsYXRlRGVjb2RlCi9MZW5ndGggMTI5Cj4+CnN0cmVhbQp4nDPQM1QwUDAzNVEwMDRRMAdiCwVDCwUjPQMzE4WiRCCXK5zzUCGXS8FYz8xEwdxAz9JIwdLI0FDBxNTM0kjBzMzC0NTSQMHMwMjA0MhIwcDcwMDY0sJYwdDC0NjC0AQAKXgTnAplbmRzdHJlYW0KZW5kb2JqCjcgMCBvYmoKPDwKL1R5cGUgL0ZvbnQKL1N1YnR5cGUgL1R5cGUxCi9CYXNlRm9udCAvSGVsdmV0aWNhCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCj4+CmVuZG9iagozIDAgb2JqCjw8Cj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyA1IDAgUgo+PgplbmRvYmoKNCAwIG9iago8PAovUHJvZHVjZXIgKGlUZXh0IDIuMS43IGJ5IDFUM1hUKQovTW9kRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKL0NyZWF0aW9uRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKPj4KZW5kb2JqCnhyZWYKMCA5CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwNTc1IDAwMDAwIG4gCjAwMDAwMDA1NDYgMDAwMDAgbiAKMDAwMDAwMDYyNCAwMDAwMCBuIAowMDAwMDAwMDkzIDAwMDAwIG4gCjAwMDAwMDAxNDkgMDAwMDAgbiAKMDAwMDAwMDQ2NyAwMDAwMCBuIAowMDAwMDAwMjc5IDAwMDAwIG4gCnRyYWlsZXIKPDwKL1NpemUgOQovUm9vdCAyIDAgUgovSW5mbyA0IDAgUgovSUQgWzw2YWJhMzBhZGY3YTRmMzc1YmFkMWJmMTk4ZWNjMGIyZD4gPDZhYmEzMGFkZjdhNGYzNzViYWQxYmYxOThlY2MwYjJkPl0KPj4Kc3RhcnR4cmVmCjczNAolJUVPRgo=";
-                                link.setAttribute(
-                                  "download",
-                                  "work_orders.pdf"
-                                );
-                                document.body.appendChild(link);
-                                link.click();
-                                document.body.removeChild(link);
-
-                                toast({
-                                  title: "Export complete",
-                                  description:
-                                    "Work order data has been exported successfully.",
-                                  variant: "default",
-                                });
-                              }, 1500);
-                            }}
+                            onClick={handleWorkOrderExport}
                           >
                             <Download className="h-4 w-4 mr-2" />
                             Export
@@ -1556,21 +1433,25 @@ const Accounting: React.FC = () => {
                                 <span className="text-muted-foreground">
                                   Total Work Orders:
                                 </span>
-                                <span className="font-medium">4</span>
+                                <span className="font-medium">
+                                  {workOrderStats.total}
+                                </span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-muted-foreground">
                                   Completed:
                                 </span>
                                 <span className="font-medium text-green-600">
-                                  4
+                                  {workOrderStats.completed}
                                 </span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-muted-foreground">
                                   Total SWO Amount:
                                 </span>
-                                <span className="font-medium">$69,670.25</span>
+                                <span className="font-medium">
+                                  ${workOrderStats.totalSwo.toFixed(2)}
+                                </span>
                               </div>
                             </div>
                           </CardContent>
@@ -1588,7 +1469,9 @@ const Accounting: React.FC = () => {
                                 <span className="text-muted-foreground">
                                   Total Retainage:
                                 </span>
-                                <span className="font-medium">$987.08</span>
+                                <span className="font-medium">
+                                  ${workOrderStats.totalRetainage.toFixed(2)}
+                                </span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-muted-foreground">
@@ -1638,7 +1521,7 @@ const Accounting: React.FC = () => {
                                       try {
                                         // Generate the report directly
                                         const reportWindow =
-                                          generateDirectReport();
+                                          generateDirectReport([]);
 
                                         if (reportWindow) {
                                           toast({
@@ -1687,7 +1570,7 @@ const Accounting: React.FC = () => {
 
                                   // Import the direct report generator
                                   import("@/utils/directReportGenerator").then(
-                                    ({ downloadReport }) => {
+                                    ({ generateDirectReport }) => {
                                       // Show processing toast
                                       toast({
                                         title: "Preparing download",
@@ -1697,13 +1580,13 @@ const Accounting: React.FC = () => {
                                       });
 
                                       try {
-                                        // Download the report
-                                        downloadReport();
+                                        // Generate the report (opens in new window)
+                                        generateDirectReport([]);
 
                                         toast({
                                           title: "Report Downloaded",
                                           description:
-                                            "Financial report has been downloaded successfully. Check your downloads folder.",
+                                            "Financial report is ready. Check the opened window to print or save as PDF.",
                                           variant: "default",
                                         });
                                       } catch (error) {
@@ -2292,21 +2175,27 @@ const Accounting: React.FC = () => {
                             <div className="space-y-2">
                               <div className="flex justify-between">
                                 <span className="text-muted-foreground">
-                                  Eligible for Payment:
+                                  Total Items:
                                 </span>
-                                <span className="font-medium">4</span>
+                                <span className="font-medium">
+                                  {paymentStats.total}
+                                </span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-muted-foreground">
                                   Pending QC:
                                 </span>
-                                <span className="font-medium">4</span>
+                                <span className="font-medium">
+                                  {paymentStats.qcPending}
+                                </span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-muted-foreground">
                                   Completed:
                                 </span>
-                                <span className="font-medium">4</span>
+                                <span className="font-medium">
+                                  {paymentStats.completed}
+                                </span>
                               </div>
                             </div>
                           </CardContent>
@@ -2347,35 +2236,7 @@ const Accounting: React.FC = () => {
                                 size="sm"
                                 variant="outline"
                                 className="w-full"
-                                onClick={() => {
-                                  toast({
-                                    title: "Exporting payment report",
-                                    description:
-                                      "Your payment report is being generated...",
-                                  });
-
-                                  // Simulate export process
-                                  setTimeout(() => {
-                                    // Create a download link
-                                    const link = document.createElement("a");
-                                    link.href =
-                                      "data:application/pdf;base64,JVBERi0xLjcKJeLjz9MKNSAwIG9iago8PAovRmlsdGVyIC9GbGF0ZURlY29kZQovTGVuZ3RoIDM4Cj4+CnN0cmVhbQp4nCvkMlAwUDC1NNUzMVGwMDHUszRSKErMKwktStVLLCjISQUAXX8HCWVUC3RzdHJ1Y3R1cmUgdHJlZQo1IDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovS2lkcyBbNiAwIFJdCi9Db3VudCAxCj4+CmVuZG9iago2IDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCi9SZXNvdXJjZXMgPDwKL0ZvbnQgPDwKL0YxIDcgMCBSCj4+Cj4+Ci9Db250ZW50cyA4IDAgUgovUGFyZW50IDUgMCBSCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9GaWx0ZXIgL0ZsYXRlRGVjb2RlCi9MZW5ndGggMTI5Cj4+CnN0cmVhbQp4nDPQM1QwUDAzNVEwMDRRMAdiCwVDCwUjPQMzE4WiRCCXK5zzUCGXS8FYz8xEwdxAz9JIwdLI0FDBxNTM0kjBzMzC0NTSQMHMwMjA0MhIwcDcwMDY0sJYwdDC0NjC0AQAKXgTnAplbmRzdHJlYW0KZW5kb2JqCjcgMCBvYmoKPDwKL1R5cGUgL0ZvbnQKL1N1YnR5cGUgL1R5cGUxCi9CYXNlRm9udCAvSGVsdmV0aWNhCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCj4+CmVuZG9iagozIDAgb2JqCjw8Cj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyA1IDAgUgo+PgplbmRvYmoKNCAwIG9iago8PAovUHJvZHVjZXIgKGlUZXh0IDIuMS43IGJ5IDFUM1hUKQovTW9kRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKL0NyZWF0aW9uRGF0ZSAoRDoyMDIzMDUyNjEyMzQ1NikKPj4KZW5kb2JqCnhyZWYKMCA5CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwNTc1IDAwMDAwIG4gCjAwMDAwMDA1NDYgMDAwMDAgbiAKMDAwMDAwMDYyNCAwMDAwMCBuIAowMDAwMDAwMDkzIDAwMDAwIG4gCjAwMDAwMDAxNDkgMDAwMDAgbiAKMDAwMDAwMDQ2NyAwMDAwMCBuIAowMDAwMDAwMjc5IDAwMDAwIG4gCnRyYWlsZXIKPDwKL1NpemUgOQovUm9vdCAyIDAgUgovSW5mbyA0IDAgUgovSUQgWzw2YWJhMzBhZGY3YTRmMzc1YmFkMWJmMTk4ZWNjMGIyZD4gPDZhYmEzMGFkZjdhNGYzNzViYWQxYmYxOThlY2MwYjJkPl0KPj4Kc3RhcnR4cmVmCjczNAolJUVPRgo=";
-                                    link.setAttribute(
-                                      "download",
-                                      "payment_report.pdf"
-                                    );
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
-
-                                    toast({
-                                      title: "Export complete",
-                                      description:
-                                        "Your payment report has been exported successfully.",
-                                      variant: "default",
-                                    });
-                                  }, 1500);
-                                }}
+                                onClick={handlePaymentExport}
                               >
                                 Export Payment Report
                               </Button>
@@ -2395,14 +2256,22 @@ const Accounting: React.FC = () => {
                                 <span className="text-muted-foreground">
                                   Total Items:
                                 </span>
-                                <span className="font-medium">460</span>
+                                <span className="font-medium">
+                                  {paymentStats.total}
+                                </span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-muted-foreground">
                                   Completion Rate:
                                 </span>
                                 <span className="font-medium text-green-600">
-                                  100%
+                                  {paymentStats.total === 0
+                                    ? "0%"
+                                    : `${Math.round(
+                                        (paymentStats.completed /
+                                          paymentStats.total) *
+                                          100
+                                      )}%`}
                                 </span>
                               </div>
                               <div className="flex justify-between">

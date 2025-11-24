@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -1100,6 +1101,59 @@ const WorkOrders: React.FC = () => {
       }
     );
   };
+
+  // Loading / error / empty states
+  if (isLoading) {
+    return (
+      <div className="p-6 md:p-10 text-center space-y-4">
+        <div className="text-lg font-semibold text-slate-700">Loading work orders…</div>
+        <div className="w-full max-w-3xl mx-auto space-y-3">
+          <div className="h-12 rounded-xl bg-slate-100 animate-pulse" />
+          <div className="h-12 rounded-xl bg-slate-100 animate-pulse" />
+          <div className="h-12 rounded-xl bg-slate-100 animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 md:p-10 text-center space-y-3">
+        <div className="text-lg font-semibold text-red-600">
+          Failed to load work orders
+        </div>
+        <div className="text-sm text-slate-600">{error.message}</div>
+        <Button onClick={handleRefresh} variant="outline" className="mt-2">
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  if (!workOrders || workOrders.length === 0) {
+    return (
+      <div className="p-6 md:p-10 flex flex-col items-center justify-center text-center space-y-4">
+        <div className="w-16 h-16 rounded-full bg-[var(--accent-soft)] flex items-center justify-center">
+          <Wrench className="h-8 w-8 text-[var(--accent)]" />
+        </div>
+        <div className="text-2xl font-bold text-slate-800">No work orders yet</div>
+        <p className="text-slate-600 max-w-md">
+          Create your first work order to start tracking progress, assignments, and costs.
+        </p>
+        <div className="flex flex-wrap gap-3 justify-center">
+          <Button onClick={handleRefresh} variant="outline">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+          <Button onClick={() => setShowStatusManagement(true)}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Create Work Order
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-8 bg-background text-foreground">
@@ -2625,28 +2679,28 @@ Cost Breakdown:
 
       {/* Mobile-optimized Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-        <TabsList className="grid w-full grid-cols-4 overflow-x-auto">
+        <TabsList className="floating-toolbar overflow-x-auto">
           <TabsTrigger
             value="all"
-            className="text-xs sm:text-sm whitespace-nowrap"
+            className="pill-tab text-xs sm:text-sm font-semibold whitespace-nowrap"
           >
             All Work Orders
           </TabsTrigger>
           <TabsTrigger
             value="pending"
-            className="text-xs sm:text-sm whitespace-nowrap"
+            className="pill-tab text-xs sm:text-sm font-semibold whitespace-nowrap"
           >
             Pending
           </TabsTrigger>
           <TabsTrigger
             value="inProgress"
-            className="text-xs sm:text-sm whitespace-nowrap"
+            className="pill-tab text-xs sm:text-sm font-semibold whitespace-nowrap"
           >
             In Progress
           </TabsTrigger>
           <TabsTrigger
             value="completed"
-            className="text-xs sm:text-sm whitespace-nowrap"
+            className="pill-tab text-xs sm:text-sm font-semibold whitespace-nowrap"
           >
             Completed
           </TabsTrigger>

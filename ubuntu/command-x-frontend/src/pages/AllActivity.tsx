@@ -323,7 +323,6 @@ const AllActivity: React.FC = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full"
-                prefix={<Search className="h-4 w-4 mr-2 text-muted-foreground" />}
               />
             </div>
             <div>

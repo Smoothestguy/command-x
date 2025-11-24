@@ -1,42 +1,67 @@
+/* Global structural styles for the shell; actual pages use Tailwind utility classes */
+
+:root {
+  --shell-max-width: 1440px;
+}
+
+body {
+  background: radial-gradient(circle at 20% 20%, rgba(118, 136, 255, 0.08), transparent 30%),
+    radial-gradient(circle at 80% 0%, rgba(16, 185, 129, 0.07), transparent 28%),
+    #f8fafc;
+}
+
 #root {
-  max-width: 1280px;
+  max-width: var(--shell-max-width);
   margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  width: 100%;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.app-surface {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.glass-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.92));
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
 }
 
-.card {
-  padding: 2em;
+.pill-tab {
+  border-radius: 999px;
+  padding: 10px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  transition: all 120ms ease;
 }
 
-.read-the-docs {
-  color: #888;
+.pill-tab[data-state="active"] {
+  background: linear-gradient(120deg, #111827, #1f2937);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 12px 24px rgba(17, 24, 39, 0.22);
+}
+
+.soft-shadow {
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+.floating-toolbar {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
 }

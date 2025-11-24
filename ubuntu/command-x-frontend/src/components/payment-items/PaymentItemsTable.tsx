@@ -41,7 +41,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { PaymentItemData, LocationData } from "@/types/paymentItem";
 import { getPaymentItems, getLocations } from "@/services/paymentItemsApi";
-import { getWorkOrders } from "@/services/api";
+import { getWorkOrders, WorkOrderData } from "@/services/api";
 import BasicEditPaymentItemButton from "./BasicEditPaymentItemButton";
 import MobileTable from "@/components/ui/mobile-table";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -91,12 +91,6 @@ const PaymentItemsTable: React.FC<PaymentItemsTableProps> = ({
         projectId,
       });
       return getPaymentItems({ workOrderId, locationId, projectId });
-    },
-    onSuccess: (data) => {
-      console.log("Payment items fetched successfully:", data);
-    },
-    onError: (error) => {
-      console.error("Error fetching payment items:", error);
     },
   });
 
@@ -521,14 +515,17 @@ const PaymentItemsTable: React.FC<PaymentItemsTableProps> = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Work Orders</SelectItem>
-                    {workOrders.map((workOrder) => (
-                      <SelectItem
-                        key={workOrder.work_order_id}
-                        value={workOrder.work_order_id.toString()}
-                      >
-                        {workOrder.work_order_number || workOrder.description}
-                      </SelectItem>
-                    ))}
+                    {workOrders.map((workOrder: WorkOrderData) => {
+                      const idValue = workOrder.work_order_id ?? "";
+                      return (
+                        <SelectItem
+                          key={idValue?.toString()}
+                          value={idValue?.toString()}
+                        >
+                          {workOrder.work_order_number || workOrder.description}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>

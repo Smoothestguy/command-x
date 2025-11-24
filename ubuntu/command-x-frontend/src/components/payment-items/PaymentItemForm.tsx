@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { PaymentItemData, LocationData } from "@/types/paymentItem";
+import { WorkOrderData } from "@/services/api";
 import { useQuery } from "@tanstack/react-query";
 import { getLocations } from "@/services/paymentItemsApi";
 import { getWorkOrders } from "@/services/api";
@@ -381,14 +382,17 @@ const PaymentItemForm: React.FC<PaymentItemFormProps> = ({
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="">None</SelectItem>
-                    {workOrders?.map((workOrder) => (
-                      <SelectItem
-                        key={workOrder.work_order_id}
-                        value={workOrder.work_order_id.toString()}
-                      >
-                        {workOrder.description}
-                      </SelectItem>
-                    ))}
+                    {workOrders?.map((workOrder: WorkOrderData) => {
+                      const idValue = workOrder.work_order_id ?? "";
+                      return (
+                        <SelectItem
+                          key={idValue?.toString()}
+                          value={idValue?.toString()}
+                        >
+                          {workOrder.description}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
                 <FormMessage />

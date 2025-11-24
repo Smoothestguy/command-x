@@ -26,7 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
 
   return (
     <aside
-      className={`w-[85vw] md:w-64 bg-gray-100 h-full p-4 border-r border-gray-300 flex flex-col shadow-lg
+      className={`w-[78vw] sm:w-[70vw] md:w-64 lg:w-68 h-full p-4 md:p-5 bg-white/90 backdrop-blur-xl border-r border-[var(--border-subtle)] shadow-lg flex flex-col rounded-tr-2xl rounded-br-2xl
       ${deviceInfo.isIOS ? "safe-area-top safe-area-bottom" : ""}`}
     >
       <div className="flex justify-between items-center mb-6">
@@ -34,7 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
           <img
             src="/command-x-logo.png"
             alt="Command X Logo"
-            className="h-16 md:h-20"
+            className="h-12 md:h-14 drop-shadow"
           />
         </Link>
         <Button
@@ -54,10 +54,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
             <Link
               to="/dashboard"
               onClick={onCloseMobile}
-              className={`flex items-center p-2 text-gray-700 hover:bg-gray-200 rounded min-h-[44px] ${
+              className={`flex items-center p-2.5 text-sm font-medium rounded-xl transition ${
                 location.pathname === "/dashboard"
-                  ? "bg-gray-200 font-medium"
-                  : ""
+                  ? "bg-[var(--accent-soft)] text-[var(--accent)] shadow-sm"
+                  : "text-slate-700 hover:bg-slate-100"
               }`}
             >
               <Home className="mr-3 h-5 w-5 flex-shrink-0" />
@@ -68,10 +68,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
             <Link
               to="/projects"
               onClick={onCloseMobile}
-              className={`flex items-center p-2 text-gray-700 hover:bg-gray-200 rounded min-h-[44px] ${
+              className={`flex items-center p-2.5 text-sm font-medium rounded-xl transition ${
                 location.pathname === "/projects"
-                  ? "bg-gray-200 font-medium"
-                  : ""
+                  ? "bg-[var(--accent-soft)] text-[var(--accent)] shadow-sm"
+                  : "text-slate-700 hover:bg-slate-100"
               }`}
             >
               <FolderKanban className="mr-3 h-5 w-5 flex-shrink-0" />
@@ -82,10 +82,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
             <Link
               to="/work-orders"
               onClick={onCloseMobile}
-              className={`flex items-center p-2 text-gray-700 hover:bg-gray-200 rounded min-h-[44px] ${
+              className={`flex items-center p-2.5 text-sm font-medium rounded-xl transition ${
                 location.pathname === "/work-orders"
-                  ? "bg-gray-200 font-medium"
-                  : ""
+                  ? "bg-[var(--accent-soft)] text-[var(--accent)] shadow-sm"
+                  : "text-slate-700 hover:bg-slate-100"
               }`}
             >
               <Wrench className="mr-3 h-5 w-5 flex-shrink-0" />
@@ -96,10 +96,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
             <Link
               to="/purchase-orders"
               onClick={onCloseMobile}
-              className={`flex items-center p-2 text-gray-700 hover:bg-gray-200 rounded min-h-[44px] ${
+              className={`flex items-center p-2.5 text-sm font-medium rounded-xl transition ${
                 location.pathname === "/purchase-orders"
-                  ? "bg-gray-200 font-medium"
-                  : ""
+                  ? "bg-[var(--accent-soft)] text-[var(--accent)] shadow-sm"
+                  : "text-slate-700 hover:bg-slate-100"
               }`}
             >
               <ShoppingCart className="mr-3 h-5 w-5 flex-shrink-0" />
@@ -110,10 +110,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
             <Link
               to="/vendors"
               onClick={onCloseMobile}
-              className={`flex items-center p-2 text-gray-700 hover:bg-gray-200 rounded min-h-[44px] ${
+              className={`flex items-center p-2.5 text-sm font-medium rounded-xl transition ${
                 location.pathname === "/vendors"
-                  ? "bg-gray-200 font-medium"
-                  : ""
+                  ? "bg-[var(--accent-soft)] text-[var(--accent)] shadow-sm"
+                  : "text-slate-700 hover:bg-slate-100"
               }`}
             >
               <Building className="mr-3 h-5 w-5 flex-shrink-0" />
@@ -132,6 +132,20 @@ const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
             >
               <Users className="mr-3 h-5 w-5 flex-shrink-0" />
               <span className="truncate">Subcontractors</span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/personnel"
+              onClick={onCloseMobile}
+              className={`flex items-center p-2 text-gray-700 hover:bg-gray-200 rounded min-h-[44px] ${
+                location.pathname === "/personnel"
+                  ? "bg-gray-200 font-medium"
+                  : ""
+              }`}
+            >
+              <Users className="mr-3 h-5 w-5 flex-shrink-0" />
+              <span className="truncate">Personnel</span>
             </Link>
           </li>
           <li>

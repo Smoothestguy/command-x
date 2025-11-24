@@ -1,20 +1,25 @@
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { PaymentItemData, LocationData } from "@/types/paymentItem";
-import { updatePaymentItem } from "@/services/paymentItemsApi";
+import {
+  updatePaymentItem,
+  deletePaymentItem,
+} from "@/services/paymentItemsApi";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Edit2, Check, X } from "lucide-react";
+import { Edit2, Check, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import DeletePaymentItemDialog from "@/components/payment-items/DeletePaymentItemDialog";
 
 interface EditablePaymentItemRowProps {
   item: PaymentItemData;
   locations?: LocationData[];
   isSelected: boolean;
   onSelectionChange: (checked: boolean) => void;
+  projectId?: string;
 }
 
 const EditablePaymentItemRow: React.FC<EditablePaymentItemRowProps> = ({
@@ -22,8 +27,10 @@ const EditablePaymentItemRow: React.FC<EditablePaymentItemRowProps> = ({
   locations,
   isSelected,
   onSelectionChange,
+  projectId,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editedItem, setEditedItem] = useState({
     description: item.description,
     quantity: item.original_quantity,
@@ -46,9 +53,11 @@ const EditablePaymentItemRow: React.FC<EditablePaymentItemRowProps> = ({
       setIsEditing(false);
     },
     onError: (error) => {
-      toast.error(`Failed to update payment item: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`);
+      toast.error(
+        `Failed to update payment item: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     },
   });
 
@@ -80,10 +89,7 @@ const EditablePaymentItemRow: React.FC<EditablePaymentItemRowProps> = ({
   return (
     <TableRow>
       <TableCell>
-        <Checkbox
-          checked={isSelected}
-          onCheckedChange={onSelectionChange}
-        />
+        <Checkbox checked={isSelected} onCheckedChange={onSelectionChange} />
       </TableCell>
       <TableCell>
         {isEditing ? (
@@ -128,7 +134,9 @@ const EditablePaymentItemRow: React.FC<EditablePaymentItemRowProps> = ({
               }
               className="w-20"
             />
-            <span className="text-sm text-gray-500">{item.unit_of_measure}</span>
+            <span className="text-sm text-gray-500">
+              {item.unit_of_measure}
+            </span>
           </div>
         ) : (
           `${item.original_quantity} ${item.unit_of_measure}`
@@ -181,15 +189,36 @@ const EditablePaymentItemRow: React.FC<EditablePaymentItemRowProps> = ({
             </Button>
           </div>
         ) : (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setIsEditing(true)}
-          >
-            <Edit2 className="h-4 w-4" />
-          </Button>
+          <div className="flex space-x-1">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsEditing(true)}
+            >
+              <Edit2 className="h-4 w-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(true)}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         )}
       </TableCell>
+
+      {/* Delete Confirmation Dialog */}
+      {projectId && (
+        <DeletePaymentItemDialog
+          projectId={projectId}
+          itemId={item.item_id}
+          itemDescription={item.description}
+          isOpen={isDeleteDialogOpen}
+          onClose={() => setIsDeleteDialogOpen(false)}
+        />
+      )}
     </TableRow>
   );
 };

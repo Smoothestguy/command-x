@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  projectsApi,
-  workOrdersApi,
-  paymentItemsApi,
-  subcontractorsApi,
-} from "../services/supabaseApi";
+  getProjects,
+  getWorkOrders,
+  getPaymentItems,
+  getSubcontractors,
+  getDashboardSummary,
+  ProjectData,
+  WorkOrderData,
+} from "../services/api";
 import {
   Card,
   CardContent,
@@ -72,6 +75,21 @@ interface DashboardSummary {
     user: string;
     time: string;
   }>;
+  // Optional fields used by mock data for richer dashboards
+  totalProjects?: number;
+  activeProjects?: number;
+  completedProjects?: number;
+  totalWorkOrders?: number;
+  pendingWorkOrders?: number;
+  inProgressWorkOrders?: number;
+  completedWorkOrders?: number;
+  pendingPayments?: number;
+  activeSubcontractors?: number;
+  totalRevenue?: number;
+  totalExpenses?: number;
+  netProfit?: number;
+  workOrderStatusData?: Array<{ name: string; value: number }>;
+  monthlyRevenueData?: Array<{ month: string; revenue: number; expenses: number }>;
 }
 
 // Colors for pie chart
@@ -112,6 +130,38 @@ const Dashboard: React.FC = () => {
         console.warn("Supabase not configured, using mock data");
         // Use mock data instead
         const mockSummary: DashboardSummary = {
+          projectCount: 5,
+          activeWorkOrders: 8,
+          totalSubcontractors: 8,
+          totalBudget: 750000,
+          budgetData: [
+            { name: "Smith Residence", budget: 250000, spent: 120000 },
+            { name: "Downtown Office", budget: 350000, spent: 150000 },
+            { name: "City Park", budget: 150000, spent: 40000 },
+          ],
+          workOrderData: [
+            { name: "Pending", count: 4 },
+            { name: "In Progress", count: 6 },
+            { name: "Completed", count: 2 },
+          ],
+          recentActivities: [
+            {
+              id: "1",
+              type: "project",
+              action: "created",
+              item: "Smith Residence Renovation",
+              user: "Sarah Johnson",
+              time: "2025-02-15",
+            },
+            {
+              id: "2",
+              type: "workorder",
+              action: "updated",
+              item: "Foundation inspection",
+              user: "Mike Wilson",
+              time: "2025-02-16",
+            },
+          ],
           totalProjects: 5,
           activeProjects: 3,
           completedProjects: 2,
@@ -121,7 +171,6 @@ const Dashboard: React.FC = () => {
           completedWorkOrders: 2,
           totalPaymentItems: 25,
           pendingPayments: 8,
-          totalSubcontractors: 8,
           activeSubcontractors: 6,
           totalRevenue: 125000,
           totalExpenses: 85000,
@@ -150,41 +199,49 @@ const Dashboard: React.FC = () => {
 
       // Fetch all data in parallel
       const [projects, workOrders, paymentItems, subcontractors] =
-        await Promise.all([
-          projectsApi.getAll(),
-          workOrdersApi.getAll(),
-          paymentItemsApi.getAll(),
-          subcontractorsApi.getAll(),
-        ]);
+        (await Promise.all([
+          getProjects(),
+          getWorkOrders(),
+          getPaymentItems(),
+          getSubcontractors(),
+        ])) as [ProjectData[], WorkOrderData[], any[], any[]];
 
       // Calculate project status data
-      const statusCounts = projects.reduce((acc, project) => {
-        acc[project.status] = (acc[project.status] || 0) + 1;
+      const statusCounts = projects.reduce<Record<string, number>>(
+        (acc, project: ProjectData) => {
+          const statusKey = project.status || "Unknown";
+          acc[statusKey] = (acc[statusKey] || 0) + 1;
         return acc;
-      }, {} as Record<string, number>);
+        },
+        {}
+      );
 
       const projectStatusData = Object.entries(statusCounts).map(
         ([name, value]) => ({
           name,
-          value,
+          value: Number(value || 0),
         })
       );
 
       // Calculate work order status data
-      const workOrderStatusCounts = workOrders.reduce((acc, wo) => {
-        acc[wo.status] = (acc[wo.status] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const workOrderStatusCounts = workOrders.reduce<Record<string, number>>(
+        (acc, wo: WorkOrderData) => {
+          const statusKey = wo.status || "Unknown";
+          acc[statusKey] = (acc[statusKey] || 0) + 1;
+          return acc;
+        },
+        {}
+      );
 
       const workOrderData = Object.entries(workOrderStatusCounts).map(
         ([name, count]) => ({
           name,
-          count,
+          count: Number(count || 0),
         })
       );
 
       // Calculate budget data
-      const budgetData = projects.map((project) => ({
+      const budgetData = projects.map((project: ProjectData) => ({
         name:
           project.project_name.length > 15
             ? project.project_name.substring(0, 15) + "..."
@@ -195,34 +252,40 @@ const Dashboard: React.FC = () => {
 
       // Calculate total budget
       const totalBudget = projects.reduce(
-        (sum, project) => sum + (project.budget || 0),
+        (sum: number, project: ProjectData) => sum + (project.budget || 0),
         0
       );
 
       // Generate recent activities from work orders and projects
       const recentActivities = [
-        ...projects.slice(0, 2).map((project) => ({
-          id: project.project_id,
+        ...projects.slice(0, 2).map((project: ProjectData) => ({
+          id: String(project.project_id ?? ""),
           type: "project",
           action: "created",
           item: project.project_name,
           user: "Project Manager",
-          time: new Date(project.created_at).toLocaleDateString(),
+          time: new Date(
+            project.created_at || new Date().toISOString()
+          ).toLocaleDateString(),
         })),
-        ...workOrders.slice(0, 3).map((wo) => ({
-          id: wo.work_order_id,
+        ...workOrders.slice(0, 3).map((wo: WorkOrderData) => ({
+          id: String(wo.work_order_id ?? ""),
           type: "workorder",
           action: wo.status === "Completed" ? "completed" : "updated",
           item: wo.description,
           user: "Field Worker",
-          time: new Date(wo.updated_at).toLocaleDateString(),
+          time: new Date(
+            wo.updated_at || new Date().toISOString()
+          ).toLocaleDateString(),
         })),
       ].slice(0, 5);
 
       const summary: DashboardSummary = {
         projectCount: projects.length,
         activeWorkOrders: workOrders.filter((wo) =>
-          ["Pending", "Assigned", "Started", "In Progress"].includes(wo.status)
+          ["Pending", "Assigned", "Started", "In Progress"].includes(
+            String(wo.status || "")
+          )
         ).length,
         totalPaymentItems: paymentItems.length,
         totalSubcontractors: subcontractors.length,

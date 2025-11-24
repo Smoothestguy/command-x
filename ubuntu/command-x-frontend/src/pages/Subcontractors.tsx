@@ -236,7 +236,7 @@ const Subcontractors: React.FC = () => {
       if (!selectedSubcontractor?.subcontractor_id)
         throw new Error("No subcontractor selected for update");
       return updateSubcontractor(
-        selectedSubcontractor.subcontractor_id,
+        Number(selectedSubcontractor.subcontractor_id),
         subcontractorData
       );
     },
@@ -419,10 +419,25 @@ const Subcontractors: React.FC = () => {
       {/* Tabs and Filters */}
       <div className="mb-6 space-y-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="all">All Subcontractors</TabsTrigger>
-            <TabsTrigger value="active">Active</TabsTrigger>
-            <TabsTrigger value="inactive">Inactive</TabsTrigger>
+          <TabsList className="floating-toolbar overflow-x-auto">
+            <TabsTrigger
+              value="all"
+              className="pill-tab text-sm font-semibold"
+            >
+              All Subcontractors
+            </TabsTrigger>
+            <TabsTrigger
+              value="active"
+              className="pill-tab text-sm font-semibold"
+            >
+              Active
+            </TabsTrigger>
+            <TabsTrigger
+              value="inactive"
+              className="pill-tab text-sm font-semibold"
+            >
+              Inactive
+            </TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -1386,7 +1401,9 @@ const Subcontractors: React.FC = () => {
               variant="destructive"
               onClick={() =>
                 selectedSubcontractor &&
-                handleDeleteConfirm(selectedSubcontractor.subcontractor_id!)
+                handleDeleteConfirm(
+                  Number(selectedSubcontractor.subcontractor_id!)
+                )
               }
               disabled={deleteMutation.isPending}
             >

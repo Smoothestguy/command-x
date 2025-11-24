@@ -113,7 +113,10 @@ const EnhancedWorkOrderForm: React.FC<EnhancedWorkOrderFormProps> = ({
       project_id: projectId || initialData?.project_id || "",
       description: initialData?.description || "",
       assigned_subcontractor_id:
-        initialData?.assigned_subcontractor_id || undefined,
+        initialData?.assigned_subcontractor_id !== undefined &&
+        initialData?.assigned_subcontractor_id !== null
+          ? Number(initialData.assigned_subcontractor_id)
+          : undefined,
       contractor_assignments: initialData?.contractor_assignments || [],
       status: initialData?.status || "Pending",
       scheduled_date: initialData?.scheduled_date || "",
@@ -140,24 +143,25 @@ const EnhancedWorkOrderForm: React.FC<EnhancedWorkOrderFormProps> = ({
   });
 
   // Fetch data
-  const { data: projects } = useQuery({
+  const { data: projects = [] } = useQuery<ProjectData[]>({
     queryKey: ["projects"],
     queryFn: getProjects,
   });
 
-  const { data: subcontractors } = useQuery({
+  const { data: subcontractors = [] } = useQuery<SubcontractorData[]>({
     queryKey: ["subcontractors"],
     queryFn: getSubcontractors,
   });
 
-  const { data: locations } = useQuery({
-    queryKey: ["locations"],
-    queryFn: getLocations,
-  });
-
   const selectedProjectId = form.watch("project_id");
 
-  const { data: availablePaymentItems } = useQuery({
+  const { data: locations = [] } = useQuery<LocationData[]>({
+    queryKey: ["locations", selectedProjectId],
+    queryFn: ({ queryKey }) =>
+      getLocations({ projectId: queryKey[1] as string | number | undefined }),
+  });
+
+  const { data: availablePaymentItems = [] } = useQuery<PaymentItemData[]>({
     queryKey: ["paymentItems", selectedProjectId],
     queryFn: () =>
       getPaymentItems({
@@ -280,14 +284,17 @@ const EnhancedWorkOrderForm: React.FC<EnhancedWorkOrderFormProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {projects?.map((project) => (
-                          <SelectItem
-                            key={project.project_id}
-                            value={project.project_id.toString()}
-                          >
-                            {project.project_name}
-                          </SelectItem>
-                        ))}
+                        {projects?.map((project) => {
+                          const idValue = project.project_id ?? "";
+                          return (
+                            <SelectItem
+                              key={idValue?.toString()}
+                              value={idValue?.toString()}
+                            >
+                              {project.project_name}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -314,14 +321,17 @@ const EnhancedWorkOrderForm: React.FC<EnhancedWorkOrderFormProps> = ({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="">None</SelectItem>
-                        {subcontractors?.map((subcontractor) => (
-                          <SelectItem
-                            key={subcontractor.subcontractor_id}
-                            value={subcontractor.subcontractor_id.toString()}
-                          >
-                            {subcontractor.company_name}
-                          </SelectItem>
-                        ))}
+                        {subcontractors?.map((subcontractor) => {
+                          const idValue = subcontractor.subcontractor_id ?? "";
+                          return (
+                            <SelectItem
+                              key={idValue?.toString()}
+                              value={idValue?.toString()}
+                            >
+                              {subcontractor.company_name}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -495,14 +505,17 @@ const EnhancedWorkOrderForm: React.FC<EnhancedWorkOrderFormProps> = ({
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {subcontractors?.map((subcontractor) => (
-                                  <SelectItem
-                                    key={subcontractor.subcontractor_id}
-                                    value={subcontractor.subcontractor_id.toString()}
-                                  >
-                                    {subcontractor.company_name}
-                                  </SelectItem>
-                                ))}
+                                {subcontractors?.map((subcontractor) => {
+                                  const idValue = subcontractor.subcontractor_id ?? "";
+                                  return (
+                                    <SelectItem
+                                      key={idValue?.toString()}
+                                      value={idValue?.toString()}
+                                    >
+                                      {subcontractor.company_name}
+                                    </SelectItem>
+                                  );
+                                })}
                               </SelectContent>
                             </Select>
                             <FormMessage />
