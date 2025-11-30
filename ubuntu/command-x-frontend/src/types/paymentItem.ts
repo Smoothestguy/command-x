@@ -4,6 +4,8 @@ export interface PaymentItemData {
   item_id: number;
   uuid_item_id?: string; // Store the actual UUID from database
   project_id: string | number; // Support both UUID strings and legacy numbers
+  product_id?: string;
+  product_name?: string;
   work_order_id?: number;
   location_id?: number;
   location_name?: string;
@@ -179,6 +181,8 @@ export const mockPaymentItems: PaymentItemData[] = [
     project_id: 1,
     work_order_id: 1,
     location_id: 3,
+    product_id: "prod-4",
+    product_name: "Appliance Package",
     description: "Kitchen Cabinets Installation",
     item_code: "KC-001",
     unit_of_measure: "linear ft",
@@ -208,6 +212,8 @@ export const mockPaymentItems: PaymentItemData[] = [
     project_id: 1,
     work_order_id: 1,
     location_id: 3,
+    product_id: "prod-2",
+    product_name: "Framing Lumber",
     description: "Countertop Installation",
     item_code: "CT-001",
     unit_of_measure: "sq ft",
@@ -236,6 +242,8 @@ export const mockPaymentItems: PaymentItemData[] = [
     project_id: 1,
     work_order_id: 2,
     location_id: 4,
+    product_id: "prod-3",
+    product_name: "Project Management Hours",
     description: "Hardwood Flooring",
     item_code: "HF-001",
     unit_of_measure: "sq ft",

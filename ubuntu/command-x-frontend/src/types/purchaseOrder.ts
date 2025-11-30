@@ -9,6 +9,10 @@ export interface VendorData {
   state?: string;
   zip?: string;
   notes?: string;
+   legal_name?: string;
+   tax_id?: string;
+   w9_url?: string;
+   w9_received?: boolean;
   created_at?: string;
   updated_at?: string;
 }

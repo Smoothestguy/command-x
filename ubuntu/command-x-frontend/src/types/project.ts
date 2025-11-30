@@ -16,6 +16,7 @@ export interface ProjectData {
   project_name: string;
   location: string;
   client_name: string;
+  customer_id?: string;
   start_date: string;
   end_date: string;
   budget: number;

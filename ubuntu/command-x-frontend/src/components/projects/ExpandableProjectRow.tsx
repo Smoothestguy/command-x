@@ -469,6 +469,64 @@ const ExpandableProjectRow: React.FC<ExpandableProjectRowProps> = ({
                             </div>
                           </div>
                         </div>
+
+                        <div className="pt-3 border-t">
+                          <div
+                            className={`flex items-center justify-between mb-2 ${
+                              isMobile ? "text-xs" : "text-sm"
+                            }`}
+                          >
+                            <span className="flex items-center">
+                              <CreditCard className="h-4 w-4 mr-1" />
+                              Billing Snapshot
+                            </span>
+                            <Badge variant="outline">
+                              Profitability:{" "}
+                              {(
+                                ((project.total_invoiced || 0) -
+                                  (project.actual_cost || 0)) /
+                                (project.total_invoiced || 1)
+                              ).toLocaleString(undefined, {
+                                style: "percent",
+                                minimumFractionDigits: 0,
+                              })}
+                            </Badge>
+                          </div>
+                          <div
+                            className={`grid ${
+                              isMobile
+                                ? "grid-cols-1 gap-1 text-xs"
+                                : "grid-cols-2 gap-2 text-sm"
+                            }`}
+                          >
+                            <div className="flex justify-between">
+                              <span>Invoiced</span>
+                              <span className="font-medium">
+                                ${project.total_invoiced?.toLocaleString() || 0}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Paid</span>
+                              <span className="font-medium">
+                                ${project.total_paid?.toLocaleString() || 0}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Outstanding</span>
+                              <span className="font-medium">
+                                $
+                                {project.outstanding_balance?.toLocaleString() ||
+                                  0}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Retainage</span>
+                              <span className="font-medium">
+                                ${project.retainage_held?.toLocaleString() || 0}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
                   </div>

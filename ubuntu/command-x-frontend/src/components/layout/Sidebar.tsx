@@ -12,6 +12,8 @@ import {
   X,
   ShoppingCart,
   Building,
+  Package,
+  Contact2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDeviceInfo } from "@/hooks/use-mobile";
@@ -76,6 +78,34 @@ const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
             >
               <FolderKanban className="mr-3 h-5 w-5 flex-shrink-0" />
               <span className="truncate">Projects</span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/customers"
+              onClick={onCloseMobile}
+              className={`flex items-center p-2.5 text-sm font-medium rounded-xl transition ${
+                location.pathname === "/customers"
+                  ? "bg-[var(--accent-soft)] text-[var(--accent)] shadow-sm"
+                  : "text-slate-700 hover:bg-slate-100"
+              }`}
+            >
+              <Contact2 className="mr-3 h-5 w-5 flex-shrink-0" />
+              <span className="truncate">Customers</span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/products"
+              onClick={onCloseMobile}
+              className={`flex items-center p-2.5 text-sm font-medium rounded-xl transition ${
+                location.pathname === "/products"
+                  ? "bg-[var(--accent-soft)] text-[var(--accent)] shadow-sm"
+                  : "text-slate-700 hover:bg-slate-100"
+              }`}
+            >
+              <Package className="mr-3 h-5 w-5 flex-shrink-0" />
+              <span className="truncate">Products</span>
             </Link>
           </li>
           <li>

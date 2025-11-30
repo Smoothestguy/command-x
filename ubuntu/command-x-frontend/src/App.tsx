@@ -40,6 +40,8 @@ import TestAddCustomItem from "./pages/TestAddCustomItem"; // Import TestAddCust
 import MinimalDialogTest from "./pages/MinimalDialogTest"; // Import MinimalDialogTest
 import SimpleFormTest from "./pages/SimpleFormTest"; // Import SimpleFormTest
 import DialogDebugTest from "./pages/DialogDebugTest"; // Import DialogDebugTest
+import Customers from "./pages/Customers";
+import Products from "./pages/Products";
 import { useEffect } from "react";
 import { setUser } from "./features/auth/authSlice";
 import { ThemeProvider } from "./components/theme/ThemeProvider";
@@ -245,6 +247,8 @@ function App() {
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/projects" element={<Projects />} />
+              <Route path="/customers" element={<Customers />} />
+              <Route path="/products" element={<Products />} />
               <Route
                 path="/projects/:projectId/payment-items"
                 element={<PaymentItemsPage />}

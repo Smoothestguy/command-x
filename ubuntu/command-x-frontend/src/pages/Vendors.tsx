@@ -65,6 +65,10 @@ let mockVendors: VendorData[] = [
   {
     vendor_id: 1,
     name: "ABC Supplies",
+    legal_name: "ABC Supplies LLC",
+    tax_id: "45-1234567",
+    w9_url: "https://example.com/w9/abc-supplies.pdf",
+    w9_received: true,
     contact_name: "John Smith",
     email: "john@abcsupplies.com",
     phone: "555-123-4567",
@@ -77,6 +81,9 @@ let mockVendors: VendorData[] = [
   {
     vendor_id: 2,
     name: "XYZ Materials",
+    legal_name: "XYZ Materials Inc.",
+    tax_id: "99-7654321",
+    w9_received: false,
     contact_name: "Jane Doe",
     email: "jane@xyzmaterials.com",
     phone: "555-987-6543",
@@ -89,6 +96,9 @@ let mockVendors: VendorData[] = [
   {
     vendor_id: 3,
     name: "123 Hardware",
+    legal_name: "123 Hardware Co.",
+    tax_id: "12-2223333",
+    w9_received: true,
     contact_name: "Bob Johnson",
     email: "bob@123hardware.com",
     phone: "555-456-7890",
@@ -183,6 +193,10 @@ const vendorValidationSchema = Yup.object({
   state: Yup.string(),
   zip: Yup.string(),
   notes: Yup.string(),
+  legal_name: Yup.string(),
+  tax_id: Yup.string(),
+  w9_url: Yup.string().url("Must be a valid URL"),
+  w9_received: Yup.boolean(),
 });
 
 const Vendors: React.FC = () => {
@@ -271,6 +285,10 @@ const Vendors: React.FC = () => {
       state: "",
       zip: "",
       notes: "",
+      legal_name: "",
+      tax_id: "",
+      w9_url: "",
+      w9_received: false,
     },
     validationSchema: vendorValidationSchema,
     onSubmit: (values) => {
@@ -291,6 +309,10 @@ const Vendors: React.FC = () => {
       state: "",
       zip: "",
       notes: "",
+      legal_name: "",
+      tax_id: "",
+      w9_url: "",
+      w9_received: false,
     },
     validationSchema: vendorValidationSchema,
     onSubmit: (values) => {
@@ -313,6 +335,10 @@ const Vendors: React.FC = () => {
       state: vendor.state || "",
       zip: vendor.zip || "",
       notes: vendor.notes || "",
+      legal_name: vendor.legal_name || "",
+      tax_id: vendor.tax_id || "",
+      w9_url: vendor.w9_url || "",
+      w9_received: vendor.w9_received || false,
     });
     setIsEditDialogOpen(true);
   };
@@ -424,7 +450,24 @@ const Vendors: React.FC = () => {
               <TableBody>
                 {filteredVendors.map((vendor) => (
                   <TableRow key={vendor.vendor_id}>
-                    <TableCell className="font-medium">{vendor.name}</TableCell>
+                    <TableCell className="font-medium space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span>{vendor.name}</span>
+                        <Badge variant={vendor.w9_received ? "secondary" : "outline"}>
+                          {vendor.w9_received ? "W9 on file" : "W9 pending"}
+                        </Badge>
+                      </div>
+                      {vendor.legal_name && (
+                        <div className="text-xs text-muted-foreground">
+                          {vendor.legal_name}
+                        </div>
+                      )}
+                      {vendor.tax_id && (
+                        <div className="text-xs text-muted-foreground">
+                          Tax ID: {vendor.tax_id}
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell>{vendor.contact_name || "-"}</TableCell>
                     <TableCell>{vendor.email || "-"}</TableCell>
                     <TableCell>{vendor.phone || "-"}</TableCell>
@@ -483,6 +526,12 @@ const Vendors: React.FC = () => {
                         <span>{vendor.contact_name}</span>
                       </div>
                     )}
+                    {vendor.legal_name && (
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <FileText className="h-4 w-4 mr-2" />
+                        <span>{vendor.legal_name}</span>
+                      </div>
+                    )}
                     {vendor.email && (
                       <div className="flex items-center">
                         <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -495,6 +544,21 @@ const Vendors: React.FC = () => {
                         <span>{vendor.phone}</span>
                       </div>
                     )}
+                    <div className="flex items-center gap-2 pt-1">
+                      <Badge variant={vendor.w9_received ? "secondary" : "outline"}>
+                        {vendor.w9_received ? "W9 on file" : "W9 pending"}
+                      </Badge>
+                      {vendor.w9_url && (
+                        <a
+                          href={vendor.w9_url}
+                          className="text-xs text-blue-600 hover:underline"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          View W9
+                        </a>
+                      )}
+                    </div>
                     {vendor.address && (
                       <div className="flex items-start">
                         <MapPin className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground" />
@@ -649,6 +713,104 @@ const Vendors: React.FC = () => {
                     value={createFormik.values.zip}
                     onChange={createFormik.handleChange}
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="legal_name">Legal Name</Label>
+                  <Input
+                    id="legal_name"
+                    name="legal_name"
+                    placeholder="Legal entity name"
+                    value={createFormik.values.legal_name}
+                    onChange={createFormik.handleChange}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tax_id">Tax ID</Label>
+                  <Input
+                    id="tax_id"
+                    name="tax_id"
+                    placeholder="XX-XXXXXXX"
+                    value={createFormik.values.tax_id}
+                    onChange={createFormik.handleChange}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="w9_url">W-9 URL</Label>
+                  <Input
+                    id="w9_url"
+                    name="w9_url"
+                    placeholder="https://..."
+                    value={createFormik.values.w9_url}
+                    onChange={createFormik.handleChange}
+                  />
+                </div>
+                <div className="space-y-2 flex items-end gap-2">
+                  <input
+                    id="w9_received"
+                    name="w9_received"
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={createFormik.values.w9_received}
+                    onChange={createFormik.handleChange}
+                  />
+                  <Label htmlFor="w9_received" className="mb-0">
+                    W-9 on file
+                  </Label>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="legal_name">Legal Name</Label>
+                  <Input
+                    id="legal_name"
+                    name="legal_name"
+                    placeholder="Legal entity name"
+                    value={editFormik.values.legal_name}
+                    onChange={editFormik.handleChange}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tax_id">Tax ID</Label>
+                  <Input
+                    id="tax_id"
+                    name="tax_id"
+                    placeholder="XX-XXXXXXX"
+                    value={editFormik.values.tax_id}
+                    onChange={editFormik.handleChange}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="w9_url">W-9 URL</Label>
+                  <Input
+                    id="w9_url"
+                    name="w9_url"
+                    placeholder="https://..."
+                    value={editFormik.values.w9_url}
+                    onChange={editFormik.handleChange}
+                  />
+                </div>
+                <div className="space-y-2 flex items-end gap-2">
+                  <input
+                    id="w9_received"
+                    name="w9_received"
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={editFormik.values.w9_received}
+                    onChange={editFormik.handleChange}
+                  />
+                  <Label htmlFor="w9_received" className="mb-0">
+                    W-9 on file
+                  </Label>
                 </div>
               </div>
 
